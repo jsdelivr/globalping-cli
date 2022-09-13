@@ -1,0 +1,29 @@
+[package]
+name = "utils"
+version = "2.0.0-beta"
+authors = ["Abid Omar <contact@omarabid.com>"]
+description = "Various utilities and functionalities"
+edition = "2021"
+
+[features]
+nightly = []
+termlog = []
+syslog = []
+journald = []
+
+[dependencies]
+thiserror = "1.0.30"
+backtrace = "0.3.64"
+color-backtrace = "0.5.1"
+config = "0.11.0"
+lazy_static = "1.4.0"
+slog = "2.7.0"
+slog-syslog = "0.13.0"
+slog-term = "2.8.0"
+slog-scope = "4.4.0"
+slog-async = "2.7.0"
+slog-stdlog = "4.1.0"
+slog-journald = "2.2.0"
+clap = "3.0.14"
+log = "0.4.14"
+serde = { version = "1.0.136", features = ["derive"] }
