@@ -1,4 +1,0 @@
-debug = false
-
-[database]
-url = "custom database url"
