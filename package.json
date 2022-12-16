@@ -1,0 +1,44 @@
+{
+    "name": "globalping-cli",
+    "version": "0.1.0",
+    "description": "A simple CLI tool to run networking commands remotely on hundreds of globally distributed servers.",
+    "bin": {
+        "globalping": "./dist/cli.mjs"
+    },
+    "scripts": {
+        "build": "pkgroll --target=node16",
+        "dev": "pkgroll --target=node16 --watch",
+        "cli": "node ./dist/cli.mjs",
+        "lint": "eslint **/*.ts --fix",
+        "lint:src": "eslint ./src/*.ts --fix"
+    },
+    "dependencies": {
+        "cac": "^6.7.14",
+        "ink": "^3.2.0",
+        "ky": "^0.33.0",
+        "ky-universal": "^0.11.0",
+        "react": "^17.0.2",
+        "yargs-parser": "^21.1.1"
+    },
+    "devDependencies": {
+        "@ayuhito/eslint-config": "^0.2.4",
+        "@tsconfig/node16-strictest-esm": "^1.0.3",
+        "c8": "^7.12.0",
+        "chai": "^4.3.7",
+        "eslint": "^8.29.0",
+        "mocha": "^10.2.0",
+        "pkgroll": "^1.8.0",
+        "tsx": "^3.12.1",
+        "typescript": "^4.9.4"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jsdelivr/globalping-cli.git"
+    },
+    "author": "",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/jsdelivr/globalping-cli/issues"
+    },
+    "homepage": "https://github.com/jsdelivr/globalping-cli#readme"
+}
