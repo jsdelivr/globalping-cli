@@ -73,13 +73,31 @@ export type HttpMethod = typeof ALLOWED_HTTP_METHODS[number];
 export const isHttpMethod = (type: string): type is HttpMethod =>
     ALLOWED_HTTP_METHODS.includes(type as HttpMethod);
 
+interface SharedResults {
+    probe: {
+        continent: string;
+        region: string;
+        country: string;
+        state: string | null;
+        city: string;
+        asn: number;
+        longitude: number;
+        latitude: number;
+        network: string;
+        resolvers: string[];
+    };
+    result: {
+        rawOutput: string;
+    };
+}
+
 export interface MeasurementResponse {
     id: string;
     type: QueryType;
     status: 'in-progress' | 'finished';
     createdAt: string;
     updatedAt: string;
-    results: object[];
+    results: SharedResults[];
 }
 
 interface Locations {
@@ -160,4 +178,25 @@ export type PostMeasurement =
 export interface PostMeasurementResponse {
     id: string;
     probesCount: number;
+}
+
+export interface Arguments {
+    cmd: string;
+    target: string;
+    locationArr: string[];
+    from: string;
+    limit: number;
+    packets: number;
+    protocol: string;
+    port: number;
+    query: string;
+    resolver: string;
+    trace: boolean;
+    path: string;
+    method: string;
+    host: string;
+    headers: any;
+    // CLI format flags
+    ci: boolean;
+    json: boolean;
 }

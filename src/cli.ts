@@ -1,9 +1,7 @@
-/* eslint-disable no-await-in-loop */
 import { cac } from 'cac';
 
 import { version } from '../package.json';
-import { getMeasurement, postMeasurement } from './api';
-import { parseArgs } from './parse';
+import { render } from './render';
 
 const cli = cac('globalping');
 
@@ -12,46 +10,108 @@ cli.command('ping <target> from [...locations]', 'Use ping command')
     .option('--limit <count>', 'Number of probes')
     .option('--packets <count>', 'Number of packets')
     .option('--ci', 'Disable pretty rendering')
-    .action(async (target, locations, opts) => {
+    .action(async (target, locationArr, opts) => {
         try {
             const args = {
                 cmd: 'ping',
                 target,
-                locations,
+                locationArr,
                 ...opts,
             };
 
             console.log(JSON.stringify(args));
-
-            if ('ci' in opts) {
-                const { id } = await postMeasurement(parseArgs(args));
-                let res = await getMeasurement(id);
-                // CI doesn't need real time results, just a final answer
-                while (res.status === 'in-progress') {
-                    // eslint-disable-next-line no-promise-executor-return
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                    res = await getMeasurement(id);
-                }
-            } else {
-                // render
-            }
+            render(args);
         } catch (error) {
-            console.log(error);
+            console.error(error);
         }
     });
 
-cli.command('traceroute [target]', 'Use traceroute command')
-    .option('-F --from', 'Probe locations')
-    .option('-L --limit', 'Number of probes')
-    .option('--protocol', 'Protocol to use')
-    .option('--port', 'Port to use');
+cli.command('traceroute <target> from [...locations]', 'Use traceroute command')
+    .option('--from <location>', 'Probe locations')
+    .option('--limit <count>', 'Number of probes')
+    .option('--protocol <type>', 'Protocol to use')
+    .option('--port <number>', 'Port to use')
+    .action(async (target, locationArr, opts) => {
+        try {
+            const args = {
+                cmd: 'traceroute',
+                target,
+                locationArr,
+                ...opts,
+            };
 
-cli.command('dns [target]', 'Use DNS command')
-    .option('-F --from', 'Probe locations')
-    .option('-L --limit', 'Number of probes')
-    .option('--query', 'Query type')
-    .option('--port', 'Port to use')
-    .option('--protocol', 'Protocol to use');
+            render(args);
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+cli.command('dns <target> from [...locations]', 'Use DNS command')
+    .option('--from <location>', 'Probe locations')
+    .option('--limit <count>', 'Number of probes')
+    .option('--query <type>', 'Query type')
+    .option('--port <number>', 'Port to use')
+    .option('--protocol <type>', 'Protocol to use')
+    .option('--resolver <address>', 'Use resolver')
+    .option('--trace', 'Use trace')
+    .action(async (target, locationArr, opts) => {
+        try {
+            const args = {
+                cmd: 'dns',
+                target,
+                locationArr,
+                ...opts,
+            };
+
+            render(args);
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+cli.command('mtr <target> from [...locations]', 'Use MTR command')
+    .option('--from <location>', 'Probe locations')
+    .option('--protocol <type>', 'Protocol to use')
+    .option('--port <number>', 'Use port number')
+    .option('--packets <count>', 'Number of packets')
+    .action(async (target, locationArr, opts) => {
+        try {
+            const args = {
+                cmd: 'mtr',
+                target,
+                locationArr,
+                ...opts,
+            };
+
+            render(args);
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+cli.command('http <target> from [...locations]')
+    .option('--from <location>', 'Probe locations')
+    .option('--port <number>', 'Port number')
+    .option('--protocol <type>', 'Protocol to use')
+    .option('--path <route>', 'Path to use')
+    .option('--query <string>', 'Query to use')
+    .option('--method <type>', 'HTTP method to use')
+    .option('--host <string>', 'Hostname to use')
+    .option('--headers <string>', 'Headers to use')
+    .action(async (target, locationArr, opts) => {
+        try {
+            const args = {
+                cmd: 'http',
+                target,
+                locationArr,
+                ...opts,
+            };
+
+            render(args);
+        } catch (error) {
+            console.error(error);
+        }
+    });
 
 cli.help();
 cli.version(version);

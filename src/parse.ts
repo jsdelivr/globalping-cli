@@ -6,6 +6,7 @@ import {
     ALLOWED_MTR_PROTOCOLS,
     ALLOWED_QUERY_TYPES,
     ALLOWED_TRACE_PROTOCOLS,
+    Arguments,
     isDnsProtocol,
     isDnsType,
     isHttpMethod,
@@ -16,11 +17,12 @@ import {
 } from './types';
 import { throwArgError } from './utils';
 
-export const parseArgs = (args: any): PostMeasurement => {
+export const parseArgs = (args: Arguments): PostMeasurement => {
     const {
         cmd,
         target,
         from,
+        locationArr,
         limit,
         packets,
         protocol,
@@ -33,13 +35,17 @@ export const parseArgs = (args: any): PostMeasurement => {
         host,
         headers,
     } = args;
-    const locations = [{ magic: from }];
+
+    // When using the ping x from y format, the from is picked up in the locations arr
+    if (locationArr[0] === 'from') locationArr.shift();
+
+    const locations = [{ magic: locationArr.join(' ') ?? from }];
 
     if (cmd === 'ping')
         return {
             type: 'ping',
             target,
-            limit,
+            limit: limit ?? 1,
             locations,
             measurementOptions: {
                 ...(packets && { packets }),
@@ -50,7 +56,7 @@ export const parseArgs = (args: any): PostMeasurement => {
         return {
             type: 'traceroute',
             target,
-            limit,
+            limit: limit ?? 1,
             locations,
             measurementOptions: {
                 ...(protocol && {
@@ -70,7 +76,7 @@ export const parseArgs = (args: any): PostMeasurement => {
         return {
             type: 'dns',
             target,
-            limit,
+            limit: limit ?? 1,
             locations,
             measurementOptions: {
                 ...(query && {
@@ -103,7 +109,7 @@ export const parseArgs = (args: any): PostMeasurement => {
         return {
             type: 'mtr',
             target,
-            limit,
+            limit: limit ?? 1,
             locations,
             measurementOptions: {
                 ...(protocol && {
@@ -125,7 +131,7 @@ export const parseArgs = (args: any): PostMeasurement => {
         return {
             type: 'http',
             target,
-            limit,
+            limit: limit ?? 1,
             locations,
             measurementOptions: {
                 ...(port && { port }),
