@@ -1,4 +1,4 @@
-package api
+package model
 
 // Modeled from https://github.com/jsdelivr/globalping/blob/master/docs/measurement/post-create.md
 

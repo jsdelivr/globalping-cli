@@ -3,7 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/jsdelivr/globalping-cli/api"
+	"github.com/jsdelivr/globalping-cli/client"
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
 
@@ -20,21 +21,21 @@ var (
 		Args: requireTarget(),
 		Run: func(cmd *cobra.Command, args []string) {
 			// Make post struct
-			opts = api.PostMeasurement{
+			opts = model.PostMeasurement{
 				Type:   "ping",
 				Target: args[0],
-				Locations: api.Locations{
+				Locations: model.Locations{
 					{
 						Magic: from,
 					},
 				},
 				Limit: limit,
-				Options: &api.MeasurementOptions{
+				Options: &model.MeasurementOptions{
 					Packets: packets,
 				},
 			}
 
-			res, err := api.PostAPI(opts)
+			res, err := client.PostAPI(opts)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -44,7 +45,7 @@ var (
 		},
 	}
 
-	opts    = api.PostMeasurement{}
+	opts    = model.PostMeasurement{}
 	packets int
 )
 
