@@ -41,7 +41,7 @@ var (
 				return
 			}
 
-			fmt.Println(res)
+			client.OutputResults(res.ID)
 		},
 	}
 
