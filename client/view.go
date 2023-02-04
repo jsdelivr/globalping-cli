@@ -25,7 +25,7 @@ func OutputResults(id string) {
 
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
-		fmt.Fprintf(writer, highlight.Render("Pending..."))
+		fmt.Fprint(writer, highlight.Render("Pending..."))
 		time.Sleep(100 * time.Millisecond)
 		data, err = GetAPI(id)
 		if err != nil {
