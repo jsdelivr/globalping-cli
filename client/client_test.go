@@ -1,9 +1,6 @@
 package client_test
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,17 +30,6 @@ func generateServerError(json string, statusCode int) *httptest.Server {
 
 // Dummy interface since we have mock responses
 var opts = model.PostMeasurement{}
-var data map[string]interface{}
-
-func init() {
-	file, err := ioutil.ReadFile("./client_test.json")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	json.Unmarshal(file, &data)
-}
 
 // PostAPI tests
 func TestPostAPI(t *testing.T) {

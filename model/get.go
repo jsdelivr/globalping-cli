@@ -4,6 +4,13 @@ package model
 
 // Nested structs
 type MeasurementResponse struct {
+	Probe struct {
+		Continent string `json:"continent"`
+		Country   string `json:"country"`
+		City      string `json:"city"`
+		State     string `json:"state,omitempty"`
+		ASN       int    `json:"asn"`
+	} `json:"probe"`
 	Result struct {
 		RawOutput string `json:"rawOutput"`
 	} `json:"result"`
