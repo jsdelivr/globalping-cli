@@ -3,34 +3,52 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/jsdelivr/globalping-cli/client"
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
 
 // tracerouteCmd represents the traceroute command
 var tracerouteCmd = &cobra.Command{
-	Use:   "traceroute",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "traceroute [target]",
+	Short: "Implementation of the native traceroute command",
+	Long: `traceroute tracks the route packets taken from an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an ICMP TIME_EXCEEDED response from each gateway along the path to the host.
+	
+		Examples:
+		# Traceroute google.com from a probe in the network
+		globalping traceroute google.com --from "New York" --limit 2`,
+	Args: requireTarget(),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("traceroute called")
+		// Make post struct
+		opts = model.PostMeasurement{
+			Type:   "traceroute",
+			Target: args[0],
+			Locations: model.Locations{
+				{
+					Magic: from,
+				},
+			},
+			Limit: limit,
+			Options: &model.MeasurementOptions{
+				Protocol: protocol,
+				Port:     port,
+			},
+		}
+
+		res, err := client.PostAPI(opts)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client.OutputResults(res.ID)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(tracerouteCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// tracerouteCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// tracerouteCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// traceroute specific flags
+	tracerouteCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol used for tracerouting (ICMP, TCP or UDP). (default \"icmp\")")
+	tracerouteCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use for the traceroute. Only applicable for TCP protocol. (default 80)")
 }

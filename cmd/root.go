@@ -2,17 +2,31 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
-	cfgFile string
-	from    string
-	limit   int
+	// Global flags
+	// cfgFile string
+	from  string
+	limit int
+	// Additional flags
+	packets   int
+	protocol  string
+	port      int
+	resolver  string
+	trace     bool
+	queryType string
+	path      string
+	host      string
+	query     string
+	method    string
+	// TODO: headers   map[string]string
+
+	opts = model.PostMeasurement{}
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -33,39 +47,9 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-	// Load persistent flags from config file if present
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.globalping-cli.yaml)")
-
-	// Other global flags
+	// Global flags
 	rootCmd.PersistentFlags().StringVarP(&from, "from", "F", "world", "A continent, region (e.g eastern europe), country, US state or city")
 	rootCmd.PersistentFlags().IntVarP(&limit, "limit", "L", 1, "Limit the number of probes to use")
-
-}
-
-// initConfig reads in config file and ENV variables if set.
-// This is to store or read API keys from a config file or env
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".globalping-cli" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".globalping-cli")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
 }
 
 // requireTarget returns an error if no target is specified.

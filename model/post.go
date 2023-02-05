@@ -20,13 +20,13 @@ type RequestOptions struct {
 }
 
 type MeasurementOptions struct {
-	Query          *QueryOptions   `json:"query,omitempty"`
-	RequestOptions *RequestOptions `json:"request,omitempty"`
-	Protocol       string          `json:"protocol,omitempty"`
-	Port           int             `json:"port,omitempty"`
-	Resolver       string          `json:"resolver,omitempty"`
-	Trace          bool            `json:"trace,omitempty"`
-	Packets        int             `json:"packets,omitempty"`
+	Query    *QueryOptions   `json:"query,omitempty"`
+	Request  *RequestOptions `json:"request,omitempty"`
+	Protocol string          `json:"protocol,omitempty"`
+	Port     int             `json:"port,omitempty"`
+	Resolver string          `json:"resolver,omitempty"`
+	Trace    bool            `json:"trace,omitempty"`
+	Packets  int             `json:"packets,omitempty"`
 }
 
 // Main struct

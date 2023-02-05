@@ -3,34 +3,60 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/jsdelivr/globalping-cli/client"
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:   "dns",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "dns [target]",
+	Short: "Implementation of the native dig command",
+	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
+	
+		Examples:
+		# Resolve google.com from a probe in the network
+		dns traceroute google.com --from "New York" --limit 2`,
+	Args: requireTarget(),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("dns called")
+		// Make post struct
+		opts = model.PostMeasurement{
+			Type:   "dns",
+			Target: args[0],
+			Locations: model.Locations{
+				{
+					Magic: from,
+				},
+			},
+			Limit: limit,
+			Options: &model.MeasurementOptions{
+				Protocol: protocol,
+				Port:     port,
+				Resolver: resolver,
+				Query: &model.QueryOptions{
+					Type: queryType,
+				},
+				Trace: trace,
+			},
+		}
+
+		res, err := client.PostAPI(opts)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client.OutputResults(res.ID)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(dnsCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// dnsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// dnsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// dns specific flags
+	dnsCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP). (default \"udp\")")
+	dnsCmd.Flags().IntVar(&port, "port", 0, "Send the query to a non-standard port on the server, instead of the default port 53.")
+	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the name or IP address of the name server to query.")
+	dnsCmd.Flags().StringVar(&queryType, "type", "", "Specifies the type of DNS query to perform. (default \"A\")")
+	dnsCmd.Flags().BoolVar(&trace, "trace", false, "Toggle tracing of the delegation path from the root name servers for the name being looked up.")
 }

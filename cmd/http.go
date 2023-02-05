@@ -3,34 +3,67 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/jsdelivr/globalping-cli/client"
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
-	Use:   "http",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:   "http [target]",
+	Short: "Use http command",
+	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations.
+	
+		Examples:
+		# HTTP google.com from a probe in the network
+		globalping http google.com --from "New York" --limit 2`,
+	Args: requireTarget(),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("http called")
+		// Make post struct
+		opts = model.PostMeasurement{
+			Type:   "http",
+			Target: args[0],
+			Locations: model.Locations{
+				{
+					Magic: from,
+				},
+			},
+			Limit: limit,
+			Options: &model.MeasurementOptions{
+				Protocol: protocol,
+				Port:     port,
+				Packets:  packets,
+				Request: &model.RequestOptions{
+					Path:  path,
+					Query: query,
+					Host:  host,
+					// Headers: headers,
+					Method: method,
+				},
+				Resolver: resolver,
+			},
+		}
+
+		res, err := client.PostAPI(opts)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		client.OutputResults(res.ID)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(httpCmd)
 
-	// Here you will define your flags and configuration settings.
+	// http specific flags
+	httpCmd.Flags().StringVar(&path, "path", "", "A URL pathname. (default \"/\")")
+	httpCmd.Flags().StringVar(&query, "query", "", "A query-string.")
+	httpCmd.Flags().StringVar(&host, "host", "", "Specifies the Host header, which is going to be added to the request. (default host defined in target)")
+	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET). (default \"HEAD\")")
+	httpCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2). (default \"HTTP\")")
+	httpCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2).")
+	httpCmd.Flags().StringVar(&resolver, "resolver", "", "Specifies the resolver server used for DNS lookup.")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// httpCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// httpCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
