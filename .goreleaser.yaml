@@ -1,0 +1,134 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of uname.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+    - goos: windows
+      format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+nfpms:
+  # note that this is an array of nfpm configs
+  -
+    # Your app's vendor.
+    vendor: Globalping
+
+    # Template to your app's homepage.
+    homepage: https://globalping.io/
+
+    # Template to your app's description.
+    description: |-
+      A global network of probes to run network tests like ping, traceroute and DNS resolve.
+
+    # maintainer
+    maintainer: Ayuhito <hello@ayuhito.com>
+
+    # Your app's license.
+    # Default is empty.
+    # license: TBD
+
+    # Formats to be generated.
+    formats:
+      - deb
+      - rpm
+      - apk
+      - archlinux
+      # - termux.deb
+
+chocolateys:
+  -
+    name: globalping
+
+    owners: jsdelivr
+
+    # The app's title.
+    # A human-friendly title of the package.
+    # Defaults to `ProjectName`.
+    title: Globalping CLI
+
+    # Your app's authors (probably you).
+    # Defaults are shown below.
+    authors: Ayuhito
+
+    # Your app's project url.
+    # It is a required field.
+    project_url: https://globalping.io/
+
+
+    # App's icon.
+    # Default is empty.
+    # icon_url: 'https://rawcdn.githack.com/foo/bar/efbdc760-395b-43f1-bf69-ba25c374d473/icon.png'
+
+    # Your app's copyright details.
+    # Default is empty.
+     #copyright: 2022 Drummer Roll Inc
+
+    # App's license information url.
+    license_url: https://github.com/jsdelivr/globalping-cli/blob/master/LICENSE
+
+    # Your app's source url.
+    # Default is empty.
+    project_source_url: https://github.com/jsdelivr/globalping-cli
+
+    # Your app's documentation url.
+    # Default is empty.
+    docs_url: https://github.com/jsdelivr/globalping-cli/blob/master/README.md
+
+    # App's bugtracker url.
+    # Default is empty.
+    bug_tracker_url: https://github.com/jsdelivr/globalping-cli/issues
+
+    # Your app's tag list.
+    # Default is empty.
+    # tags: "foo bar baz"
+
+    # Your app's summary:
+    summary: A global network of probes to run network tests like ping, traceroute and DNS resolve.
+
+    # This the description of your chocolatey package.
+    # Supports markdown.
+    description: |
+      {{ .ProjectName }} installer package.
+      A global network of probes to run network tests like ping, traceroute and DNS resolve.
+
+    # Your app's release notes.
+    # A description of the changes made in this release of the package.
+    # Supports markdown. To prevent the need to continually update this field,
+    # providing a URL to an external list of Release Notes is perfectly
+    # acceptable.
+    # Default is empty.
+    release_notes: "https://github.com/jsdelivr/globalping-cli/releases/tag/v{{ .Version }}"
+
+    # The api key that should be used to push to the chocolatey repository.
+    #
+    # WARNING: do not expose your api key in the configuration file!
+    api_key: '{{ .Env.CHOCOLATEY_APIKEY }}'
+
+    # The source repository that will push the package to.
+    #
+    # Defaults are shown below.
+    source_repo: "https://push.chocolatey.org/"
+      
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json

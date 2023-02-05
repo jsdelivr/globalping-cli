@@ -1,0 +1,64 @@
+name: goreleaser
+
+on:
+  push:
+    # run only against tags
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+  # packages: write
+  # issues: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+    # Environment setup
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - run: git fetch --force --tags
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.20.0'
+          cache: true
+      - uses: goreleaser/goreleaser-action@v4
+        with:
+          distribution: goreleaser
+          version: ${{ env.GITHUB_REF_NAME }}
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
+      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
+      - run: echo $VERSION_NAME
+      - uses: actions/upload-artifact@v2
+        with:
+          name: goreleaser-deb
+          path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
+      - uses: actions/upload-artifact@v2
+        with:
+          name: goreleaser-rpm
+          path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
+
+  deploy:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: goreleaser-deb
+      - uses: actions/download-artifact@v2
+        with:
+          name: goreleaser-rpm
+      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
+      - run: echo globalping_${{ env.VERSION_NAME }}_linux_amd64
+      - run: ls -la
+      - uses: jr-frazier/upload-packagecloud@v1
+        with:
+          DEB-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
+          RPM-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
+          PACKAGECLOUD-USERNAME: jsdelivr
+          PACKAGECLOUD-REPO: globalping
+          PACKAGECLOUD-TOKEN: ${{ secrets.PACKAGECLOUD_APIKEY }}
