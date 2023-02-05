@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/pterm/pterm"
 )
 
@@ -33,7 +34,7 @@ func sliceOutput(output string, w, h int) string {
 	return strings.Join(lines, "\n")
 }
 
-func OutputResults(id string) {
+func LiveView(id string) {
 	// UI styles
 	highlight := lipgloss.NewStyle().
 		Bold(true).Foreground(lipgloss.Color("#17D4A7"))
@@ -97,4 +98,35 @@ func OutputResults(id string) {
 	writer.RemoveWhenDone = true
 	writer.Stop()
 	fmt.Println(output.String())
+}
+
+func OutputResults(id string, ctx model.ViewContext) {
+	// If json flag is used, only output json
+	if ctx.JsonOutput {
+		// Get results
+		data, err := GetAPI(id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		for data.Status == "in-progress" {
+			time.Sleep(100 * time.Millisecond)
+			data, err = GetAPI(id)
+
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+
+		output, err := GetApiJson(id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println(output)
+	} else {
+		LiveView(id)
+	}
 }

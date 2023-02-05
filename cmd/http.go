@@ -37,7 +37,7 @@ var httpCmd = &cobra.Command{
 					Path:  path,
 					Query: query,
 					Host:  host,
-					// Headers: headers,
+					// TODO: Headers: headers,
 					Method: method,
 				},
 				Resolver: resolver,
@@ -50,7 +50,7 @@ var httpCmd = &cobra.Command{
 			return
 		}
 
-		client.OutputResults(res.ID)
+		client.OutputResults(res.ID, ctx)
 	},
 }
 

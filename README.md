@@ -44,6 +44,3 @@ globalping --help
 
 See more information for each command in the [docs]]().
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -27,6 +27,7 @@ var (
 	// TODO: headers   map[string]string
 
 	opts = model.PostMeasurement{}
+	ctx  = model.ViewContext{}
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,6 +51,7 @@ func init() {
 	// Global flags
 	rootCmd.PersistentFlags().StringVarP(&from, "from", "F", "world", "A continent, region (e.g eastern europe), country, US state or city")
 	rootCmd.PersistentFlags().IntVarP(&limit, "limit", "L", 1, "Limit the number of probes to use")
+	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format")
 }
 
 // requireTarget returns an error if no target is specified.

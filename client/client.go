@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"runtime"
 
@@ -117,4 +118,40 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 	}
 
 	return data, nil
+}
+
+func GetApiJson(id string) (string, error) {
+	// Create a new request
+	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
+	if err != nil {
+		return "", errors.New("failed to create request")
+	}
+	req.Header.Set("User-Agent", userAgent)
+
+	// Make the request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", errors.New("request failed")
+	}
+	defer resp.Body.Close()
+
+	// 404 not found
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errors.New("measurement not found")
+	}
+
+	// 500 error
+	if resp.StatusCode == http.StatusInternalServerError {
+		return "", errors.New("internal server error - please try again later")
+	}
+
+	// Read the response body
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.New("failed to read response body")
+	}
+	respString := string(respBytes)
+
+	return respString, nil
 }

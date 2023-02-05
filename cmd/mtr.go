@@ -42,7 +42,7 @@ var mtrCmd = &cobra.Command{
 			return
 		}
 
-		client.OutputResults(res.ID)
+		client.OutputResults(res.ID, ctx)
 	},
 }
 
