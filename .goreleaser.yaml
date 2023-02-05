@@ -3,7 +3,10 @@ before:
     - go mod tidy
     - go generate ./...
 builds:
-  - env:
+  - 
+    id: "globalping"
+    binary: "globalping"
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -32,18 +35,19 @@ snapshot:
 nfpms:
   # note that this is an array of nfpm configs
   -
+    package_name: "globalping"
     # Your app's vendor.
-    vendor: Globalping
+    vendor: "Globalping"
 
     # Template to your app's homepage.
-    homepage: https://globalping.io/
+    homepage: "https://globalping.io/"
 
     # Template to your app's description.
     description: |-
       A global network of probes to run network tests like ping, traceroute and DNS resolve.
 
     # maintainer
-    maintainer: Ayuhito <hello@ayuhito.com>
+    maintainer: "Ayuhito <hello@ayuhito.com>"
 
     # Your app's license.
     # Default is empty.

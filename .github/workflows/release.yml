@@ -33,11 +33,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: echo $VERSION_NAME
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: goreleaser-deb
           path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: goreleaser-rpm
           path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
@@ -46,10 +46,10 @@ jobs:
     needs: goreleaser
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: goreleaser-deb
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: goreleaser-rpm
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
