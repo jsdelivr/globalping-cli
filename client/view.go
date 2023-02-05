@@ -13,6 +13,9 @@ func OutputResults(id string) {
 	// UI styles
 	highlight := lipgloss.NewStyle().
 		Bold(true).Foreground(lipgloss.Color("#17D4A7"))
+
+	arrow := lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
+
 	// Create new writer
 	writer := uilive.New()
 	writer.Start()
@@ -25,7 +28,6 @@ func OutputResults(id string) {
 	}
 
 	// Probe may not have started yet
-	fmt.Fprint(writer, highlight.Render("Pending..."))
 	for len(data.Results) == 0 {
 		time.Sleep(100 * time.Millisecond)
 		data, err = GetAPI(id)
@@ -44,9 +46,9 @@ func OutputResults(id string) {
 		for _, result := range data.Results {
 			// Output slightly different format if state is available
 			if result.Probe.State != "" {
-				fmt.Fprintf(writer, highlight.Render("%s, %s, (%s), %s, ASN:%d")+"\n%s\n\n", result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN, strings.TrimSpace(result.Result.RawOutput))
+				fmt.Fprintf(writer, arrow+highlight.Render("%s, %s, (%s), %s, ASN:%d")+"\n%s\n\n", result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN, strings.TrimSpace(result.Result.RawOutput))
 			} else {
-				fmt.Fprintf(writer, highlight.Render("%s, %s, %s, ASN:%d")+"\n%s\n\n", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN, strings.TrimSpace(result.Result.RawOutput))
+				fmt.Fprintf(writer, arrow+highlight.Render("%s, %s, %s, ASN:%d")+"\n%s\n\n", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN, strings.TrimSpace(result.Result.RawOutput))
 			}
 		}
 
