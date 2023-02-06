@@ -10,6 +10,33 @@ import (
 	"github.com/pterm/pterm"
 )
 
+var (
+	// UI styles
+	highlight = lipgloss.NewStyle().
+			Bold(true).Foreground(lipgloss.Color("#17D4A7"))
+
+	arrow = lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
+)
+
+func dataSetup(id string) (model.GetMeasurement, error) {
+	// Get results
+	data, err := GetAPI(id)
+	if err != nil {
+		return data, err
+	}
+
+	// Probe may not have started yet
+	for len(data.Results) == 0 {
+		time.Sleep(100 * time.Millisecond)
+		data, err = GetAPI(id)
+		if err != nil {
+			return data, err
+		}
+	}
+
+	return data, nil
+}
+
 // Used to slice the output to fit the terminal in live view
 func sliceOutput(output string, w, h int) string {
 	// Split output into lines
@@ -34,28 +61,28 @@ func sliceOutput(output string, w, h int) string {
 	return strings.Join(lines, "\n")
 }
 
-func LiveView(id string) {
-	// UI styles
-	highlight := lipgloss.NewStyle().
-		Bold(true).Foreground(lipgloss.Color("#17D4A7"))
+// Generate latency strings
+/* func latencyString(cmd string, data model.ResultStruct) string {
+	var output strings.Builder
+	// Only return stats field data
+	if cmd == "ping" || cmd == "mtr" {
+		output.WriteString(highlight.Render("Min: ") + fmt.Sprintf("%v ms", data.Stats.Min))
+		output.WriteString(highlight.Render("Max: ") + fmt.Sprintf("%v ms", data.Stats.Max))
+		output.WriteString(highlight.Render("Avg: ") + fmt.Sprintf("%v ms", data.Stats.Avg))
+		output.WriteString(highlight.Render("Loss: ") + fmt.Sprintf("%v%%", data.Stats.Loss))
+		return output.String()
+	}
 
-	arrow := lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
+	// Only return timings field data
+	return ""
+} */
 
+func LiveView(id string, ctx model.Context) {
 	// Get results
-	data, err := GetAPI(id)
+	data, err := dataSetup(id)
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-
-	// Probe may not have started yet
-	for len(data.Results) == 0 {
-		time.Sleep(100 * time.Millisecond)
-		data, err = GetAPI(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
 	}
 
 	// Create new writer
@@ -82,7 +109,13 @@ func LiveView(id string) {
 				output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)))
 			}
 
-			output.WriteString("\n" + strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+			// Output only latency values if flag is set
+			if ctx.Latency {
+
+			} else {
+				output.WriteString("\n" + strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+			}
+
 		}
 
 		if err != nil {
@@ -100,33 +133,39 @@ func LiveView(id string) {
 	fmt.Println(output.String())
 }
 
+// If json flag is used, only output json
+func OutputJson(id string) {
+	// Get results
+	data, err := dataSetup(id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for data.Status == "in-progress" {
+		time.Sleep(100 * time.Millisecond)
+		data, err = GetAPI(id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	output, err := GetApiJson(id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(output)
+}
+
 func OutputResults(id string, ctx model.Context) {
-	// If json flag is used, only output json
-	if ctx.JsonOutput {
-		// Get results
-		data, err := GetAPI(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		for data.Status == "in-progress" {
-			time.Sleep(100 * time.Millisecond)
-			data, err = GetAPI(id)
-
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		}
-
-		output, err := GetApiJson(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Println(output)
-	} else {
-		LiveView(id)
+	switch {
+	case ctx.JsonOutput:
+		OutputJson(id)
+		return
+	default:
+		LiveView(id, ctx)
+		return
 	}
 }

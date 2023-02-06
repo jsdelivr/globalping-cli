@@ -48,4 +48,7 @@ func init() {
 
 	// ping specific flags
 	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+
+	// Extra flags
+	pingCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
 }

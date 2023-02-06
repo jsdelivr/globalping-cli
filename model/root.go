@@ -7,4 +7,6 @@ type Context struct {
 	Limit  int
 	// JsonOutput is a flag that determines whether the output should be in JSON format.
 	JsonOutput bool
+	// Latency is a flag that outputs only stats of a measurement
+	Latency bool
 }
