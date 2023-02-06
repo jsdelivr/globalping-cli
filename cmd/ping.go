@@ -10,7 +10,7 @@ import (
 
 // pingCmd represents the ping command
 var pingCmd = &cobra.Command{
-	Use:   "ping [target]",
+	Use:   "ping [target] from [location]",
 	Short: "Use ping command",
 	Long: `The ping command sends an ICMP ECHO_REQUEST to obtain an ICMP ECHO_RESPONSE from a host or gateway.
 	
@@ -47,5 +47,5 @@ func init() {
 	rootCmd.AddCommand(pingCmd)
 
 	// ping specific flags
-	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent. (default 3)")
+	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
 }

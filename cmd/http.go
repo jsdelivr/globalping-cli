@@ -10,7 +10,7 @@ import (
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
-	Use:   "http [target]",
+	Use:   "http [target] from [location]",
 	Short: "Use http command",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations.
 	
@@ -57,12 +57,12 @@ func init() {
 	rootCmd.AddCommand(httpCmd)
 
 	// http specific flags
-	httpCmd.Flags().StringVar(&path, "path", "", "A URL pathname. (default \"/\")")
-	httpCmd.Flags().StringVar(&query, "query", "", "A query-string.")
-	httpCmd.Flags().StringVar(&host, "host", "", "Specifies the Host header, which is going to be added to the request. (default host defined in target)")
-	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET). (default \"HEAD\")")
-	httpCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2). (default \"HTTP\")")
-	httpCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2).")
-	httpCmd.Flags().StringVar(&resolver, "resolver", "", "Specifies the resolver server used for DNS lookup.")
+	httpCmd.Flags().StringVar(&path, "path", "", "A URL pathname (default \"/\")")
+	httpCmd.Flags().StringVar(&query, "query", "", "A query-string")
+	httpCmd.Flags().StringVar(&host, "host", "", "Specifies the Host header, which is going to be added to the request (default host defined in target)")
+	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET).(default \"HEAD\")")
+	httpCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
+	httpCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	httpCmd.Flags().StringVar(&resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
 
 }

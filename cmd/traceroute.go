@@ -10,7 +10,7 @@ import (
 
 // tracerouteCmd represents the traceroute command
 var tracerouteCmd = &cobra.Command{
-	Use:   "traceroute [target]",
+	Use:   "traceroute [target] from [location]",
 	Short: "Implementation of the native traceroute command",
 	Long: `traceroute tracks the route packets taken from an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an ICMP TIME_EXCEEDED response from each gateway along the path to the host.
 	
@@ -48,6 +48,6 @@ func init() {
 	rootCmd.AddCommand(tracerouteCmd)
 
 	// traceroute specific flags
-	tracerouteCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol used for tracerouting (ICMP, TCP or UDP). (default \"icmp\")")
-	tracerouteCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use for the traceroute. Only applicable for TCP protocol. (default 80)")
+	tracerouteCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol used for tracerouting (ICMP, TCP or UDP) (default \"icmp\")")
+	tracerouteCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use for the traceroute. Only applicable for TCP protocol (default 80)")
 }
