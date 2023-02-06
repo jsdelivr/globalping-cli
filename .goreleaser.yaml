@@ -40,7 +40,7 @@ nfpms:
     vendor: "Globalping"
 
     # Template to your app's homepage.
-    homepage: "https://globalping.io/"
+    homepage: "https://github.com/jsdelivr/globalping"
 
     # Template to your app's description.
     description: |-
@@ -60,5 +60,15 @@ nfpms:
       - apk
       - archlinux
       # - termux.deb
+
+brews:
+  - name: globalping
+    homepage: https://github.com/jsdelivr/globalping-cli
+    tap:
+      owner: jsdelivr
+      name: homebrew-globalping
+    commit_author:
+      name: jimaek
+      email: dakulovgr@gmail.com
       
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
