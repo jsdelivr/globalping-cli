@@ -21,14 +21,10 @@ var pingCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Make post struct
 		opts = model.PostMeasurement{
-			Type:   "ping",
-			Target: args[0],
-			Locations: model.Locations{
-				{
-					Magic: from,
-				},
-			},
-			Limit: limit,
+			Type:      "ping",
+			Target:    args[0],
+			Locations: createLocations(from),
+			Limit:     limit,
 			Options: &model.MeasurementOptions{
 				Packets: packets,
 			},

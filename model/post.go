@@ -3,7 +3,7 @@ package model
 // Modeled from https://github.com/jsdelivr/globalping/blob/master/docs/measurement/post-create.md
 
 // Nested structs
-type Locations []struct {
+type Locations struct {
 	Magic string `json:"magic"`
 }
 
@@ -32,7 +32,7 @@ type MeasurementOptions struct {
 // Main struct
 type PostMeasurement struct {
 	Limit     int                 `json:"limit"`
-	Locations Locations           `json:"locations"`
+	Locations []Locations         `json:"locations"`
 	Type      string              `json:"type"`
 	Target    string              `json:"target"`
 	Options   *MeasurementOptions `json:"measurementOptions,omitempty"`

@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
@@ -62,4 +63,15 @@ func requireTarget() cobra.PositionalArgs {
 		}
 		return nil
 	}
+}
+
+func createLocations(from string) []model.Locations {
+	fromArr := strings.Split(from, ",")
+	locations := make([]model.Locations, len(fromArr))
+	for i, v := range fromArr {
+		locations[i] = model.Locations{
+			Magic: strings.TrimSpace(v),
+		}
+	}
+	return locations
 }

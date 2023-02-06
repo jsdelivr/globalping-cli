@@ -21,14 +21,10 @@ var mtrCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		// Make post struct
 		opts = model.PostMeasurement{
-			Type:   "mtr",
-			Target: args[0],
-			Locations: model.Locations{
-				{
-					Magic: from,
-				},
-			},
-			Limit: limit,
+			Type:      "mtr",
+			Target:    args[0],
+			Locations: createLocations(from),
+			Limit:     limit,
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
