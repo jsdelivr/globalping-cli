@@ -37,7 +37,7 @@ dnf install globalping
 ### MacOS - Homebrew
 
 ```
-brew tap jsdelivr/globalping-cli
+brew tap jsdelivr/globalping
 brew install globalping
 ```
 
