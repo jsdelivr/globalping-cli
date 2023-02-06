@@ -17,14 +17,17 @@ var tracerouteCmd = &cobra.Command{
 		Examples:
 		# Traceroute google.com from a probe in the network
 		globalping traceroute google.com --from "New York" --limit 2`,
-	Args: requireTarget(),
+	Args: checkCommandFormat(),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Create context
+		createContext(args)
+
 		// Make post struct
 		opts = model.PostMeasurement{
 			Type:      "traceroute",
-			Target:    args[0],
-			Locations: createLocations(from),
-			Limit:     limit,
+			Target:    ctx.Target,
+			Locations: createLocations(ctx.From),
+			Limit:     ctx.Limit,
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,

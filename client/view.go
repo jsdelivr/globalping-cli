@@ -100,7 +100,7 @@ func LiveView(id string) {
 	fmt.Println(output.String())
 }
 
-func OutputResults(id string, ctx model.ViewContext) {
+func OutputResults(id string, ctx model.Context) {
 	// If json flag is used, only output json
 	if ctx.JsonOutput {
 		// Get results

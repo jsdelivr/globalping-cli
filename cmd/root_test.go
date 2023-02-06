@@ -30,7 +30,39 @@ func testLocationsMultiple(t *testing.T) {
 	assert.Equal(t, []model.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
 }
 
+// Check if multiple locations with whitespace are parsed correctly
 func testLocationsMultipleWhitespace(t *testing.T) {
 	locations := createLocations("New York, Los Angeles ")
 	assert.Equal(t, []model.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
+}
+
+func TestCreateContext(t *testing.T) {
+	for scenario, fn := range map[string]func(t *testing.T){
+		"no_arg":             testContextNoArg,
+		"country":            testContextCountry,
+		"country_whitespace": testContextCountryWhitespace,
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			fn(t)
+		})
+	}
+}
+
+func testContextNoArg(t *testing.T) {
+	createContext([]string{"1.1.1.1"})
+	assert.Equal(t, "1.1.1.1", ctx.Target)
+	assert.Equal(t, "world", ctx.From)
+}
+
+func testContextCountry(t *testing.T) {
+	createContext([]string{"1.1.1.1", "from", "Germany"})
+	assert.Equal(t, "1.1.1.1", ctx.Target)
+	assert.Equal(t, "Germany", ctx.From)
+}
+
+// Check if country with whitespace is parsed correctly
+func testContextCountryWhitespace(t *testing.T) {
+	createContext([]string{"1.1.1.1", "from", " Germany, France"})
+	assert.Equal(t, "1.1.1.1", ctx.Target)
+	assert.Equal(t, "Germany, France", ctx.From)
 }

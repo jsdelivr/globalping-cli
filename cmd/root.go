@@ -12,8 +12,7 @@ import (
 var (
 	// Global flags
 	// cfgFile string
-	from  string
-	limit int
+
 	// Additional flags
 	packets   int
 	protocol  string
@@ -28,7 +27,7 @@ var (
 	// TODO: headers   map[string]string
 
 	opts = model.PostMeasurement{}
-	ctx  = model.ViewContext{}
+	ctx  = model.Context{}
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,18 +49,32 @@ func Execute() {
 
 func init() {
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&from, "from", "F", "world", "A continent, region (e.g eastern europe), country, US state or city")
-	rootCmd.PersistentFlags().IntVarP(&limit, "limit", "L", 1, "Limit the number of probes to use")
+	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", "A continent, region (e.g eastern europe), country, US state or city (default \"world\")")
+	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format")
 }
 
-// requireTarget returns an error if no target is specified.
-func requireTarget() cobra.PositionalArgs {
+// checkCommandFormat checks if the command is in the correct format if using the from arg
+func checkCommandFormat() cobra.PositionalArgs {
 	return func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("no target specified")
+		if len(args) > 1 && args[1] != "from" {
+			return errors.New("invalid command format")
 		}
 		return nil
+	}
+}
+
+func createContext(args []string) {
+	ctx.Target = args[0]
+
+	// If no from arg is provided, use the default value
+	if len(args) == 1 {
+		ctx.From = "world"
+	}
+
+	// If from args are provided, use it
+	if len(args) > 1 && args[1] == "from" {
+		ctx.From = strings.TrimSpace(strings.Join(args[2:], " "))
 	}
 }
 
