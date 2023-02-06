@@ -1,37 +1,40 @@
-# Globalping CLI
+<h1 align="center"> <a href="https://www.jsdelivr.com/globalping"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
 
-The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
+<p align="center">Access a global network of probes without leaving your console. Powered by the Globalping community!</p>
+<br>
+<p align="center">[cli gif todo]</p>
+<br>
 
+- The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
 - Run networking commands from any location in the world
 - Supported commands: ping, mtr, traceroute, dns resolve, HTTP
 - Real-time results right in your command line
 - Human friendly format and output
 - Cross-platform. Linux, MacOS, Windows are all supported
 - Auto-updates via RPM/DEB/Chocolatey repos
+- [Check our website for online tools, our Slack app and more!](https://www.jsdelivr.com/globalping)
 
 ## Installation - Quick start
 
-Simply run these commands to install the repo and CLI to make sure you get future updates by simply running an update in your package manager.
+Simply run these commands to install the repo and CLI! This way you will get all future updates by simply running an update using your package manager.
 
-### Ubuntu/Debian (DEB)
+### Ubuntu/Debian (deb)
 
 ```
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
 apt install globalping
 ```
 
-### CentOS/Fedora/Rocky Linux/AlmaLinux (RPM)
+### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
 
 ```
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
-yum install globalping
-#or
 dnf install globalping
 ```
 
 [Manual installation instructions](https://packagecloud.io/jsdelivr/globalping/install#manual)
 
-### MacOS
+### MacOS - Homebrew
 
 [coming soon]
 
@@ -56,5 +59,4 @@ Once the Globalping CLI is installed, you can verify that it is working by runni
 globalping --help
 ```
 
-See more information for each command in the [docs]]().
 
