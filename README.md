@@ -1,9 +1,9 @@
 <h1 align="center"> <a href="https://www.jsdelivr.com/globalping"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
 
 <p align="center">Access a global network of probes without leaving your console. Powered by the Globalping community!</p>
-<br>
-<p align="center">[cli gif todo]</p>
-<br>
+
+<p align="center"><img height="350px" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
+</p>
 
 - The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
 - Run networking commands from any location in the world
