@@ -17,12 +17,16 @@ Simply run these commands to install the repo and CLI to make sure you get futur
 
 ```
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
+apt install globalping
 ```
 
 ### CentOS/Fedora/Rocky Linux/AlmaLinux (RPM)
 
 ```
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
+yum install globalping
+#or
+dnf install globalping
 ```
 
 [Manual installation instructions](https://packagecloud.io/jsdelivr/globalping/install#manual)
