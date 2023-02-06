@@ -62,8 +62,8 @@ nfpms:
       # - termux.deb
 
 brews:
-  - name: "globalping"
-    homepage: "https://github.com/jsdelivr/globalping"
+  - name: globalping
+    homepage: https://github.com/jsdelivr/globalping-cli
     tap:
       owner: jsdelivr
       name: homebrew-globalping
