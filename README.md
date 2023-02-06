@@ -1,38 +1,48 @@
 # Globalping CLI
 
-This is a command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
+The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
 
-## Installation
+- Run networking commands from any location in the world
+- Supported commands: ping, mtr, traceroute, dns resolve, HTTP
+- Real-time results right in your command line
+- Human friendly format and output
+- Cross-platform. Linux, MacOS, Windows are all supported
+- Auto-updates via RPM/DEB/Chocolatey repos
 
-<details>
-  <summary>apt</summary>
-  
-  ```bash
-  sudo apt install globalping # not yet implemented
-  ```
-</details>
-...
-<details>
-  <summary>Standalone executables (macOS, Linux, Windows)</summary>
+## Installation - Quick start
 
-  Use [GitHub Releases](https://github.com/jsdelivr/globalping-cli/releases) to download a standalone executable of the Globalping CLI for your platform.
-</details>
+Simply run these commands to install the repo and CLI to make sure you get future updates by simply running an update in your package manager.
 
-<details>
-  <summary>NPM/Yarn/PNPM</summary>
+### Ubuntu/Debian (DEB)
 
-  ```bash
-  npm install -g globalping
-  ```
+```
+curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
+```
 
-  ```bash
-  yarn global add globalping
-  ```
+### CentOS/Fedora/Rocky Linux/AlmaLinux (RPM)
 
-  ```bash
-  pnpm install -g globalping
-  ```
-</details>
+```
+curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
+```
+
+[Manual installation instructions](https://packagecloud.io/jsdelivr/globalping/install#manual)
+
+### MacOS
+
+[coming soon]
+
+### Windows - Chocolatey
+
+[coming soon]
+
+### Windows - Winget
+
+[coming soon]
+
+### Binary installation 
+
+Every new release is compiled into binaries ready to run on most operating systems and attached as assets on GitHub. You can download and run the binaries directly on your system, but note that you will have to repeat this process for every new release. [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
+
 
 ## Getting Started with Globalping CLI
 
