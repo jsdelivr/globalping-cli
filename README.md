@@ -2,7 +2,7 @@
 
 <p align="center">Access a global network of probes without leaving your console. Powered by the Globalping community!</p>
 
-<p align="center"><img height="350px" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
+<p align="center"><img width="80%" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
 </p>
 
 - The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
