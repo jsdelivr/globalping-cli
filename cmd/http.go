@@ -18,12 +18,11 @@ var httpCmd = &cobra.Command{
 		# HTTP google.com from a probe in the network
 		globalping http google.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
 		err := createContext(args)
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		// Make post struct
@@ -47,13 +46,17 @@ var httpCmd = &cobra.Command{
 			},
 		}
 
-		res, err := client.PostAPI(opts)
+		res, showHelp, err := client.PostAPI(opts)
 		if err != nil {
+			if showHelp {
+				return err
+			}
 			fmt.Println(err)
-			return
+			return nil
 		}
 
 		client.OutputResults(res.ID, ctx)
+		return nil
 	},
 }
 
