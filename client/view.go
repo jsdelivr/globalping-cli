@@ -113,7 +113,7 @@ func LiveView(id string, ctx model.Context) {
 			if ctx.Latency {
 
 			} else {
-				output.WriteString("\n" + strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+				output.WriteString("\n" + strings.TrimSpace(result.Result["rawOutput"].(string)) + "\n\n")
 			}
 
 		}
