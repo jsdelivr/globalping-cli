@@ -64,7 +64,11 @@ func checkCommandFormat() cobra.PositionalArgs {
 	}
 }
 
-func createContext(args []string) {
+func createContext(args []string) error {
+	if len(args) == 0 {
+		return errors.New("provided target is empty")
+	}
+
 	ctx.Target = args[0]
 
 	// If no from arg is provided, use the default value
@@ -76,6 +80,7 @@ func createContext(args []string) {
 	if len(args) > 1 && args[1] == "from" {
 		ctx.From = strings.TrimSpace(strings.Join(args[2:], " "))
 	}
+	return nil
 }
 
 func createLocations(from string) []model.Locations {

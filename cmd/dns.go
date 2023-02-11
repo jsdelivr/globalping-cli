@@ -20,7 +20,11 @@ var dnsCmd = &cobra.Command{
 	Args: checkCommandFormat(),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create context
-		createContext(args)
+		err := createContext(args)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
 		// Make post struct
 		opts = model.PostMeasurement{
