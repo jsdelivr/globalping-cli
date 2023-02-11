@@ -72,7 +72,7 @@ func createContext(args []string) error {
 	ctx.Target = args[0]
 
 	// If no from arg is provided, use the default value
-	if len(args) == 1 {
+	if len(args) == 1 && ctx.From == "" {
 		ctx.From = "world"
 	}
 
