@@ -12,11 +12,12 @@ import (
 var dnsCmd = &cobra.Command{
 	Use:   "dns [target] from [location]",
 	Short: "Implementation of the native dig command",
-	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
+	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried. 
+The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 	
-		Examples:
-		# Resolve google.com from a probe in the network
-		dns traceroute google.com --from "New York" --limit 2`,
+Examples:
+# Resolve google.com from 2 probes in California
+dns google.com --from California --limit 2`,
 	Args: checkCommandFormat(),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create context
