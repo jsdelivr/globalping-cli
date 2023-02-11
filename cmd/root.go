@@ -35,7 +35,7 @@ var rootCmd = &cobra.Command{
 	Use:   "globalping",
 	Short: "A global network of probes to run network tests like ping, traceroute and DNS resolve.",
 	Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world. 
-	Our goal is to provide a free and simple API for everyone out there to build interesting networking tools and services.`,
+	The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

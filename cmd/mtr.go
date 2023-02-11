@@ -14,9 +14,9 @@ var mtrCmd = &cobra.Command{
 	Short: "Implementation of the native mtr command",
 	Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
 	
-		Examples:
-		# MTR google.com from a probe in the network
-		globalping mtr google.com --from "New York" --limit 2`,
+Examples:
+# MTR google.com from 2 probes in New York
+mtr google.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
