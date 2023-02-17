@@ -33,8 +33,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
           CHOCOLATEY_APIKEY: ${{ secrets.CHOCOLATEY_APIKEY }}
           
-      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
-      - run: echo $VERSION_NAME
+      - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME:1) >> $env:GITHUB_ENV
+      - run: echo $env:VERSION_NAME
       - uses: actions/upload-artifact@v3
         with:
           name: goreleaser-deb

@@ -41,7 +41,7 @@ brew tap jsdelivr/globalping
 brew install globalping
 ```
 
-### Windows - Chocolatey
+### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
 
 ```shell
 choco install globalping
