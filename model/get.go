@@ -4,6 +4,7 @@ package model
 
 type ProbeData struct {
 	Continent string   `json:"continent"`
+	Region    string   `json:"region"`
 	Country   string   `json:"country"`
 	City      string   `json:"city"`
 	State     string   `json:"state,omitempty"`
@@ -12,18 +13,28 @@ type ProbeData struct {
 	Tags      []string `json:"tags,omitempty"`
 }
 
+type ResultData struct {
+	Status           string                   `json:"status"`
+	RawOutput        string                   `json:"rawOutput"`
+	ResolvedAddress  string                   `json:"resolvedAddress"`
+	ResolvedHostname string                   `json:"resolvedHostname"`
+	Timings          []map[string]interface{} `json:"timings,omitempty"`
+	Stats            map[string]interface{}   `json:"stats,omitempty"`
+}
+
 // Nested structs
 type MeasurementResponse struct {
-	Probe  ProbeData              `json:"probe"`
-	Result map[string]interface{} `json:"result"` // This is too dynamic depending on the type of measurement
+	Probe  ProbeData  `json:"probe"`
+	Result ResultData `json:"result"`
 }
 
 // Main struct
 type GetMeasurement struct {
-	ID        string                `json:"id"`
-	Type      string                `json:"type"`
-	Status    string                `json:"status"`
-	CreatedAt string                `json:"createdAt"`
-	UpdatedAt string                `json:"updatedAt"`
-	Results   []MeasurementResponse `json:"results"`
+	ID          string                `json:"id"`
+	Type        string                `json:"type"`
+	Status      string                `json:"status"`
+	CreatedAt   string                `json:"createdAt"`
+	UpdatedAt   string                `json:"updatedAt"`
+	ProbesCount int                   `json:"probesCount"`
+	Results     []MeasurementResponse `json:"results"`
 }
