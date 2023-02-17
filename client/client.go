@@ -114,6 +114,7 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 	var data model.GetMeasurement
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
+		fmt.Println(err)
 		return model.GetMeasurement{}, errors.New("invalid get measurement format returned")
 	}
 

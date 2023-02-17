@@ -13,6 +13,7 @@ type ProbeData struct {
 	Tags      []string `json:"tags,omitempty"`
 }
 
+// https://stackoverflow.com/questions/50092462/how-to-unmarshal-an-inconsistent-json-field-that-can-be-a-string-or-an-array-o
 type ResultData struct {
 	Status           string                   `json:"status"`
 	RawOutput        string                   `json:"rawOutput"`

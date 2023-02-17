@@ -119,7 +119,7 @@ func LiveView(id string, ctx model.Context) {
 	// Stop live updater and output to stdout
 	writer.RemoveWhenDone = true
 	writer.Stop()
-	fmt.Println(output.String())
+	fmt.Println(strings.TrimSpace(output.String()))
 }
 
 // If json flag is used, only output json
@@ -179,12 +179,7 @@ func OutputLatency(id string, ctx model.Context) {
 		if ctx.Cmd == "ping" || ctx.Cmd == "mtr" {
 			output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
 			output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
-			output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["avg"]))
-
-			output.WriteString(bold.Render("Transmitted: ") + fmt.Sprintf("%v\n", result.Result.Stats["total"]))
-			output.WriteString(bold.Render("Received: ") + fmt.Sprintf("%v\n", result.Result.Stats["rcv"]))
-			output.WriteString(bold.Render("Dropped: ") + fmt.Sprintf("%v\n", result.Result.Stats["drop"]))
-			output.WriteString(bold.Render("Loss: ") + fmt.Sprintf("%v%%\n\n", result.Result.Stats["loss"]))
+			output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
 		}
 	}
 
