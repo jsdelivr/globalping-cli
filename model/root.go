@@ -2,6 +2,7 @@ package model
 
 // Used in thc client TUI
 type Context struct {
+	Cmd    string
 	Target string
 	From   string
 	Limit  int

@@ -20,7 +20,7 @@ var httpCmd = &cobra.Command{
 	Args: checkCommandFormat(),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create context
-		createContext(args)
+		createContext(cmd.CalledAs(), args)
 
 		// Make post struct
 		opts = model.PostMeasurement{

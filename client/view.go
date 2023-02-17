@@ -16,6 +16,8 @@ var (
 			Bold(true).Foreground(lipgloss.Color("#17D4A7"))
 
 	arrow = lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
+
+	bold = lipgloss.NewStyle().Bold(true)
 )
 
 func dataSetup(id string) (model.GetMeasurement, error) {
@@ -61,21 +63,16 @@ func sliceOutput(output string, w, h int) string {
 	return strings.Join(lines, "\n")
 }
 
-// Generate latency strings
-/* func latencyString(cmd string, data model.ResultStruct) string {
+func generateHeader(result model.MeasurementResponse) string {
 	var output strings.Builder
-	// Only return stats field data
-	if cmd == "ping" || cmd == "mtr" {
-		output.WriteString(highlight.Render("Min: ") + fmt.Sprintf("%v ms", data.Stats.Min))
-		output.WriteString(highlight.Render("Max: ") + fmt.Sprintf("%v ms", data.Stats.Max))
-		output.WriteString(highlight.Render("Avg: ") + fmt.Sprintf("%v ms", data.Stats.Avg))
-		output.WriteString(highlight.Render("Loss: ") + fmt.Sprintf("%v%%", data.Stats.Loss))
-		return output.String()
+	if result.Probe.State != "" {
+		output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, (%s), %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN)))
+	} else {
+		output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)))
 	}
 
-	// Only return timings field data
-	return ""
-} */
+	return output.String()
+}
 
 func LiveView(id string, ctx model.Context) {
 	// Get results
@@ -103,18 +100,10 @@ func LiveView(id string, ctx model.Context) {
 		// Output every result in case of multiple probes
 		for _, result := range data.Results {
 			// Output slightly different format if state is available
-			if result.Probe.State != "" {
-				output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, (%s), %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN)))
-			} else {
-				output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)))
-			}
+			output.WriteString(generateHeader(result) + "\n")
 
 			// Output only latency values if flag is set
-			if ctx.Latency {
-
-			} else {
-				output.WriteString("\n" + strings.TrimSpace(result.Result.RawOutput) + "\n\n")
-			}
+			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 
 		}
 
@@ -159,10 +148,56 @@ func OutputJson(id string) {
 	fmt.Println(output)
 }
 
+// If latency flag is used, only output latency values
+func OutputLatency(id string, ctx model.Context) {
+	// Get results
+	data, err := dataSetup(id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// String builder for output
+	var output strings.Builder
+
+	// Poll API every 100 milliseconds until the measurement is complete
+	for data.Status == "in-progress" {
+		time.Sleep(100 * time.Millisecond)
+		data, err = GetAPI(id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	// Output every result in case of multiple probes
+	for _, result := range data.Results {
+		// Output slightly different format if state is available
+		output.WriteString(generateHeader(result) + "\n")
+
+		// Output only latency values if flag is set
+		if ctx.Cmd == "ping" || ctx.Cmd == "mtr" {
+			output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
+			output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
+			output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["avg"]))
+
+			output.WriteString(bold.Render("Transmitted: ") + fmt.Sprintf("%v\n", result.Result.Stats["total"]))
+			output.WriteString(bold.Render("Received: ") + fmt.Sprintf("%v\n", result.Result.Stats["rcv"]))
+			output.WriteString(bold.Render("Dropped: ") + fmt.Sprintf("%v\n", result.Result.Stats["drop"]))
+			output.WriteString(bold.Render("Loss: ") + fmt.Sprintf("%v%%\n\n", result.Result.Stats["loss"]))
+		}
+	}
+
+	fmt.Println(strings.TrimSpace(output.String()))
+}
+
 func OutputResults(id string, ctx model.Context) {
 	switch {
 	case ctx.JsonOutput:
 		OutputJson(id)
+		return
+	case ctx.Latency:
+		OutputLatency(id, ctx)
 		return
 	default:
 		LiveView(id, ctx)

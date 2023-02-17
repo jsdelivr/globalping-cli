@@ -64,7 +64,8 @@ func checkCommandFormat() cobra.PositionalArgs {
 	}
 }
 
-func createContext(args []string) {
+func createContext(cmd string, args []string) {
+	ctx.Cmd = cmd // Get the command name
 	ctx.Target = args[0]
 
 	// If no from arg is provided, use the default value
