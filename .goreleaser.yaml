@@ -70,5 +70,34 @@ brews:
     commit_author:
       name: jimaek
       email: dakulovgr@gmail.com
+
+chocolateys:
+  -
+    name: globalping
+    owners: jsdelivr
+    title: Globalping CLI
+    authors: Ayuhito
+
+    project_url: https://www.jsdelivr.com/globalping
+
+    # App's icon.
+    # icon_url: 'https://rawcdn.githack.com/foo/bar/efbdc760-395b-43f1-bf69-ba25c374d473/icon.png'
+
+    license_url: https://github.com/jsdelivr/globalping-cli/blob/master/LICENSE
+    project_source_url: https://github.com/jsdelivr/globalping-cli
+    docs_url: https://github.com/jsdelivr/globalping-cli/blob/master/README.md
+    bug_tracker_url: https://github.com/jsdelivr/globalping-cli/issues
+
+    summary: A global network of probes to run network tests like ping, traceroute and DNS resolve.
+    # Supports markdown.
+    description: |
+      {{ .ProjectName }} installer package.
+      A global network of probes to run network tests like ping, traceroute and DNS resolve.
+
+    tags: "globalping ping traceroute dns mtr http network"
+
+    release_notes: "https://github.com/jsdelivr/globalping-cli/releases/tag/v{{ .Version }}"
+    api_key: '{{ .Env.CHOCOLATEY_APIKEY }}'
+    
     
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

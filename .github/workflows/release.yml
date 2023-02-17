@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
         with:
@@ -31,6 +31,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
+          CHOCOLATEY_APIKEY: ${{ secrets.CHOCOLATEY_APIKEY }}
           
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: echo $VERSION_NAME
@@ -63,25 +64,3 @@ jobs:
           PACKAGECLOUD-USERNAME: jsdelivr
           PACKAGECLOUD-REPO: globalping
           PACKAGECLOUD-TOKEN: ${{ secrets.PACKAGECLOUD_APIKEY }}
-
-  choco:
-    runs-on: windows-latest
-
-    steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@v3
-        with:
-          go-version: '>=1.20.0'
-          cache: true
-
-      - uses: goreleaser/goreleaser-action@v4
-        with:
-          version: ${{ env.GITHUB_REF_NAME }}
-          args: release --clean -f .goreleaser.choco.yaml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
-          CHOCOLATEY_APIKEY: ${{ secrets.CHOCOLATEY_APIKEY }}
