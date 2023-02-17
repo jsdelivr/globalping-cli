@@ -20,14 +20,14 @@ Simply run these commands to install the repo and CLI! This way you will get all
 
 ### Ubuntu/Debian (deb)
 
-```
+```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
 apt install globalping
 ```
 
 ### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
 
-```
+```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
 dnf install globalping
 ```
@@ -36,18 +36,16 @@ dnf install globalping
 
 ### MacOS - Homebrew
 
-```
+```shell
 brew tap jsdelivr/globalping
 brew install globalping
 ```
 
 ### Windows - Chocolatey
 
-[coming soon]
-
-### Windows - Winget
-
-[coming soon]
+```shell
+choco install globalping
+```
 
 ### Binary installation 
 
