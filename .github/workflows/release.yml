@@ -22,5 +22,5 @@ jobs:
       - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $env:GITHUB_REF_NAME
       - run: echo $env:GITHUB_REF_NAME:1
-      - run: echo $env:GITHUB_REF_NAME.TrimStart("v")
+      - run: echo $env:GITHUB_REF_NAME.TrimStart("ci/")
       - run: echo $env:VERSION_NAME
