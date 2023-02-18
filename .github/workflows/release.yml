@@ -19,7 +19,8 @@ jobs:
           fetch-depth: 0
       - run: git fetch --force --tags
           
-      - run: echo "VERSION_NAME=${{ env.GITHUB_REF_NAME#v }}" >> $env:GITHUB_ENV
+      - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $env:GITHUB_REF_NAME
-      - run: echo $env:GITHUB_REF_NAME#v
+      - run: echo $env:GITHUB_REF_NAME:1
+      - run: echo $env:GITHUB_REF_NAME.TrimStart("v")
       - run: echo $env:VERSION_NAME
