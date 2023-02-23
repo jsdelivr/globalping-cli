@@ -187,7 +187,7 @@ func OutputLatency(id string, ctx model.Context) {
 				fmt.Println(err)
 				return
 			}
-			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v\n", timings.Interface["total"]))
+			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
 		}
 
 		if ctx.Cmd == "http" {
@@ -196,8 +196,12 @@ func OutputLatency(id string, ctx model.Context) {
 				fmt.Println(err)
 				return
 			}
-			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v\n", timings.Interface["total"]))
-			output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v\n", timings.Interface["firstByte"]))
+			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+			output.WriteString(bold.Render("Download: ") + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
+			output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
+			output.WriteString(bold.Render("DNS: ") + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
+			output.WriteString(bold.Render("TLS: ") + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
+			output.WriteString(bold.Render("TCP: ") + fmt.Sprintf("%v ms\n", timings.Interface["tcp"]))
 		}
 	}
 
