@@ -16,18 +16,18 @@ const userAgent = "Globalping API Go Client / v1" + " (" + runtime.GOOS + "/" + 
 
 var ApiUrl = "https://api.globalping.io/v1/measurements"
 
-// Post measurement to Globalping API
-func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
+// Post measurement to Globalping API - boolean indicates whether to print CLI help on error
+func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error) {
 	// Format post data
 	postData, err := json.Marshal(measurement)
 	if err != nil {
-		return model.PostResponse{}, errors.New("failed to marshal post data")
+		return model.PostResponse{}, false, errors.New("err: failed to marshal post data - please report this bug")
 	}
 
 	// Create a new request
 	req, err := http.NewRequest("POST", ApiUrl, bytes.NewBuffer(postData))
 	if err != nil {
-		return model.PostResponse{}, errors.New("failed to create request")
+		return model.PostResponse{}, false, errors.New("err: failed to create request - please report this bug")
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Content-Type", "application/json")
@@ -36,7 +36,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return model.PostResponse{}, errors.New("request failed")
+		return model.PostResponse{}, false, errors.New("err: request failed - please try again later")
 	}
 	defer resp.Body.Close()
 
@@ -47,12 +47,12 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
 
 		err = json.NewDecoder(resp.Body).Decode(&data)
 		if err != nil {
-			return model.PostResponse{}, errors.New("invalid error format returned")
+			return model.PostResponse{}, false, errors.New("err: invalid error format returned - please report this bug")
 		}
 
 		// 422 error
 		if data.Error.Type == "no_probes_found" {
-			return model.PostResponse{}, errors.New("no suitable probes found")
+			return model.PostResponse{}, true, errors.New("no suitable probes found - please choose a different location")
 		}
 
 		// 400 error
@@ -60,16 +60,16 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
 			for _, v := range data.Error.Params {
 				fmt.Printf("err: %s\n", v)
 			}
-			return model.PostResponse{}, fmt.Errorf("validation error")
+			return model.PostResponse{}, true, errors.New("invalid parameters - please check the help for more information")
 		}
 
 		// 500 error
 		if data.Error.Type == "api_error" {
-			return model.PostResponse{}, errors.New("internal server error - please try again later")
+			return model.PostResponse{}, false, errors.New("err: internal server error - please try again later")
 		}
 
 		// If the error type is unknown
-		return model.PostResponse{}, fmt.Errorf("unknown error response: %s", data.Error.Type)
+		return model.PostResponse{}, false, fmt.Errorf("err: unknown error response: %s", data.Error.Type)
 	}
 
 	// Read the response body
@@ -77,10 +77,10 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
 		fmt.Println(err)
-		return model.PostResponse{}, errors.New("invalid post measurement format returned")
+		return model.PostResponse{}, false, errors.New("err: invalid post measurement format returned - please report this bug")
 	}
 
-	return data, nil
+	return data, false, nil
 }
 
 func DecodeTimings(cmd string, timings json.RawMessage) (model.Timings, error) {
@@ -106,7 +106,7 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 	// Create a new request
 	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
 	if err != nil {
-		return model.GetMeasurement{}, errors.New("failed to create request")
+		return model.GetMeasurement{}, errors.New("err: failed to create request")
 	}
 	req.Header.Set("User-Agent", userAgent)
 
@@ -114,24 +114,24 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return model.GetMeasurement{}, errors.New("request failed")
+		return model.GetMeasurement{}, errors.New("err: request failed")
 	}
 	defer resp.Body.Close()
 
 	// 404 not found
 	if resp.StatusCode == http.StatusNotFound {
-		return model.GetMeasurement{}, errors.New("measurement not found")
+		return model.GetMeasurement{}, errors.New("err: measurement not found")
 	}
 
 	// 500 error
 	if resp.StatusCode == http.StatusInternalServerError {
-		return model.GetMeasurement{}, errors.New("internal server error - please try again later")
+		return model.GetMeasurement{}, errors.New("err: internal server error - please try again later")
 	}
 
 	// Read the response body
 	var data model.GetMeasurement
-	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		fmt.Println(err)
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
 		return model.GetMeasurement{}, errors.New("invalid get measurement format returned")
 	}
 
@@ -142,7 +142,7 @@ func GetApiJson(id string) (string, error) {
 	// Create a new request
 	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
 	if err != nil {
-		return "", errors.New("failed to create request")
+		return "", errors.New("err: failed to create request")
 	}
 	req.Header.Set("User-Agent", userAgent)
 
@@ -150,24 +150,24 @@ func GetApiJson(id string) (string, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", errors.New("request failed")
+		return "", errors.New("err: request failed")
 	}
 	defer resp.Body.Close()
 
 	// 404 not found
 	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("measurement not found")
+		return "", errors.New("err: measurement not found")
 	}
 
 	// 500 error
 	if resp.StatusCode == http.StatusInternalServerError {
-		return "", errors.New("internal server error - please try again later")
+		return "", errors.New("err: internal server error - please try again later")
 	}
 
 	// Read the response body
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.New("failed to read response body")
+		return "", errors.New("err: failed to read response body")
 	}
 	respString := string(respBytes)
 

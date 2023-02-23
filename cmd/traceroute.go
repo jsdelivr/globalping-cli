@@ -14,13 +14,16 @@ var tracerouteCmd = &cobra.Command{
 	Short: "Implementation of the native traceroute command",
 	Long: `traceroute tracks the route packets taken from an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an ICMP TIME_EXCEEDED response from each gateway along the path to the host.
 	
-		Examples:
-		# Traceroute google.com from a probe in the network
-		globalping traceroute google.com --from "New York" --limit 2`,
+Examples:
+# Traceroute google.com from 2 probes in New York
+traceroute google.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
-		createContext(cmd.CalledAs(), args)
+		err := createContext(cmd.CalledAs(), args)
+		if err != nil {
+			return err
+		}
 
 		// Make post struct
 		opts = model.PostMeasurement{
@@ -34,13 +37,17 @@ var tracerouteCmd = &cobra.Command{
 			},
 		}
 
-		res, err := client.PostAPI(opts)
+		res, showHelp, err := client.PostAPI(opts)
 		if err != nil {
+			if showHelp {
+				return err
+			}
 			fmt.Println(err)
-			return
+			return nil
 		}
 
 		client.OutputResults(res.ID, ctx)
+		return nil
 	},
 }
 

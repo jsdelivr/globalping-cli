@@ -54,13 +54,12 @@ func testPostValid(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.PostAPI(opts)
-	if err != nil {
-		t.Error(err)
-	}
+	res, showHelp, err := client.PostAPI(opts)
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, 1, res.ProbesCount)
+	assert.False(t, showHelp)
+	assert.NoError(t, err)
 }
 
 func testPostNoProbes(t *testing.T) {
@@ -72,8 +71,9 @@ func testPostNoProbes(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	_, err := client.PostAPI(opts)
-	assert.EqualError(t, err, "no suitable probes found")
+	_, showHelp, err := client.PostAPI(opts)
+	assert.EqualError(t, err, "no suitable probes found - please choose a different location")
+	assert.True(t, showHelp)
 }
 
 func testPostValidation(t *testing.T) {
@@ -89,8 +89,9 @@ func testPostValidation(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	_, err := client.PostAPI(opts)
-	assert.EqualError(t, err, "validation error")
+	_, showHelp, err := client.PostAPI(opts)
+	assert.EqualError(t, err, "invalid parameters - please check the help for more information")
+	assert.True(t, showHelp)
 }
 
 func testPostInternalError(t *testing.T) {
@@ -102,8 +103,9 @@ func testPostInternalError(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	_, err := client.PostAPI(opts)
-	assert.EqualError(t, err, "internal server error - please try again later")
+	_, showHelp, err := client.PostAPI(opts)
+	assert.EqualError(t, err, "err: internal server error - please try again later")
+	assert.False(t, showHelp)
 }
 
 // GetAPI tests

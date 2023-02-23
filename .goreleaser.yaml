@@ -70,5 +70,51 @@ brews:
     commit_author:
       name: jimaek
       email: dakulovgr@gmail.com
-      
+
+chocolateys:
+  -
+    name: globalping
+    owners: jsdelivr
+    title: Globalping CLI
+    authors: Ayuhito
+
+    project_url: https://www.jsdelivr.com/globalping
+
+    # App's icon.
+    icon_url: 'https://avatars.githubusercontent.com/u/102991324?v=4'
+
+    license_url: https://github.com/jsdelivr/globalping-cli/blob/master/LICENSE
+    project_source_url: https://github.com/jsdelivr/globalping-cli
+    docs_url: https://github.com/jsdelivr/globalping-cli/blob/master/README.md
+    bug_tracker_url: https://github.com/jsdelivr/globalping-cli/issues
+    release_notes: "https://github.com/jsdelivr/globalping-cli/releases/tag/v{{ .Version }}"
+
+    summary: A global network of probes to run network tests like ping, traceroute and DNS resolve.
+    # Supports markdown.
+    description: |
+      # Globalping CLI
+
+      - The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
+      - Run networking commands from any location in the world
+      - Supported commands: ping, mtr, traceroute, dns resolve, HTTP
+      - Real-time results right in your command line
+      - Human friendly format and output
+      - Cross-platform. Linux, MacOS, Windows are all supported
+      - Auto-updates via RPM/DEB/Chocolatey repos
+      - [Check our website for online tools, our Slack app and more!](https://www.jsdelivr.com/globalping)
+
+
+      ## Getting Started with Globalping CLI
+
+      Once the Globalping CLI is installed, you can verify that it is working by running:
+
+      ```bash
+      globalping --help
+      ```
+
+    tags: "globalping ping traceroute dns mtr http network"
+
+    api_key: '{{ .Env.CHOCOLATEY_APIKEY }}'
+    
+    
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json

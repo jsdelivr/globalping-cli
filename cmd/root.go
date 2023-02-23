@@ -26,8 +26,9 @@ var (
 	method    string
 	// TODO: headers   map[string]string
 
-	opts = model.PostMeasurement{}
-	ctx  = model.Context{}
+	opts    = model.PostMeasurement{}
+	ctx     = model.Context{}
+	version string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -35,12 +36,13 @@ var rootCmd = &cobra.Command{
 	Use:   "globalping",
 	Short: "A global network of probes to run network tests like ping, traceroute and DNS resolve.",
 	Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world. 
-	Our goal is to provide a free and simple API for everyone out there to build interesting networking tools and services.`,
+	The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(ver string) {
+	version = ver
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -64,12 +66,17 @@ func checkCommandFormat() cobra.PositionalArgs {
 	}
 }
 
-func createContext(cmd string, args []string) {
+func createContext(cmd string, args []string) error {
 	ctx.Cmd = cmd // Get the command name
+
+	if len(args) == 0 {
+		return errors.New("provided target is empty")
+	}
+
 	ctx.Target = args[0]
 
 	// If no from arg is provided, use the default value
-	if len(args) == 1 {
+	if len(args) == 1 && ctx.From == "" {
 		ctx.From = "world"
 	}
 
@@ -77,6 +84,7 @@ func createContext(cmd string, args []string) {
 	if len(args) > 1 && args[1] == "from" {
 		ctx.From = strings.TrimSpace(strings.Join(args[2:], " "))
 	}
+	return nil
 }
 
 func createLocations(from string) []model.Locations {

@@ -2,7 +2,7 @@
 
 <p align="center">Access a global network of probes without leaving your console. Powered by the Globalping community!</p>
 
-<p align="center"><img height="350px" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
+<p align="center"><img width="80%" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
 </p>
 
 - The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
@@ -20,14 +20,14 @@ Simply run these commands to install the repo and CLI! This way you will get all
 
 ### Ubuntu/Debian (deb)
 
-```
+```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
 apt install globalping
 ```
 
 ### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
 
-```
+```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
 dnf install globalping
 ```
@@ -36,18 +36,16 @@ dnf install globalping
 
 ### MacOS - Homebrew
 
-```
-brew tap jsdelivr/globalping-cli
+```shell
+brew tap jsdelivr/globalping
 brew install globalping
 ```
 
-### Windows - Chocolatey
+### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
 
-[coming soon]
-
-### Windows - Winget
-
-[coming soon]
+```shell
+choco install globalping
+```
 
 ### Binary installation 
 

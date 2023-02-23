@@ -12,15 +12,18 @@ import (
 var httpCmd = &cobra.Command{
 	Use:   "http [target] from [location]",
 	Short: "Use http command",
-	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations.
+	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
 	
-		Examples:
-		# HTTP google.com from a probe in the network
-		globalping http google.com --from "New York" --limit 2`,
+Examples:
+# HTTP HEAD request to jsdelivr.com from 2 probes in New York
+http https://www.jsdelivr.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
-		createContext(cmd.CalledAs(), args)
+		err := createContext(cmd.CalledAs(), args)
+		if err != nil {
+			return err
+		}
 
 		// Make post struct
 		opts = model.PostMeasurement{
@@ -43,13 +46,17 @@ var httpCmd = &cobra.Command{
 			},
 		}
 
-		res, err := client.PostAPI(opts)
+		res, showHelp, err := client.PostAPI(opts)
 		if err != nil {
+			if showHelp {
+				return err
+			}
 			fmt.Println(err)
-			return
+			return nil
 		}
 
 		client.OutputResults(res.ID, ctx)
+		return nil
 	},
 }
 
