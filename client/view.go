@@ -175,11 +175,29 @@ func OutputLatency(id string, ctx model.Context) {
 		// Output slightly different format if state is available
 		output.WriteString(generateHeader(result) + "\n")
 
-		// Output only latency values if flag is set
-		if ctx.Cmd == "ping" || ctx.Cmd == "mtr" {
+		if ctx.Cmd == "ping" {
 			output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
 			output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
 			output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
+		}
+
+		if ctx.Cmd == "dns" {
+			timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v\n", timings.Interface["total"]))
+		}
+
+		if ctx.Cmd == "http" {
+			timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v\n", timings.Interface["total"]))
+			output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v\n", timings.Interface["firstByte"]))
 		}
 	}
 

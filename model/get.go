@@ -1,5 +1,7 @@
 package model
 
+import "encoding/json"
+
 // Modeled from https://github.com/jsdelivr/globalping/blob/master/docs/measurement/get.md
 
 type ProbeData struct {
@@ -13,14 +15,18 @@ type ProbeData struct {
 	Tags      []string `json:"tags,omitempty"`
 }
 
-// https://stackoverflow.com/questions/50092462/how-to-unmarshal-an-inconsistent-json-field-that-can-be-a-string-or-an-array-o
 type ResultData struct {
-	Status           string                   `json:"status"`
-	RawOutput        string                   `json:"rawOutput"`
-	ResolvedAddress  string                   `json:"resolvedAddress"`
-	ResolvedHostname string                   `json:"resolvedHostname"`
-	Timings          []map[string]interface{} `json:"timings,omitempty"`
-	Stats            map[string]interface{}   `json:"stats,omitempty"`
+	Status           string                 `json:"status"`
+	RawOutput        string                 `json:"rawOutput"`
+	ResolvedAddress  string                 `json:"resolvedAddress"`
+	ResolvedHostname string                 `json:"resolvedHostname"`
+	Stats            map[string]interface{} `json:"stats,omitempty"`
+	TimingsRaw       json.RawMessage        `json:"timings,omitempty"`
+}
+
+type Timings struct {
+	Arr       []map[string]interface{}
+	Interface map[string]interface{}
 }
 
 // Nested structs

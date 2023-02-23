@@ -83,6 +83,24 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, error) {
 	return data, nil
 }
 
+func DecodeTimings(cmd string, timings json.RawMessage) (model.Timings, error) {
+	var data model.Timings
+
+	if cmd == "ping" {
+		err := json.Unmarshal(timings, &data.Arr)
+		if err != nil {
+			return model.Timings{}, errors.New("invalid timings format returned (ping)")
+		}
+	} else {
+		err := json.Unmarshal(timings, &data.Interface)
+		if err != nil {
+			return model.Timings{}, errors.New("invalid timings format returned (other)")
+		}
+	}
+
+	return data, nil
+}
+
 // Get measurement from Globalping API
 func GetAPI(id string) (model.GetMeasurement, error) {
 	// Create a new request
@@ -112,8 +130,7 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 
 	// Read the response body
 	var data model.GetMeasurement
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		fmt.Println(err)
 		return model.GetMeasurement{}, errors.New("invalid get measurement format returned")
 	}
