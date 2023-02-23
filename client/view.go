@@ -63,24 +63,29 @@ func sliceOutput(output string, w, h int) string {
 	return strings.Join(lines, "\n")
 }
 
-func generateHeader(result model.MeasurementResponse) string {
-	var output strings.Builder
-	if result.Probe.State != "" {
-		output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, (%s), %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN)))
-	} else {
-		output.WriteString(arrow + highlight.Render(fmt.Sprintf("%s, %s, %s, ASN:%d", result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)))
-	}
+// Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
+func generateHeader(result model.MeasurementResponse, ctx model.Context) string {
+	baseFormat := "%s, %s, %s, ASN:%d"
+	stateFormat := "%s, %s, (%s), %s, ASN:%d"
 
-	return output.String()
+	// String builder for output
+	if ctx.CI {
+		if result.Probe.State != "" {
+			return "> " + fmt.Sprintf(stateFormat, result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN)
+		} else {
+			return "> " + fmt.Sprintf(baseFormat, result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)
+		}
+	} else {
+		if result.Probe.State != "" {
+			return arrow + highlight.Render(fmt.Sprintf(stateFormat, result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN))
+		} else {
+			return arrow + highlight.Render(fmt.Sprintf(baseFormat, result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN))
+		}
+	}
 }
 
-func LiveView(id string, ctx model.Context) {
-	// Get results
-	data, err := dataSetup(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
+	var err error
 
 	// Create new writer
 	writer, _ := pterm.DefaultArea.Start()
@@ -100,7 +105,7 @@ func LiveView(id string, ctx model.Context) {
 		// Output every result in case of multiple probes
 		for _, result := range data.Results {
 			// Output slightly different format if state is available
-			output.WriteString(generateHeader(result) + "\n")
+			output.WriteString(generateHeader(result, ctx) + "\n")
 
 			// Output only latency values if flag is set
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
@@ -124,22 +129,6 @@ func LiveView(id string, ctx model.Context) {
 
 // If json flag is used, only output json
 func OutputJson(id string) {
-	// Get results
-	data, err := dataSetup(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	for data.Status == "in-progress" {
-		time.Sleep(100 * time.Millisecond)
-		data, err = GetAPI(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
-
 	output, err := GetApiJson(id)
 	if err != nil {
 		fmt.Println(err)
@@ -149,75 +138,128 @@ func OutputJson(id string) {
 }
 
 // If latency flag is used, only output latency values
-func OutputLatency(id string, ctx model.Context) {
-	// Get results
-	data, err := dataSetup(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
+func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 	// String builder for output
 	var output strings.Builder
-
-	// Poll API every 100 milliseconds until the measurement is complete
-	for data.Status == "in-progress" {
-		time.Sleep(100 * time.Millisecond)
-		data, err = GetAPI(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
 
 	// Output every result in case of multiple probes
 	for _, result := range data.Results {
 		// Output slightly different format if state is available
-		output.WriteString(generateHeader(result) + "\n")
+		output.WriteString(generateHeader(result, ctx) + "\n")
 
-		if ctx.Cmd == "ping" {
-			output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
-			output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
-			output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
-		}
-
-		if ctx.Cmd == "dns" {
-			timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
-			if err != nil {
-				fmt.Println(err)
-				return
+		if ctx.CI {
+			if ctx.Cmd == "ping" {
+				output.WriteString(fmt.Sprintf("Min: %v ms\n", result.Result.Stats["min"]))
+				output.WriteString(fmt.Sprintf("Max: %v ms\n", result.Result.Stats["max"]))
+				output.WriteString(fmt.Sprintf("Avg: %v ms\n\n", result.Result.Stats["avg"]))
 			}
-			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+
+			if ctx.Cmd == "dns" {
+				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				output.WriteString(fmt.Sprintf("Total: %v ms\n", timings.Interface["total"]))
+			}
+
+			if ctx.Cmd == "http" {
+				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				output.WriteString(fmt.Sprintf("Total: %v ms\n", timings.Interface["total"]))
+				output.WriteString(fmt.Sprintf("Download: %v ms\n", timings.Interface["download"]))
+				output.WriteString(fmt.Sprintf("First byte: %v ms\n", timings.Interface["firstByte"]))
+				output.WriteString(fmt.Sprintf("DNS: %v ms\n", timings.Interface["dns"]))
+				output.WriteString(fmt.Sprintf("TLS: %v ms\n", timings.Interface["tls"]))
+				output.WriteString(fmt.Sprintf("TCP: %v ms\n", timings.Interface["tcp"]))
+			}
+		} else {
+			if ctx.Cmd == "ping" {
+				output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
+				output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
+				output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
+			}
+
+			if ctx.Cmd == "dns" {
+				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+			}
+
+			if ctx.Cmd == "http" {
+				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+				output.WriteString(bold.Render("Download: ") + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
+				output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
+				output.WriteString(bold.Render("DNS: ") + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
+				output.WriteString(bold.Render("TLS: ") + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
+				output.WriteString(bold.Render("TCP: ") + fmt.Sprintf("%v ms\n", timings.Interface["tcp"]))
+			}
 		}
 
-		if ctx.Cmd == "http" {
-			timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
-			output.WriteString(bold.Render("Download: ") + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
-			output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
-			output.WriteString(bold.Render("DNS: ") + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
-			output.WriteString(bold.Render("TLS: ") + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
-			output.WriteString(bold.Render("TCP: ") + fmt.Sprintf("%v ms\n", timings.Interface["tcp"]))
-		}
+	}
+
+	fmt.Println(strings.TrimSpace(output.String()))
+}
+
+func OutputCI(id string, data model.GetMeasurement, ctx model.Context) {
+	// String builder for output
+	var output strings.Builder
+
+	// Output every result in case of multiple probes
+	for _, result := range data.Results {
+		// Output slightly different format if state is available
+		output.WriteString(generateHeader(result, ctx) + "\n")
+
+		// Output only latency values if flag is set
+		output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 	}
 
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
 func OutputResults(id string, ctx model.Context) {
+	// Wait for first result to arrive from a probe before starting display (can be in-progress)
+	data, err := dataSetup(id)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if ctx.CI || ctx.JsonOutput || ctx.Latency {
+		// Poll API every 100 milliseconds until the measurement is complete
+		for data.Status == "in-progress" {
+			time.Sleep(100 * time.Millisecond)
+			data, err = GetAPI(id)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+	}
+
 	switch {
 	case ctx.JsonOutput:
 		OutputJson(id)
 		return
 	case ctx.Latency:
-		OutputLatency(id, ctx)
+		OutputLatency(id, data, ctx)
+		return
+	case ctx.CI:
+		OutputCI(id, data, ctx)
 		return
 	default:
-		LiveView(id, ctx)
+		LiveView(id, data, ctx)
 		return
 	}
 }

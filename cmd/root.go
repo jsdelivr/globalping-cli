@@ -54,7 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", "A continent, region (e.g eastern europe), country, US state or city (default \"world\")")
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
-	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Output results in a format suitable for CI (default false)")
+	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI (default false)")
 }
 
 // checkCommandFormat checks if the command is in the correct format if using the from arg
@@ -90,6 +90,14 @@ func createContext(cmd string, args []string) error {
 	if os.Getenv("CI") != "" {
 		ctx.CI = true
 	}
+
+	// Check if it is a terminal or being piped/redirected
+	// We want to disable realtime updates if that is the case
+	o, _ := os.Stdout.Stat()
+	if (o.Mode() & os.ModeCharDevice) != os.ModeCharDevice {
+		ctx.CI = true
+	}
+
 	return nil
 }
 
