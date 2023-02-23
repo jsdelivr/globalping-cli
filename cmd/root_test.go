@@ -44,6 +44,7 @@ func TestCreateContext(t *testing.T) {
 		"no_target":          testContextNoTarget,
 	} {
 		t.Run(scenario, func(t *testing.T) {
+			ctx = model.Context{}
 			fn(t)
 		})
 	}
