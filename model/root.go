@@ -10,4 +10,6 @@ type Context struct {
 	JsonOutput bool
 	// Latency is a flag that outputs only stats of a measurement
 	Latency bool
+	// CI flag is used to determine whether the output should be in a format that is easy to parse by a CI tool
+	CI bool
 }

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +19,6 @@ func TestHttpCmd(t *testing.T) {
 
 func testParseUrl(t *testing.T) {
 	flags, _ := parseURL("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
-	fmt.Printf("%+v", flags)
 	assert.Equal(t, "/npm/react/", flags.Path)
 	assert.Equal(t, "cdn.jsdelivr.net", flags.Host)
 	assert.Equal(t, "https", flags.Protocol)
