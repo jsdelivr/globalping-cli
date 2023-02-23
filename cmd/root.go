@@ -54,6 +54,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", "A continent, region (e.g eastern europe), country, US state or city (default \"world\")")
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
+	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Output results in a format suitable for CI (default false)")
 }
 
 // checkCommandFormat checks if the command is in the correct format if using the from arg
@@ -69,10 +70,10 @@ func checkCommandFormat() cobra.PositionalArgs {
 func createContext(cmd string, args []string) error {
 	ctx.Cmd = cmd // Get the command name
 
+	// Target
 	if len(args) == 0 {
 		return errors.New("provided target is empty")
 	}
-
 	ctx.Target = args[0]
 
 	// If no from arg is provided, use the default value
@@ -83,6 +84,11 @@ func createContext(cmd string, args []string) error {
 	// If from args are provided, use it
 	if len(args) > 1 && args[1] == "from" {
 		ctx.From = strings.TrimSpace(strings.Join(args[2:], " "))
+	}
+
+	// Check env for CI
+	if os.Getenv("CI") != "" {
+		ctx.CI = true
 	}
 	return nil
 }
