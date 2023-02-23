@@ -20,7 +20,7 @@ ping google.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
-		err := createContext(args)
+		err := createContext(cmd.CalledAs(), args)
 		if err != nil {
 			return err
 		}
@@ -55,4 +55,7 @@ func init() {
 
 	// ping specific flags
 	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+
+	// Extra flags
+	pingCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
 }

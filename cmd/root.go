@@ -66,7 +66,9 @@ func checkCommandFormat() cobra.PositionalArgs {
 	}
 }
 
-func createContext(args []string) error {
+func createContext(cmd string, args []string) error {
+	ctx.Cmd = cmd // Get the command name
+
 	if len(args) == 0 {
 		return errors.New("provided target is empty")
 	}

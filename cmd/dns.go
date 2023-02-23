@@ -21,7 +21,8 @@ dns google.com --from California --limit 2`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
-		err := createContext(args)
+
+		err := createContext(cmd.CalledAs(), args)
 		if err != nil {
 			return err
 		}
@@ -66,4 +67,7 @@ func init() {
 	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the name or IP address of the name server to query (default empty)")
 	dnsCmd.Flags().StringVar(&queryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
 	dnsCmd.Flags().BoolVar(&trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
+
+	// Extra flags
+	dnsCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
 }

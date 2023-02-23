@@ -51,14 +51,16 @@ func TestCreateContext(t *testing.T) {
 }
 
 func testContextNoArg(t *testing.T) {
-	err := createContext([]string{"1.1.1.1"})
+	err := createContext("test", []string{"1.1.1.1"})
+	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "world", ctx.From)
 	assert.NoError(t, err)
 }
 
 func testContextCountry(t *testing.T) {
-	err := createContext([]string{"1.1.1.1", "from", "Germany"})
+	err := createContext("test", []string{"1.1.1.1", "from", "Germany"})
+	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany", ctx.From)
 	assert.NoError(t, err)
@@ -66,13 +68,14 @@ func testContextCountry(t *testing.T) {
 
 // Check if country with whitespace is parsed correctly
 func testContextCountryWhitespace(t *testing.T) {
-	err := createContext([]string{"1.1.1.1", "from", " Germany, France"})
+	err := createContext("test", []string{"1.1.1.1", "from", " Germany, France"})
+	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany, France", ctx.From)
 	assert.NoError(t, err)
 }
 
 func testContextNoTarget(t *testing.T) {
-	err := createContext([]string{})
+	err := createContext("test", []string{})
 	assert.Error(t, err)
 }

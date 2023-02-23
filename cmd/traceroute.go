@@ -20,7 +20,7 @@ traceroute google.com --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
-		err := createContext(args)
+		err := createContext(cmd.CalledAs(), args)
 		if err != nil {
 			return err
 		}
