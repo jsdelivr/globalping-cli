@@ -2,11 +2,59 @@ package cmd
 
 import (
 	"fmt"
+	"net"
+	"net/url"
+	"strconv"
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
+
+type urlFlags struct {
+	Path     string
+	Query    string
+	Host     string
+	Protocol string
+	Port     int
+}
+
+// This allows the user to specify a URL as the target without additional flags
+func parseURL(input string) (urlFlags, error) {
+	var flags urlFlags
+
+	// Parse URL
+	u, err := url.Parse(input)
+	if err != nil {
+		return flags, err
+	}
+
+	// Set flags
+	flags.Protocol = u.Scheme
+	flags.Path = u.Path
+	flags.Query = u.RawQuery
+	host, port, _ := net.SplitHostPort(u.Host)
+	flags.Host = host
+	flags.Port, _ = strconv.Atoi(port)
+
+	return flags, nil
+
+}
+
+// Helper functions to override flags in command
+func overrideOpt(orig, new string) string {
+	if new != "" {
+		return new
+	}
+	return orig
+}
+
+func overrideOptInt(orig, new int) int {
+	if new != 0 {
+		return new
+	}
+	return orig
+}
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
@@ -16,7 +64,7 @@ var httpCmd = &cobra.Command{
 	
 Examples:
 # HTTP HEAD request to jsdelivr.com from 2 probes in New York
-http https://www.jsdelivr.com --from "New York" --limit 2`,
+http https://www.jsdelivr.com/package/npm/test?nav=stats --from "New York" --limit 2`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
@@ -25,20 +73,25 @@ http https://www.jsdelivr.com --from "New York" --limit 2`,
 			return err
 		}
 
+		flags, err := parseURL(ctx.Target)
+		if err != nil {
+			return err
+		}
+
 		// Make post struct
 		opts = model.PostMeasurement{
 			Type:      "http",
-			Target:    ctx.Target,
+			Target:    overrideOpt(ctx.Target, flags.Host),
 			Locations: createLocations(ctx.From),
 			Limit:     ctx.Limit,
 			Options: &model.MeasurementOptions{
-				Protocol: protocol,
-				Port:     port,
+				Protocol: overrideOpt(protocol, flags.Protocol),
+				Port:     overrideOptInt(port, flags.Port),
 				Packets:  packets,
 				Request: &model.RequestOptions{
-					Path:  path,
-					Query: query,
-					Host:  host,
+					Path:  overrideOpt(path, flags.Path),
+					Query: overrideOpt(query, flags.Query),
+					Host:  overrideOpt(host, flags.Host),
 					// TODO: Headers: headers,
 					Method: method,
 				},
