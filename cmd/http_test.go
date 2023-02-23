@@ -31,4 +31,6 @@ func testParseUrl(t *testing.T) {
 func testOverrideOpt(t *testing.T) {
 	assert.Equal(t, "new", overrideOpt("orig", "new"))
 	assert.Equal(t, "orig", overrideOpt("orig", ""))
+	assert.Equal(t, 10, overrideOptInt(0, 10))
+	assert.Equal(t, 10, overrideOptInt(10, 0))
 }
