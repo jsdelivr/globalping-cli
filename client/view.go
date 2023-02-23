@@ -20,25 +20,6 @@ var (
 	bold = lipgloss.NewStyle().Bold(true)
 )
 
-func dataSetup(id string) (model.GetMeasurement, error) {
-	// Get results
-	data, err := GetAPI(id)
-	if err != nil {
-		return data, err
-	}
-
-	// Probe may not have started yet
-	for len(data.Results) == 0 {
-		time.Sleep(100 * time.Millisecond)
-		data, err = GetAPI(id)
-		if err != nil {
-			return data, err
-		}
-	}
-
-	return data, nil
-}
-
 // Used to slice the output to fit the terminal in live view
 func sliceOutput(output string, w, h int) string {
 	// Split output into lines
@@ -230,10 +211,20 @@ func OutputCI(id string, data model.GetMeasurement, ctx model.Context) {
 
 func OutputResults(id string, ctx model.Context) {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := dataSetup(id)
+	data, err := GetAPI(id)
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+
+	// Probe may not have started yet
+	for len(data.Results) == 0 {
+		time.Sleep(100 * time.Millisecond)
+		data, err = GetAPI(id)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 	}
 
 	if ctx.CI || ctx.JsonOutput || ctx.Latency {
