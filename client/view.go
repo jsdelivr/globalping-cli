@@ -61,7 +61,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 		for _, tag := range result.Probe.Tags {
 			// If tag ends in a number, it's likely a region code and should be displayed
 			if _, err := strconv.Atoi(tag[len(tag)-1:]); err == nil {
-				output.WriteString(", " + tag)
+				output.WriteString(" " + tag)
 				break
 			}
 		}
