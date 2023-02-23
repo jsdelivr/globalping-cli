@@ -56,7 +56,6 @@ func testContextNoArg(t *testing.T) {
 	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "world", ctx.From)
-	assert.False(t, ctx.CI)
 	assert.NoError(t, err)
 }
 
@@ -65,7 +64,6 @@ func testContextCountry(t *testing.T) {
 	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany", ctx.From)
-	assert.False(t, ctx.CI)
 	assert.NoError(t, err)
 }
 
@@ -75,7 +73,6 @@ func testContextCountryWhitespace(t *testing.T) {
 	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany, France", ctx.From)
-	assert.False(t, ctx.CI)
 	assert.NoError(t, err)
 }
 
