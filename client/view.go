@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,22 +47,30 @@ func sliceOutput(output string, w, h int) string {
 
 // Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
 func generateHeader(result model.MeasurementResponse, ctx model.Context) string {
-	baseFormat := "%s, %s, %s, ASN:%d"
-	stateFormat := "%s, %s, (%s), %s, ASN:%d"
+	var output strings.Builder
 
-	// String builder for output
+	// Continent + Country + (State) + City + ASN + Network + (Region Tag)
+	output.WriteString(result.Probe.Continent + ", " + result.Probe.Country + ", ")
+	if result.Probe.State != "" {
+		output.WriteString("(" + result.Probe.State + "), ")
+	}
+	output.WriteString(result.Probe.City + ", ASN:" + fmt.Sprint(result.Probe.ASN) + ", " + result.Probe.Network)
+
+	// Check tags to see if there's a region code
+	if len(result.Probe.Tags) > 0 {
+		for _, tag := range result.Probe.Tags {
+			// If tag ends in a number, it's likely a region code and should be displayed
+			if _, err := strconv.Atoi(tag[len(tag)-1:]); err == nil {
+				output.WriteString(" (" + tag + ")")
+				break
+			}
+		}
+	}
+
 	if ctx.CI {
-		if result.Probe.State != "" {
-			return "> " + fmt.Sprintf(stateFormat, result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN)
-		} else {
-			return "> " + fmt.Sprintf(baseFormat, result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN)
-		}
+		return "> " + output.String()
 	} else {
-		if result.Probe.State != "" {
-			return arrow + highlight.Render(fmt.Sprintf(stateFormat, result.Probe.Continent, result.Probe.Country, result.Probe.State, result.Probe.City, result.Probe.ASN))
-		} else {
-			return arrow + highlight.Render(fmt.Sprintf(baseFormat, result.Probe.Continent, result.Probe.Country, result.Probe.City, result.Probe.ASN))
-		}
+		return arrow + highlight.Render(output.String())
 	}
 }
 
