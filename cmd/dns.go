@@ -10,14 +10,24 @@ import (
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:   "dns [target] from [location]",
-	Short: "Implementation of the native dig command",
+	Use:     "dns [target] from [location]",
+	GroupID: "Measurements",
+	Short:   "Use the native dig command",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried. 
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 	
 Examples:
-# Resolve google.com from 2 probes in California
-dns google.com --from California --limit 2`,
+  # Resolve google.com from 2 probes in New York
+  dns google.com from New York --limit 2
+
+  # Resolve google.com from 2 probes from London or Belgium with trace enabled
+  dns google.com from London,Belgium --limit 2 --trace
+
+  # Resolve jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
+  dns jsdelivr.com from aws+montreal --latency
+
+  # Resolve jsdelivr.com with ASN 12345 with json output
+  dns jsdelivr.com from 12345 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
