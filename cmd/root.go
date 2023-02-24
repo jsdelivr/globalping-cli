@@ -43,6 +43,8 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute(ver string) {
 	version = ver
+
+	rootCmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)

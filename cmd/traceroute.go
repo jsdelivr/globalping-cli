@@ -10,8 +10,9 @@ import (
 
 // tracerouteCmd represents the traceroute command
 var tracerouteCmd = &cobra.Command{
-	Use:   "traceroute [target] from [location]",
-	Short: "Implementation of the native traceroute command",
+	Use:     "traceroute [target] from [location]",
+	GroupID: "Measurements",
+	Short:   "Implementation of the native traceroute command",
 	Long: `traceroute tracks the route packets taken from an IP network on their way to a given host. It utilizes the IP protocol's time to live (TTL) field and attempts to elicit an ICMP TIME_EXCEEDED response from each gateway along the path to the host.
 	
 Examples:

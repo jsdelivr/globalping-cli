@@ -10,8 +10,9 @@ import (
 
 // mtrCmd represents the mtr command
 var mtrCmd = &cobra.Command{
-	Use:   "mtr [target] from [location]",
-	Short: "Implementation of the native mtr command",
+	Use:     "mtr [target] from [location]",
+	GroupID: "Measurements",
+	Short:   "Implementation of the native mtr command",
 	Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
 	
 Examples:

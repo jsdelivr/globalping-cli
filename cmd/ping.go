@@ -10,8 +10,9 @@ import (
 
 // pingCmd represents the ping command
 var pingCmd = &cobra.Command{
-	Use:   "ping [target] from [location]",
-	Short: "Use ping command",
+	Use:     "ping [target] from [location]",
+	GroupID: "Measurements",
+	Short:   "Use ping command",
 	Long: `The ping command sends an ICMP ECHO_REQUEST to obtain an ICMP ECHO_RESPONSE from a host or gateway.
 	
 Examples:

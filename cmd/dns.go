@@ -10,8 +10,9 @@ import (
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:   "dns [target] from [location]",
-	Short: "Implementation of the native dig command",
+	Use:     "dns [target] from [location]",
+	GroupID: "Measurements",
+	Short:   "Implementation of the native dig command",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried. 
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 	
