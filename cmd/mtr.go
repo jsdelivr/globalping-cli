@@ -12,12 +12,21 @@ import (
 var mtrCmd = &cobra.Command{
 	Use:     "mtr [target] from [location]",
 	GroupID: "Measurements",
-	Short:   "Implementation of the native mtr command",
+	Short:   "Use the native mtr command",
 	Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
 	
 Examples:
-# MTR google.com from 2 probes in New York
-mtr google.com --from "New York" --limit 2`,
+  # MTR google.com from 2 probes in New York
+  mtr google.com from New York --limit 2
+
+  # MTR 1.1.1.1 from 2 probes from North America or Belgium with 10 packets
+  mtr 1.1.1.1 from North America,Belgium --limit 2 --packets 10
+
+  # MTR jsdelivr.com from a probe that is from the AWS network and is located in Montreal using the TCP protocol
+  mtr jsdelivr.com from aws+montreal --protocol tcp
+
+  # MTR jsdelivr.com with ASN 12345 with json output
+  mtr jsdelivr.com from 12345 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context

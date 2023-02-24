@@ -60,12 +60,21 @@ func overrideOptInt(orig, new int) int {
 var httpCmd = &cobra.Command{
 	Use:     "http [target] from [location]",
 	GroupID: "Measurements",
-	Short:   "Use http command",
+	Short:   "Perform a HEAD or GET request to a host",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
 	
 Examples:
-# HTTP HEAD request to jsdelivr.com from 2 probes in New York
-http https://www.jsdelivr.com/package/npm/test?nav=stats --from "New York" --limit 2`,
+  # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
+  http https://www.jsdelivr.com:443/package/npm/test?nav=stats from New York --limit 2
+
+  # HTTP GET request to google.com from 2 probes from London or Belgium
+  http google.com from London,Belgium --limit 2 --method get
+
+  # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2
+  http jsdelivr.com from aws+montreal --protocol http2
+
+  # HTTP GET request google.com with ASN 12345 with json output
+  http google.com from 12345 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
@@ -121,7 +130,7 @@ func init() {
 	httpCmd.Flags().StringVar(&path, "path", "", "A URL pathname (default \"/\")")
 	httpCmd.Flags().StringVar(&query, "query", "", "A query-string")
 	httpCmd.Flags().StringVar(&host, "host", "", "Specifies the Host header, which is going to be added to the request (default host defined in target)")
-	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET).(default \"HEAD\")")
+	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
 	httpCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
 	httpCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	httpCmd.Flags().StringVar(&resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
