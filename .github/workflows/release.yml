@@ -57,7 +57,7 @@ jobs:
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: echo globalping_${{ env.VERSION_NAME }}_linux_amd64
       - run: ls -la
-      - uses: jr-frazier/upload-packagecloud@v2
+      - uses: jsdelivr/upload-packagecloud@v3
         with:
           DEB-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
           RPM-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
