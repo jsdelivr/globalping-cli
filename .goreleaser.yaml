@@ -81,7 +81,7 @@ chocolateys:
     project_url: https://www.jsdelivr.com/globalping
 
     # App's icon.
-    icon_url: 'https://avatars.githubusercontent.com/u/102991324?v=4'
+    icon_url: 'https://cdn.jsdelivr.net/gh/jimaek/akulov.com@e4e566ae5a067b02678b3cdf6e55fc6bcfb2c1c8/img/globalping-choco-icon.png'
 
     license_url: https://github.com/jsdelivr/globalping-cli/blob/master/LICENSE
     project_source_url: https://github.com/jsdelivr/globalping-cli
