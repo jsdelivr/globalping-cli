@@ -17,7 +17,10 @@ import (
 func generateServer(json string) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(json))
+		_, err := w.Write([]byte(json))
+		if err != nil {
+			panic(err)
+		}
 	}))
 	return server
 }
@@ -25,7 +28,10 @@ func generateServer(json string) *httptest.Server {
 func generateServerError(json string, statusCode int) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
-		w.Write([]byte(json))
+		_, err := w.Write([]byte(json))
+		if err != nil {
+			panic(err)
+		}
 	}))
 	return server
 }
