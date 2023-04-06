@@ -5,40 +5,62 @@ import (
 	"net"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-type urlFlags struct {
+type UrlData struct {
+	Protocol string
 	Path     string
 	Query    string
 	Host     string
-	Protocol string
 	Port     int
 }
 
-// This allows the user to specify a URL as the target without additional flags
-func parseURL(input string) (urlFlags, error) {
-	var flags urlFlags
+// parse url data from user text input
+func parseUrlData(input string) (*UrlData, error) {
+	var urlData UrlData
 
-	// Parse URL
-	u, err := url.Parse(input)
-	if err != nil {
-		return flags, err
+	// add url scheme if missing
+	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
+		input = "http://" + input
 	}
 
-	// Set flags
-	flags.Protocol = u.Scheme
-	flags.Path = u.Path
-	flags.Query = u.RawQuery
-	host, port, _ := net.SplitHostPort(u.Host)
-	flags.Host = host
-	flags.Port, _ = strconv.Atoi(port)
+	// Parse input
+	u, err := url.Parse(input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse url input")
+	}
 
-	return flags, nil
+	urlData.Protocol = u.Scheme
+	urlData.Path = u.Path
+	urlData.Query = u.RawQuery
 
+	h, p, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		if strings.Contains(err.Error(), "missing port in address") {
+			// u.Host is not in the format "host:port"
+			h = u.Host
+		} else {
+			return nil, errors.Wrapf(err, "failed to parse url host/port")
+		}
+	}
+
+	urlData.Host = h
+
+	if p != "" {
+		// parse port if present
+		urlData.Port, err = strconv.Atoi(p)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse url port number: %s", p)
+		}
+	}
+
+	return &urlData, nil
 }
 
 // Helper functions to override flags in command
@@ -62,7 +84,7 @@ var httpCmd = &cobra.Command{
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
-	
+
 Examples:
   # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
   http https://www.jsdelivr.com:443/package/npm/test?nav=stats from New York --limit 2
@@ -76,51 +98,68 @@ Examples:
   # HTTP GET request google.com with ASN 12345 with json output
   http google.com from 12345 --json`,
 	Args: checkCommandFormat(),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Create context
-		err := createContext(cmd.CalledAs(), args)
-		if err != nil {
+	RunE: httpCmdRun,
+}
+
+// httpCmdRun is the cobra run function for the http command
+func httpCmdRun(cmd *cobra.Command, args []string) error {
+	// Create context
+	err := createContext(cmd.CalledAs(), args)
+	if err != nil {
+		return err
+	}
+
+	// build http measurement
+	m, err := buildHttpMeasurementRequest()
+	if err != nil {
+		return err
+	}
+
+	opts = m
+	res, showHelp, err := client.PostAPI(opts)
+	if err != nil {
+		if showHelp {
 			return err
 		}
-
-		flags, err := parseURL(ctx.Target)
-		if err != nil {
-			return err
-		}
-
-		// Make post struct
-		opts = model.PostMeasurement{
-			Type:      "http",
-			Target:    overrideOpt(ctx.Target, flags.Host),
-			Locations: createLocations(ctx.From),
-			Limit:     ctx.Limit,
-			Options: &model.MeasurementOptions{
-				Protocol: overrideOpt(protocol, flags.Protocol),
-				Port:     overrideOptInt(port, flags.Port),
-				Packets:  packets,
-				Request: &model.RequestOptions{
-					Path:  overrideOpt(path, flags.Path),
-					Query: overrideOpt(query, flags.Query),
-					Host:  overrideOpt(host, flags.Host),
-					// TODO: Headers: headers,
-					Method: method,
-				},
-				Resolver: resolver,
-			},
-		}
-
-		res, showHelp, err := client.PostAPI(opts)
-		if err != nil {
-			if showHelp {
-				return err
-			}
-			fmt.Println(err)
-			return nil
-		}
-
-		client.OutputResults(res.ID, ctx)
+		fmt.Println(err)
 		return nil
-	},
+	}
+
+	client.OutputResults(res.ID, ctx)
+	return nil
+}
+
+const PostMeasurementTypeHttp = "http"
+
+// buildHttpMeasurementRequest builds the measurement request for the http type
+func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
+	m := model.PostMeasurement{
+		Type: PostMeasurementTypeHttp,
+	}
+
+	urlData, err := parseUrlData(ctx.Target)
+	if err != nil {
+		return m, err
+	}
+
+	m.Target = urlData.Host
+	m.Locations = createLocations(ctx.From)
+	m.Limit = ctx.Limit
+	m.Options = &model.MeasurementOptions{
+		Protocol: overrideOpt(urlData.Protocol, protocol),
+		Port:     overrideOptInt(urlData.Port, port),
+		Packets:  packets,
+		Request: &model.RequestOptions{
+			Path:  overrideOpt(urlData.Path, path),
+			Query: overrideOpt(urlData.Query, query),
+			Host:  overrideOpt(urlData.Host, host),
+			// TODO: Headers: headers,
+			Method: method,
+		},
+		Resolver: resolver,
+	}
+
+	return m, nil
 }
 
 func init() {
