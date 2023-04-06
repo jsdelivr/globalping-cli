@@ -47,7 +47,7 @@ brew install globalping
 choco install globalping
 ```
 
-### Binary installation 
+### Binary installation
 
 Every new release is compiled into binaries ready to run on most operating systems and attached as assets on GitHub. You can download and run the binaries directly on your system, but note that you will have to repeat this process for every new release. [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
@@ -60,4 +60,18 @@ Once the Globalping CLI is installed, you can verify that it is working by runni
 globalping --help
 ```
 
+## Development setup
+Install golangci-lint
+```shell
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b bin v1.52.2
+```
 
+Run golangci-lint
+```shell
+bin/golangci-lint run
+```
+
+Run tests
+```shell
+go test ./...
+```

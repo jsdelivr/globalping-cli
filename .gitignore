@@ -37,3 +37,6 @@ coverage.out
 coverage.html
 
 dist/
+
+# binaries not commited
+bin/

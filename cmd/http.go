@@ -146,33 +146,46 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 	m.Locations = createLocations(ctx.From)
 	m.Limit = ctx.Limit
 	m.Options = &model.MeasurementOptions{
-		Protocol: overrideOpt(urlData.Protocol, protocol),
-		Port:     overrideOptInt(urlData.Port, port),
+		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
+		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
 		Packets:  packets,
 		Request: &model.RequestOptions{
-			Path:  overrideOpt(urlData.Path, path),
-			Query: overrideOpt(urlData.Query, query),
-			Host:  overrideOpt(urlData.Host, host),
+			Path:  overrideOpt(urlData.Path, httpCmdOpts.Path),
+			Query: overrideOpt(urlData.Query, httpCmdOpts.Query),
+			Host:  overrideOpt(urlData.Host, httpCmdOpts.Host),
 			// TODO: Headers: headers,
-			Method: method,
+			Method: httpCmdOpts.Method,
 		},
-		Resolver: resolver,
+		Resolver: httpCmdOpts.Resolver,
 	}
 
 	return m, nil
 }
 
+// HttpCmdOpts represents the parsed http command line opts
+type HttpCmdOpts struct {
+	Path     string
+	Query    string
+	Host     string
+	Method   string
+	Protocol string
+	Port     int
+	Resolver string
+}
+
 func init() {
 	rootCmd.AddCommand(httpCmd)
 
+	httpCmdOpts = &HttpCmdOpts{}
+
 	// http specific flags
-	httpCmd.Flags().StringVar(&path, "path", "", "A URL pathname (default \"/\")")
-	httpCmd.Flags().StringVar(&query, "query", "", "A query-string")
-	httpCmd.Flags().StringVar(&host, "host", "", "Specifies the Host header, which is going to be added to the request (default host defined in target)")
-	httpCmd.Flags().StringVar(&method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
-	httpCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
-	httpCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	httpCmd.Flags().StringVar(&resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Path, "path", "", "A URL pathname (default \"/\")")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Query, "query", "", "A query-string")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Host, "host", "", "Specifies the Host header, which is going to be added to the request (default host defined in target)")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
+	httpCmd.Flags().IntVar(&httpCmdOpts.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
 
 	// Extra flags
 	httpCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")

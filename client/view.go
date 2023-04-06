@@ -79,6 +79,13 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 
 	// Create new writer
 	writer, _ := pterm.DefaultArea.Start()
+	defer func() {
+		err := writer.Stop()
+		if err != nil {
+			fmt.Printf("failed to stop writer: %v\n", err)
+		}
+	}()
+
 	w, h, _ := pterm.GetTerminalSize()
 
 	// String builder for output
@@ -103,7 +110,6 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 		}
 
 		if err != nil {
-			writer.Stop()
 			fmt.Println(err)
 			return
 		}
@@ -113,7 +119,6 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 
 	// Stop live updater and output to stdout
 	writer.RemoveWhenDone = true
-	writer.Stop()
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
