@@ -20,10 +20,9 @@ var (
 	resolver  string
 	trace     bool
 	queryType string
-	path      string
-	host      string
-	query     string
-	method    string
+
+	httpCmdOpts *HttpCmdOpts
+
 	// TODO: headers   map[string]string
 
 	opts    = model.PostMeasurement{}
@@ -35,7 +34,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "globalping",
 	Short: "A global network of probes to run network tests like ping, traceroute and DNS resolve.",
-	Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world. 
+	Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
 	The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
 }
 
