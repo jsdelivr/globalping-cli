@@ -6,27 +6,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHttpCmd(t *testing.T) {
-	for scenario, fn := range map[string]func(t *testing.T){
-		"parseUrl":    testParseUrl,
-		"overrideOpt": testOverrideOpt,
-	} {
-		t.Run(scenario, func(t *testing.T) {
-			fn(t)
-		})
-	}
+func TestParseUrlData(t *testing.T) {
+	urlData, err := parseUrlData("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
+	assert.NoError(t, err)
+	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
+	assert.Equal(t, "/npm/react/", urlData.Path)
+	assert.Equal(t, "https", urlData.Protocol)
+	assert.Equal(t, 8080, urlData.Port)
+	assert.Equal(t, "query=3", urlData.Query)
 }
 
-func testParseUrl(t *testing.T) {
-	flags, _ := parseURL("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
-	assert.Equal(t, "/npm/react/", flags.Path)
-	assert.Equal(t, "cdn.jsdelivr.net", flags.Host)
-	assert.Equal(t, "https", flags.Protocol)
-	assert.Equal(t, 8080, flags.Port)
-	assert.Equal(t, "query=3", flags.Query)
+func TestParseUrlDataNoScheme(t *testing.T) {
+	urlData, err := parseUrlData("cdn.jsdelivr.net/npm/react/?query=3")
+	assert.NoError(t, err)
+	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
+	assert.Equal(t, "/npm/react/", urlData.Path)
+	assert.Equal(t, "http", urlData.Protocol)
+	assert.Equal(t, 0, urlData.Port)
+	assert.Equal(t, "query=3", urlData.Query)
 }
 
-func testOverrideOpt(t *testing.T) {
+func TestParseUrlDataHostOnly(t *testing.T) {
+	urlData, err := parseUrlData("cdn.jsdelivr.net")
+	assert.NoError(t, err)
+	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
+	assert.Equal(t, "", urlData.Path)
+	assert.Equal(t, "http", urlData.Protocol)
+	assert.Equal(t, 0, urlData.Port)
+	assert.Equal(t, "", urlData.Query)
+}
+
+func TestOverrideOpt(t *testing.T) {
 	assert.Equal(t, "new", overrideOpt("orig", "new"))
 	assert.Equal(t, "orig", overrideOpt("orig", ""))
 	assert.Equal(t, 10, overrideOptInt(0, 10))
