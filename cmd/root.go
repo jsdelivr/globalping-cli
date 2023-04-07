@@ -101,14 +101,3 @@ func createContext(cmd string, args []string) error {
 
 	return nil
 }
-
-func createLocations(from string) []model.Locations {
-	fromArr := strings.Split(from, ",")
-	locations := make([]model.Locations, len(fromArr))
-	for i, v := range fromArr {
-		locations[i] = model.Locations{
-			Magic: strings.TrimSpace(v),
-		}
-	}
-	return locations
-}

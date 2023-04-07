@@ -145,6 +145,7 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 	m.Target = urlData.Host
 	m.Locations = createLocations(ctx.From)
 	m.Limit = ctx.Limit
+	m.InProgressUpdates = inProgressUpdates(ctx.CI)
 	m.Options = &model.MeasurementOptions{
 		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),

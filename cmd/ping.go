@@ -14,7 +14,7 @@ var pingCmd = &cobra.Command{
 	GroupID: "Measurements",
 	Short:   "Use the native ping command",
 	Long: `The ping command sends an ICMP ECHO_REQUEST to obtain an ICMP ECHO_RESPONSE from a host or gateway.
-	
+
 Examples:
   # Ping google.com from 2 probes in New York
   ping google.com from New York --limit 2
@@ -37,10 +37,11 @@ Examples:
 
 		// Make post struct
 		opts = model.PostMeasurement{
-			Type:      "ping",
-			Target:    ctx.Target,
-			Locations: createLocations(ctx.From),
-			Limit:     ctx.Limit,
+			Type:              "ping",
+			Target:            ctx.Target,
+			Locations:         createLocations(ctx.From),
+			Limit:             ctx.Limit,
+			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
 				Packets: packets,
 			},

@@ -14,7 +14,7 @@ var mtrCmd = &cobra.Command{
 	GroupID: "Measurements",
 	Short:   "Use the native mtr command",
 	Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
-	
+
 Examples:
   # MTR google.com from 2 probes in New York
   mtr google.com from New York --limit 2
@@ -37,10 +37,11 @@ Examples:
 
 		// Make post struct
 		opts = model.PostMeasurement{
-			Type:      "mtr",
-			Target:    ctx.Target,
-			Locations: createLocations(ctx.From),
-			Limit:     ctx.Limit,
+			Type:              "mtr",
+			Target:            ctx.Target,
+			Locations:         createLocations(ctx.From),
+			Limit:             ctx.Limit,
+			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
