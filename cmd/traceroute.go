@@ -25,7 +25,7 @@ Examples:
   # Traceroute jsdelivr.com from a probe that is from the AWS network and is located in Montreal using the UDP protocol
   traceroute jsdelivr.com from aws+montreal --protocol udp
 
-  # Traceroute jsdelivr.com from a probe that is located in paris to port 453
+  # Traceroute jsdelivr.com from a probe that is located in Paris to port 453
   traceroute jsdelivr.com from Paris --port 453
 
   # Traceroute jsdelivr.com from a probe in ASN 123 with json output
