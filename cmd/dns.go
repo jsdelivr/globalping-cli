@@ -13,9 +13,9 @@ var dnsCmd = &cobra.Command{
 	Use:     "dns [target] from [location]",
 	GroupID: "Measurements",
 	Short:   "Use the native dig command",
-	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried. 
+	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
-	
+
 Examples:
   # Resolve google.com from 2 probes in New York
   dns google.com from New York --limit 2
@@ -39,10 +39,11 @@ Examples:
 
 		// Make post struct
 		opts = model.PostMeasurement{
-			Type:      "dns",
-			Target:    ctx.Target,
-			Locations: createLocations(ctx.From),
-			Limit:     ctx.Limit,
+			Type:              "dns",
+			Target:            ctx.Target,
+			Locations:         createLocations(ctx.From),
+			Limit:             ctx.Limit,
+			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,

@@ -31,11 +31,12 @@ type MeasurementOptions struct {
 
 // Main struct
 type PostMeasurement struct {
-	Limit     int                 `json:"limit"`
-	Locations []Locations         `json:"locations"`
-	Type      string              `json:"type"`
-	Target    string              `json:"target"`
-	Options   *MeasurementOptions `json:"measurementOptions,omitempty"`
+	Limit             int                 `json:"limit"`
+	Locations         []Locations         `json:"locations"`
+	Type              string              `json:"type"`
+	Target            string              `json:"target"`
+	InProgressUpdates bool                `json:"inProgressUpdates"`
+	Options           *MeasurementOptions `json:"measurementOptions,omitempty"`
 }
 
 type PostResponse struct {
