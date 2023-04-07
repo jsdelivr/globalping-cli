@@ -19,14 +19,14 @@ Examples:
   # Ping google.com from 2 probes in New York
   ping google.com from New York --limit 2
 
-  # Ping 1.1.1.1 from 2 probes from North America or Belgium with 10 packets
-  ping 1.1.1.1 from North America,Belgium --limit 2 --packets 10
+  # Ping 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
+  ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 
   # Ping jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
   ping jsdelivr.com from aws+montreal --latency
 
-  # Ping jsdelivr.com with ASN 12345 with json output
-  ping jsdelivr.com from 12345 --json`,
+  # Ping jsdelivr.com from a probe in ASN 123 with json output
+  ping jsdelivr.com from 123 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context

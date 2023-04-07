@@ -19,14 +19,17 @@ Examples:
   # Traceroute google.com from 2 probes in New York
   traceroute google.com from New York --limit 2
 
-  # Traceroute 1.1.1.1 from 2 probes from North America or Belgium
-  traceroute 1.1.1.1 from North America,Belgium --limit 2
+  # Traceroute 1.1.1.1 from 2 probes from USA or Belgium in CI mode
+  traceroute 1.1.1.1 from USA,Belgium --limit 2 --ci
 
   # Traceroute jsdelivr.com from a probe that is from the AWS network and is located in Montreal using the UDP protocol
   traceroute jsdelivr.com from aws+montreal --protocol udp
 
-  # Traceroute jsdelivr.com with ASN 12345 with json output
-  traceroute jsdelivr.com from 12345 --json`,
+  # Traceroute jsdelivr.com from a probe that is located in paris to port 453
+  traceroute jsdelivr.com from Paris --port 453
+
+  # Traceroute jsdelivr.com from a probe in ASN 123 with json output
+  traceroute jsdelivr.com from 123 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context

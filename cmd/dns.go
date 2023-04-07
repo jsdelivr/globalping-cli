@@ -23,11 +23,17 @@ Examples:
   # Resolve google.com from 2 probes from London or Belgium with trace enabled
   dns google.com from London,Belgium --limit 2 --trace
 
+  # Resolve google.com from a probe in Paris using the TCP protocol
+  dns google.com from Paris --protocol tcp
+
+  # Resolve jsdelivr.com from a probe in Berlin using the type MX and the resolver 1.1.1.1 in CI mode
+  dns jsdelivr.com from Berlin --type MX --resolver 1.1.1.1 --ci
+
   # Resolve jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
   dns jsdelivr.com from aws+montreal --latency
 
-  # Resolve jsdelivr.com with ASN 12345 with json output
-  dns jsdelivr.com from 12345 --json`,
+  # Resolve jsdelivr.com from a probe in ASN 123 with json output
+  dns jsdelivr.com from 123 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
