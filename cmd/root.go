@@ -52,8 +52,7 @@ func Execute(ver string) {
 
 func init() {
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", `Comma-separated list of "magic" location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").
-You can read more about "magic" location values here: https://github.com/jsdelivr/globalping/blob/master/docs/measurement/schema/location.md#magic-query`)
+	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", `Comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").`)
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI (default false)")
