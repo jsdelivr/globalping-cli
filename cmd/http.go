@@ -83,20 +83,31 @@ var httpCmd = &cobra.Command{
 	Use:     "http [target] from [location]",
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
-	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
+	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API. Detailed performance stats as available for every request.
+The tool supports 2 formats for this command:
+When the full url is supplied, the tool autoparses the scheme, host, port, domain, path and query. For example:
+  http https://www.jsdelivr.com:443/package/npm/test?nav=stats
+As an alternative that can be useful for scripting, the scheme, host, port, domain, path and query can be provided as separate command line flags. For example:
+  http jsdelivr.com --host www.jsdelivr.com --protocol https --port 443 --path "/package/npm/test" --query "nav=stats"
 
 Examples:
   # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
   http https://www.jsdelivr.com:443/package/npm/test?nav=stats from New York --limit 2
 
-  # HTTP GET request to google.com from 2 probes from London or Belgium
-  http google.com from London,Belgium --limit 2 --method get
+  # HTTP GET request to google.com from 2 probes from London or Belgium in CI mode
+  http google.com from London,Belgium --limit 2 --method get --ci
 
   # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2
   http jsdelivr.com from aws+montreal --protocol http2
 
-  # HTTP GET request google.com with ASN 12345 with json output
-  http google.com from 12345 --json`,
+  # HTTP HEAD request to jsdelivr.com from a probe that is located in Paris, using the /robots.txt path with "test=1" query string
+  http jsdelivr.com from Paris --path /robots.txt --query "test=1"
+
+  # HTTP HEAD request to example.com from a probe that is located in Berlin, specifying a different host example.org in the request headers
+  http example.com from Berlin --host example.org
+
+  # HTTP GET request google.com from a probe in ASN 123 with a dns resolver 1.1.1.1 and json output
+  http google.com from 123 --resolver 1.1.1.1 --json`,
 	Args: checkCommandFormat(),
 	RunE: httpCmdRun,
 }
@@ -186,8 +197,5 @@ func init() {
 	httpCmd.Flags().StringVar(&httpCmdOpts.Method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
 	httpCmd.Flags().StringVar(&httpCmdOpts.Protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
 	httpCmd.Flags().IntVar(&httpCmdOpts.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
-
-	// Extra flags
-	httpCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
 }

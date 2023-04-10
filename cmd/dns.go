@@ -12,7 +12,7 @@ import (
 var dnsCmd = &cobra.Command{
 	Use:     "dns [target] from [location]",
 	GroupID: "Measurements",
-	Short:   "Use the native dig command",
+	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 
@@ -23,11 +23,17 @@ Examples:
   # Resolve google.com from 2 probes from London or Belgium with trace enabled
   dns google.com from London,Belgium --limit 2 --trace
 
+  # Resolve google.com from a probe in Paris using the TCP protocol
+  dns google.com from Paris --protocol tcp
+
+  # Resolve jsdelivr.com from a probe in Berlin using the type MX and the resolver 1.1.1.1 in CI mode
+  dns jsdelivr.com from Berlin --type MX --resolver 1.1.1.1 --ci
+
   # Resolve jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
   dns jsdelivr.com from aws+montreal --latency
 
-  # Resolve jsdelivr.com with ASN 12345 with json output
-  dns jsdelivr.com from 12345 --json`,
+  # Resolve jsdelivr.com from a probe in ASN 123 with json output
+  dns jsdelivr.com from 123 --json`,
 	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
@@ -75,10 +81,7 @@ func init() {
 	// dns specific flags
 	dnsCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
 	dnsCmd.Flags().IntVar(&port, "port", 0, "Send the query to a non-standard port on the server (default 53)")
-	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the name or IP address of the name server to query (default empty)")
+	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the hostname or IP address of the name server to use (default empty)")
 	dnsCmd.Flags().StringVar(&queryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
 	dnsCmd.Flags().BoolVar(&trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
-
-	// Extra flags
-	dnsCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
 }
