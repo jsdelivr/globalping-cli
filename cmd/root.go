@@ -56,6 +56,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
+	rootCmd.PersistentFlags().BoolVar(&ctx.Latency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
 }
 
 // checkCommandFormat checks if the command is in the correct format if using the from arg

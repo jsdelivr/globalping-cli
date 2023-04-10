@@ -35,6 +35,10 @@ Examples:
 			return err
 		}
 
+		if ctx.Latency {
+			return fmt.Errorf("the latency flag is not supported by the mtr command")
+		}
+
 		// Make post struct
 		opts = model.PostMeasurement{
 			Type:              "mtr",
@@ -70,7 +74,4 @@ func init() {
 	mtrCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
 	mtrCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
 	mtrCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the number of packets to send to each hop (default 3)")
-
-	// Extra flags
-	// mtrCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")
 }

@@ -38,6 +38,10 @@ Examples:
 			return err
 		}
 
+		if ctx.Latency {
+			return fmt.Errorf("the latency flag is not supported by the traceroute command")
+		}
+
 		// Make post struct
 		opts = model.PostMeasurement{
 			Type:              "traceroute",
