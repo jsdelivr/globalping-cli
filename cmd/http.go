@@ -83,7 +83,7 @@ var httpCmd = &cobra.Command{
 	Use:     "http [target] from [location]",
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
-	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
+	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API. Detailed performance stats as available for every request.
 The tool supports 2 formats for this command:
 When the full url is supplied, the tool autoparses the scheme, host, port, domain, path and query. For example:
   http https://www.jsdelivr.com:443/package/npm/test?nav=stats
@@ -197,7 +197,7 @@ func init() {
 	httpCmd.Flags().StringVar(&httpCmdOpts.Method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
 	httpCmd.Flags().StringVar(&httpCmdOpts.Protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
 	httpCmd.Flags().IntVar(&httpCmdOpts.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup")
+	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
 
 	// Extra flags
 	httpCmd.Flags().BoolVar(&ctx.Latency, "latency", false, "Output only stats of a measurement (default false)")

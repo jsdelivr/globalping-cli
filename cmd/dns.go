@@ -12,7 +12,7 @@ import (
 var dnsCmd = &cobra.Command{
 	Use:     "dns [target] from [location]",
 	GroupID: "Measurements",
-	Short:   "Use the native dig command",
+	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 
@@ -81,7 +81,7 @@ func init() {
 	// dns specific flags
 	dnsCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
 	dnsCmd.Flags().IntVar(&port, "port", 0, "Send the query to a non-standard port on the server (default 53)")
-	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the name or IP address of the name server to query (default empty)")
+	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the hostname or IP address of the name server to use (default empty)")
 	dnsCmd.Flags().StringVar(&queryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
 	dnsCmd.Flags().BoolVar(&trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
 
