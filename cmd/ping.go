@@ -13,7 +13,7 @@ var pingCmd = &cobra.Command{
 	Use:     "ping [target] from [location]",
 	GroupID: "Measurements",
 	Short:   "Use the native ping command",
-	Long: `The ping command sends an ICMP ECHO_REQUEST to obtain an ICMP ECHO_RESPONSE from a host or gateway.
+	Long: `The ping command allows sending ping requests to a target.
 
 Examples:
   # Ping google.com from 2 probes in New York
