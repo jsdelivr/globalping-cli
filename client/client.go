@@ -7,12 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 
 	"github.com/jsdelivr/globalping-cli/model"
 )
-
-const userAgent = "Globalping API Go Client / v1" + " (" + runtime.GOOS + "/" + runtime.GOARCH + ")"
 
 var ApiUrl = "https://api.globalping.io/v1/measurements"
 
@@ -29,7 +26,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	if err != nil {
 		return model.PostResponse{}, false, errors.New("err: failed to create request - please report this bug")
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", userAgent())
 	req.Header.Set("Content-Type", "application/json")
 
 	// Make the request
@@ -108,7 +105,7 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 	if err != nil {
 		return model.GetMeasurement{}, errors.New("err: failed to create request")
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", userAgent())
 
 	// Make the request
 	client := &http.Client{}
@@ -144,7 +141,7 @@ func GetApiJson(id string) (string, error) {
 	if err != nil {
 		return "", errors.New("err: failed to create request")
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", userAgent())
 
 	// Make the request
 	client := &http.Client{}

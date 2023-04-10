@@ -25,9 +25,8 @@ var (
 
 	// TODO: headers   map[string]string
 
-	opts    = model.PostMeasurement{}
-	ctx     = model.Context{}
-	version string
+	opts = model.PostMeasurement{}
+	ctx  = model.Context{}
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -40,9 +39,7 @@ The CLI tool allows you to interact with the API in a simple and human-friendly 
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute(ver string) {
-	version = ver
-
+func Execute() {
 	rootCmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 	err := rootCmd.Execute()
 	if err != nil {
