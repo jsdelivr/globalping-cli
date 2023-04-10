@@ -107,6 +107,7 @@ func GetAPI(id string) (model.GetMeasurement, error) {
 		return model.GetMeasurement{}, errors.New("err: failed to create request")
 	}
 	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("Accept-Encoding", "br")
 
 	// Make the request
 	client := &http.Client{}
@@ -143,6 +144,7 @@ func GetApiJson(id string) (string, error) {
 		return "", errors.New("err: failed to create request")
 	}
 	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("Accept-Encoding", "br")
 
 	// Make the request
 	client := &http.Client{}
