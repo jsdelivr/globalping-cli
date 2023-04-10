@@ -27,6 +27,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 		return model.PostResponse{}, false, errors.New("err: failed to create request - please report this bug")
 	}
 	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
 
 	// Make the request

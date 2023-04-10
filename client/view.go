@@ -74,7 +74,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 	}
 }
 
-var liveViewPollInterval = 100 * time.Millisecond
+var apiPollInterval = 1000 * time.Millisecond
 
 func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 	var err error
@@ -106,7 +106,7 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 
 	// Poll API until the measurement is complete
 	for data.Status == "in-progress" {
-		time.Sleep(liveViewPollInterval)
+		time.Sleep(apiPollInterval)
 		data, err = GetAPI(id)
 		if err != nil {
 			fmt.Printf("failed to get data: %v\n", err)
@@ -249,7 +249,7 @@ func OutputResults(id string, ctx model.Context) {
 
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(apiPollInterval)
 		data, err = GetAPI(id)
 		if err != nil {
 			fmt.Println(err)
@@ -258,9 +258,9 @@ func OutputResults(id string, ctx model.Context) {
 	}
 
 	if ctx.CI || ctx.JsonOutput || ctx.Latency {
-		// Poll API every 100 milliseconds until the measurement is complete
+		// Poll API until the measurement is complete
 		for data.Status == "in-progress" {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(apiPollInterval)
 			data, err = GetAPI(id)
 			if err != nil {
 				fmt.Println(err)
