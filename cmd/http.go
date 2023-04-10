@@ -84,6 +84,11 @@ var httpCmd = &cobra.Command{
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API.
+The tool supports 2 formats for this command:
+When the full url is supplied, the tool autoparses the scheme, host, port, domain, path and query. For example:
+  http https://www.jsdelivr.com:443/package/npm/test?nav=stats
+As an alternative that can be useful for scripting, the scheme, host, port, domain, path and query can be provided as separate command line flags. For example:
+  http jsdelivr.com --host www.jsdelivr.com --protocol https --port 443 --path "/package/npm/test" --query "nav=stats"
 
 Examples:
   # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
