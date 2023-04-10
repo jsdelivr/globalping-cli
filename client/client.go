@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/jsdelivr/globalping-cli/model"
@@ -97,79 +96,4 @@ func DecodeTimings(cmd string, timings json.RawMessage) (model.Timings, error) {
 	}
 
 	return data, nil
-}
-
-// Get measurement from Globalping API
-func GetAPI(id string) (model.GetMeasurement, error) {
-	// Create a new request
-	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("err: failed to create request")
-	}
-	req.Header.Set("User-Agent", userAgent())
-	req.Header.Set("Accept-Encoding", "br")
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("err: request failed")
-	}
-	defer resp.Body.Close()
-
-	// 404 not found
-	if resp.StatusCode == http.StatusNotFound {
-		return model.GetMeasurement{}, errors.New("err: measurement not found")
-	}
-
-	// 500 error
-	if resp.StatusCode == http.StatusInternalServerError {
-		return model.GetMeasurement{}, errors.New("err: internal server error - please try again later")
-	}
-
-	// Read the response body
-	var data model.GetMeasurement
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("invalid get measurement format returned")
-	}
-
-	return data, nil
-}
-
-func GetApiJson(id string) (string, error) {
-	// Create a new request
-	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
-	if err != nil {
-		return "", errors.New("err: failed to create request")
-	}
-	req.Header.Set("User-Agent", userAgent())
-	req.Header.Set("Accept-Encoding", "br")
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", errors.New("err: request failed")
-	}
-	defer resp.Body.Close()
-
-	// 404 not found
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("err: measurement not found")
-	}
-
-	// 500 error
-	if resp.StatusCode == http.StatusInternalServerError {
-		return "", errors.New("err: internal server error - please try again later")
-	}
-
-	// Read the response body
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.New("err: failed to read response body")
-	}
-	respString := string(respBytes)
-
-	return respString, nil
 }

@@ -137,7 +137,9 @@ func testGetValid(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -152,12 +154,14 @@ func testGetJson(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetApiJson("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetRawMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
-	assert.Equal(t, `{"id":"abcd"}`, res)
+	assert.Equal(t, `{"id":"abcd"}`, string(res))
 }
 
 func testGetPing(t *testing.T) {
@@ -206,7 +210,9 @@ func testGetPing(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -299,7 +305,9 @@ func testGetTraceroute(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -375,7 +383,9 @@ func testGetDns(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -498,7 +508,9 @@ func testGetMtr(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -603,7 +615,9 @@ func testGetHttp(t *testing.T) {
 	defer server.Close()
 	client.ApiUrl = server.URL
 
-	res, err := client.GetAPI("abcd")
+	fetcher := client.NewMeasurementsFetcher(server.URL)
+
+	res, err := fetcher.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
