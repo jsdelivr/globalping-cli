@@ -74,27 +74,44 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 	}
 }
 
+var liveViewPollInterval = 100 * time.Millisecond
+
 func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 	var err error
 
 	// Create new writer
-	writer, _ := pterm.DefaultArea.Start()
+	areaPrinter, err := pterm.DefaultArea.Start()
+	if err != nil {
+		fmt.Printf("failed to start writer: %v\n", err)
+		return
+	}
+	areaPrinter.RemoveWhenDone = true
+
 	defer func() {
-		err := writer.Stop()
+		// Stop area printer and clear area if not already done
+		err := areaPrinter.Stop()
 		if err != nil {
 			fmt.Printf("failed to stop writer: %v\n", err)
 		}
 	}()
 
-	w, h, _ := pterm.GetTerminalSize()
+	w, h, err := pterm.GetTerminalSize()
+	if err != nil {
+		fmt.Printf("failed to get terminal size: %v\n", err)
+		return
+	}
 
 	// String builder for output
 	var output strings.Builder
 
-	// Poll API every 100 milliseconds until the measurement is complete
+	// Poll API until the measurement is complete
 	for data.Status == "in-progress" {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(liveViewPollInterval)
 		data, err = GetAPI(id)
+		if err != nil {
+			fmt.Printf("failed to get data: %v\n", err)
+			return
+		}
 
 		// Reset string builder
 		output.Reset()
@@ -106,19 +123,18 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 
 			// Output only latency values if flag is set
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
-
 		}
 
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		writer.Update(sliceOutput(output.String(), w, h))
+		areaPrinter.Update(sliceOutput(output.String(), w, h))
 	}
 
-	// Stop live updater and output to stdout
-	writer.RemoveWhenDone = true
+	// Stop area printer and clear area
+	err = areaPrinter.Stop()
+	if err != nil {
+		fmt.Printf("failed to stop writer: %v\n", err)
+	}
+
+	// Print full output
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
