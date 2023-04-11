@@ -1,0 +1,21 @@
+  name: globalping
+  version: git
+  summary: Run networking commands like ping and mtr from globally distributed probes
+  description: |
+    Globalping is a free CLI tool that allows everyone to run commands like ping, traceroute, mtr, DNS resolve (dig), HTTP (curl)
+    from community hosted probes all around the world. Better understand the latency of your servers from different locations,
+    debug networking issues using traceroute and DNS resolver, compare CDN and DNS providers performance and more.
+
+  grade: stable
+  base: core18
+  confinement: classic
+
+  parts:
+    globalping:
+      plugin: go
+      source: https://github.com/jsdelivr/globalping-cli
+      source-type: git
+      
+  apps:
+    globalping:
+      command: bin/globalping-cli
