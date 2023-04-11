@@ -99,6 +99,10 @@ func (f *measurementsFetcher) GetRawMeasurement(id string) ([]byte, error) {
 		return respBytes, nil
 	}
 
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("err: response code %d", resp.StatusCode)
+	}
+
 	var bodyReader io.Reader = resp.Body
 
 	if resp.Header.Get("Content-Encoding") == "br" {
