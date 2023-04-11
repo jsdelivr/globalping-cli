@@ -7,8 +7,8 @@
     debug networking issues using traceroute and DNS resolver, compare CDN and DNS providers performance and more.
 
   grade: stable
-  base: core18
-  confinement: classic
+  base: core20
+  confinement: strict
 
   parts:
     globalping:
@@ -19,3 +19,5 @@
   apps:
     globalping:
       command: bin/globalping-cli
+      plugs:
+        - network
