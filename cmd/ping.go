@@ -28,7 +28,6 @@ Examples:
 
   # Ping jsdelivr.com from a probe in ASN 123 with json output
   ping jsdelivr.com from 123 --json`,
-	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
 		err := createContext(cmd.CalledAs(), args)

@@ -91,6 +91,12 @@ When the full url is supplied, the tool autoparses the scheme, host, port, domai
 As an alternative that can be useful for scripting, the scheme, host, port, domain, path and query can be provided as separate command line flags. For example:
   http jsdelivr.com --host www.jsdelivr.com --protocol https --port 443 --path "/package/npm/test" --query "nav=stats"
 
+This command also provides 2 different ways to provide the dns resolver:
+Using the --resolver argument. For example:
+ http jsdelivr.com from Berlin --resolver 1.1.1.1
+Using the dig format @resolver. For example:
+ http jsdelivr.com @1.1.1.1 from Berlin
+
 Examples:
   # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
   http https://www.jsdelivr.com:443/package/npm/test?nav=stats from New York --limit 2
@@ -109,7 +115,6 @@ Examples:
 
   # HTTP GET request google.com from a probe in ASN 123 with a dns resolver 1.1.1.1 and json output
   http google.com from 123 --resolver 1.1.1.1 --json`,
-	Args: checkCommandFormat(),
 	RunE: httpCmdRun,
 }
 
@@ -169,7 +174,7 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 			// TODO: Headers: headers,
 			Method: httpCmdOpts.Method,
 		},
-		Resolver: httpCmdOpts.Resolver,
+		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
 
 	return m, nil
