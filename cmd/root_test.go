@@ -55,7 +55,7 @@ func testContextNoArg(t *testing.T) {
 	err := createContext("test", []string{"1.1.1.1"})
 	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
-	assert.Equal(t, "world", ctx.From)
+	assert.Equal(t, "", ctx.From)
 	assert.NoError(t, err)
 }
 
@@ -86,7 +86,7 @@ func testContextCIEnv(t *testing.T) {
 	err := createContext("test", []string{"1.1.1.1"})
 	assert.Equal(t, "test", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
-	assert.Equal(t, "world", ctx.From)
+	assert.Equal(t, "", ctx.From)
 	assert.True(t, ctx.CI)
 	assert.NoError(t, err)
 }

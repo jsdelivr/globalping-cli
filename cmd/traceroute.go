@@ -31,7 +31,6 @@ Examples:
 
   # Traceroute jsdelivr.com from a probe in ASN 123 with json output
   traceroute jsdelivr.com from 123 --json`,
-	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
 		err := createContext(cmd.CalledAs(), args)

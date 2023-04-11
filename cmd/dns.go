@@ -16,8 +16,13 @@ var dnsCmd = &cobra.Command{
 	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
+This command provides 2 different ways to provide the dns resolver:
+Using the --resolver argument. For example:
+  dns jsdelivr.com from Berlin --resolver 1.1.1.1
+Using the dig format @resolver. For example:
+  dns jsdelivr.com @1.1.1.1 from Berlin
 
-Examples:
+  Examples:
   # Resolve google.com from 2 probes in New York
   dns google.com from New York --limit 2
 
@@ -35,7 +40,6 @@ Examples:
 
   # Resolve jsdelivr.com from a probe in ASN 123 with json output
   dns jsdelivr.com from 123 --json`,
-	Args: checkCommandFormat(),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create context
 
@@ -54,7 +58,7 @@ Examples:
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
-				Resolver: resolver,
+				Resolver: overrideOpt(ctx.Resolver, resolver),
 				Query: &model.QueryOptions{
 					Type: queryType,
 				},

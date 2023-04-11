@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"errors"
 	"os"
-	"strings"
 
+	"github.com/jsdelivr/globalping-cli/lib"
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/spf13/cobra"
 )
@@ -49,40 +48,30 @@ func Execute() {
 
 func init() {
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "", `Comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").`)
+	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "world", `Comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").`)
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
 	rootCmd.PersistentFlags().BoolVar(&ctx.Latency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
 }
 
-// checkCommandFormat checks if the command is in the correct format if using the from arg
-func checkCommandFormat() cobra.PositionalArgs {
-	return func(cmd *cobra.Command, args []string) error {
-		if len(args) > 1 && args[1] != "from" {
-			return errors.New("invalid command format")
-		}
-		return nil
-	}
-}
-
 func createContext(cmd string, args []string) error {
 	ctx.Cmd = cmd // Get the command name
 
-	// Target
-	if len(args) == 0 {
-		return errors.New("provided target is empty")
-	}
-	ctx.Target = args[0]
-
-	// If no from arg is provided, use the default value
-	if len(args) == 1 && ctx.From == "" {
-		ctx.From = "world"
+	// parse target query
+	targetQuery, err := lib.ParseTargetQuery(cmd, args)
+	if err != nil {
+		return err
 	}
 
-	// If from args are provided, use it
-	if len(args) > 1 && args[1] == "from" {
-		ctx.From = strings.TrimSpace(strings.Join(args[2:], " "))
+	ctx.Target = targetQuery.Target
+
+	if targetQuery.From != "" {
+		ctx.From = targetQuery.From
+	}
+
+	if targetQuery.Resolver != "" {
+		ctx.Resolver = targetQuery.Resolver
 	}
 
 	// Check env for CI
