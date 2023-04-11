@@ -75,7 +75,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 	}
 }
 
-var apiPollInterval = 1000 * time.Millisecond
+var apiPollInterval = 500 * time.Millisecond
 
 func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 	var err error

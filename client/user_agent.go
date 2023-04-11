@@ -7,5 +7,5 @@ import (
 )
 
 func userAgent() string {
-	return fmt.Sprintf("globalping-cli/%s (https://github.com/jsdelivr/globalping-cli)", version.Version)
+	return fmt.Sprintf("globalping-cli/v%s (https://github.com/jsdelivr/globalping-cli)", version.Version)
 }
