@@ -21,14 +21,13 @@ var commandsWithResolver = []string{
 
 func ParseTargetQuery(cmd string, args []string) (*TargetQuery, error) {
 	targetQuery := &TargetQuery{}
-	// Target
 	if len(args) == 0 {
 		return nil, errors.New("provided target is empty")
 	}
 
 	resolver, argsWithoutResolver := findAndRemoveResolver(args)
-
 	if resolver != "" {
+		// resolver was found
 		if !slices.Contains(commandsWithResolver, cmd) {
 			return nil, fmt.Errorf("command %s does not accept a resolver argument. @%s was provided", cmd, resolver)
 		}
