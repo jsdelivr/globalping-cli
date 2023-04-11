@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 
+	"github.com/andybalholm/brotli"
 	"github.com/jsdelivr/globalping-cli/model"
 )
-
-const userAgent = "Globalping API Go Client / v1" + " (" + runtime.GOOS + "/" + runtime.GOARCH + ")"
 
 var ApiUrl = "https://api.globalping.io/v1/measurements"
 
@@ -29,7 +27,8 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	if err != nil {
 		return model.PostResponse{}, false, errors.New("err: failed to create request - please report this bug")
 	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
 
 	// Make the request
@@ -73,8 +72,14 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	}
 
 	// Read the response body
+
+	var bodyReader io.Reader = resp.Body
+	if resp.Header.Get("Content-Encoding") == "br" {
+		bodyReader = brotli.NewReader(bodyReader)
+	}
+
 	var data model.PostResponse
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	err = json.NewDecoder(bodyReader).Decode(&data)
 	if err != nil {
 		fmt.Println(err)
 		return model.PostResponse{}, false, errors.New("err: invalid post measurement format returned - please report this bug")
@@ -99,77 +104,4 @@ func DecodeTimings(cmd string, timings json.RawMessage) (model.Timings, error) {
 	}
 
 	return data, nil
-}
-
-// Get measurement from Globalping API
-func GetAPI(id string) (model.GetMeasurement, error) {
-	// Create a new request
-	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("err: failed to create request")
-	}
-	req.Header.Set("User-Agent", userAgent)
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("err: request failed")
-	}
-	defer resp.Body.Close()
-
-	// 404 not found
-	if resp.StatusCode == http.StatusNotFound {
-		return model.GetMeasurement{}, errors.New("err: measurement not found")
-	}
-
-	// 500 error
-	if resp.StatusCode == http.StatusInternalServerError {
-		return model.GetMeasurement{}, errors.New("err: internal server error - please try again later")
-	}
-
-	// Read the response body
-	var data model.GetMeasurement
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return model.GetMeasurement{}, errors.New("invalid get measurement format returned")
-	}
-
-	return data, nil
-}
-
-func GetApiJson(id string) (string, error) {
-	// Create a new request
-	req, err := http.NewRequest("GET", ApiUrl+"/"+id, nil)
-	if err != nil {
-		return "", errors.New("err: failed to create request")
-	}
-	req.Header.Set("User-Agent", userAgent)
-
-	// Make the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", errors.New("err: request failed")
-	}
-	defer resp.Body.Close()
-
-	// 404 not found
-	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("err: measurement not found")
-	}
-
-	// 500 error
-	if resp.StatusCode == http.StatusInternalServerError {
-		return "", errors.New("err: internal server error - please try again later")
-	}
-
-	// Read the response body
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.New("err: failed to read response body")
-	}
-	respString := string(respBytes)
-
-	return respString, nil
 }

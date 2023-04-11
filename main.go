@@ -1,6 +1,9 @@
 package main
 
-import "github.com/jsdelivr/globalping-cli/cmd"
+import (
+	"github.com/jsdelivr/globalping-cli/cmd"
+	pkgversion "github.com/jsdelivr/globalping-cli/version"
+)
 
 var (
 	// https://goreleaser.com/cookbooks/using-main.version/
@@ -8,5 +11,6 @@ var (
 )
 
 func main() {
-	cmd.Execute(version)
+	pkgversion.Version = version
+	cmd.Execute()
 }

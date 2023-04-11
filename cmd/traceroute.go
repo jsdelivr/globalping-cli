@@ -5,6 +5,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -64,7 +65,7 @@ Examples:
 			return nil
 		}
 
-		client.OutputResults(res.ID, ctx)
+		view.OutputResults(res.ID, ctx)
 		return nil
 	},
 }

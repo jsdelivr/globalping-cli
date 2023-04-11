@@ -9,6 +9,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -136,7 +137,7 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	client.OutputResults(res.ID, ctx)
+	view.OutputResults(res.ID, ctx)
 	return nil
 }
 

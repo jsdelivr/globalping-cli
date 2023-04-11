@@ -1,4 +1,4 @@
-package client
+package view
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/pterm/pterm"
 )
@@ -74,9 +75,9 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 	}
 }
 
-var liveViewPollInterval = 100 * time.Millisecond
+var apiPollInterval = 500 * time.Millisecond
 
-func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
+func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 	var err error
 
 	// Create new writer
@@ -104,10 +105,12 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 	// String builder for output
 	var output strings.Builder
 
+	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+
 	// Poll API until the measurement is complete
 	for data.Status == "in-progress" {
-		time.Sleep(liveViewPollInterval)
-		data, err = GetAPI(id)
+		time.Sleep(apiPollInterval)
+		data, err = fetcher.GetMeasurement(id)
 		if err != nil {
 			fmt.Printf("failed to get data: %v\n", err)
 			return
@@ -139,17 +142,17 @@ func LiveView(id string, data model.GetMeasurement, ctx model.Context) {
 }
 
 // If json flag is used, only output json
-func OutputJson(id string) {
-	output, err := GetApiJson(id)
+func OutputJson(id string, fetcher client.MeasurementsFetcher) {
+	output, err := fetcher.GetRawMeasurement(id)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(output)
+	fmt.Println(string(output))
 }
 
 // If latency flag is used, only output latency values
-func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
+func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 	// String builder for output
 	var output strings.Builder
 
@@ -166,7 +169,7 @@ func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 			}
 
 			if ctx.Cmd == "dns" {
-				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -175,7 +178,7 @@ func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 			}
 
 			if ctx.Cmd == "http" {
-				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -195,7 +198,7 @@ func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 			}
 
 			if ctx.Cmd == "dns" {
-				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -204,7 +207,7 @@ func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 			}
 
 			if ctx.Cmd == "http" {
-				timings, err := DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
+				timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -223,7 +226,7 @@ func OutputLatency(id string, data model.GetMeasurement, ctx model.Context) {
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
-func OutputCI(id string, data model.GetMeasurement, ctx model.Context) {
+func OutputCI(id string, data *model.GetMeasurement, ctx model.Context) {
 	// String builder for output
 	var output strings.Builder
 
@@ -240,8 +243,10 @@ func OutputCI(id string, data model.GetMeasurement, ctx model.Context) {
 }
 
 func OutputResults(id string, ctx model.Context) {
+	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := GetAPI(id)
+	data, err := fetcher.GetMeasurement(id)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -249,8 +254,8 @@ func OutputResults(id string, ctx model.Context) {
 
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
-		time.Sleep(100 * time.Millisecond)
-		data, err = GetAPI(id)
+		time.Sleep(apiPollInterval)
+		data, err = fetcher.GetMeasurement(id)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -258,29 +263,29 @@ func OutputResults(id string, ctx model.Context) {
 	}
 
 	if ctx.CI || ctx.JsonOutput || ctx.Latency {
-		// Poll API every 100 milliseconds until the measurement is complete
+		// Poll API until the measurement is complete
 		for data.Status == "in-progress" {
-			time.Sleep(100 * time.Millisecond)
-			data, err = GetAPI(id)
+			time.Sleep(apiPollInterval)
+			data, err = fetcher.GetMeasurement(id)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}
+		switch {
+		case ctx.CI:
+			OutputCI(id, data, ctx)
+			return
+		case ctx.JsonOutput:
+			OutputJson(id, fetcher)
+			return
+		case ctx.Latency:
+			OutputLatency(id, data, ctx)
+			return
+		default:
+			panic(fmt.Sprintf("case not handled. %+v", ctx))
+		}
 	}
 
-	switch {
-	case ctx.JsonOutput:
-		OutputJson(id)
-		return
-	case ctx.Latency:
-		OutputLatency(id, data, ctx)
-		return
-	case ctx.CI:
-		OutputCI(id, data, ctx)
-		return
-	default:
-		LiveView(id, data, ctx)
-		return
-	}
+	LiveView(id, data, ctx)
 }
