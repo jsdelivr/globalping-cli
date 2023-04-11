@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
+	"github.com/andybalholm/brotli"
 	"github.com/jsdelivr/globalping-cli/model"
 )
 
@@ -70,8 +72,14 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	}
 
 	// Read the response body
+
+	var bodyReader io.Reader = resp.Body
+	if resp.Header.Get("Content-Encoding") == "br" {
+		bodyReader = brotli.NewReader(bodyReader)
+	}
+
 	var data model.PostResponse
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	err = json.NewDecoder(bodyReader).Decode(&data)
 	if err != nil {
 		fmt.Println(err)
 		return model.PostResponse{}, false, errors.New("err: invalid post measurement format returned - please report this bug")
