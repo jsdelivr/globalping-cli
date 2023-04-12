@@ -104,8 +104,8 @@ Examples:
   # HTTP GET request to google.com from 2 probes from London or Belgium in CI mode
   http google.com from London,Belgium --limit 2 --method get --ci
 
-  # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2
-  http jsdelivr.com from aws+montreal --protocol http2
+  # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2. 2 http headers are added to the request.
+  http jsdelivr.com from aws+montreal --protocol http2 --header "Accept-Encoding: br,gzip" -H "Accept-Language: *"
 
   # HTTP HEAD request to jsdelivr.com from a probe that is located in Paris, using the /robots.txt path with "test=1" query string
   http jsdelivr.com from Paris --path /robots.txt --query "test=1"
@@ -159,6 +159,11 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 		return m, err
 	}
 
+	headers, err := parseHttpHeaders(httpCmdOpts.Headers)
+	if err != nil {
+		return m, err
+	}
+
 	m.Target = urlData.Host
 	m.Locations = createLocations(ctx.From)
 	m.Limit = ctx.Limit
@@ -168,16 +173,31 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
 		Packets:  packets,
 		Request: &model.RequestOptions{
-			Path:  overrideOpt(urlData.Path, httpCmdOpts.Path),
-			Query: overrideOpt(urlData.Query, httpCmdOpts.Query),
-			Host:  overrideOpt(urlData.Host, httpCmdOpts.Host),
-			// TODO: Headers: headers,
-			Method: httpCmdOpts.Method,
+			Path:    overrideOpt(urlData.Path, httpCmdOpts.Path),
+			Query:   overrideOpt(urlData.Query, httpCmdOpts.Query),
+			Host:    overrideOpt(urlData.Host, httpCmdOpts.Host),
+			Headers: headers,
+			Method:  httpCmdOpts.Method,
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
 
 	return m, nil
+}
+
+func parseHttpHeaders(rawHeaders []string) (map[string]string, error) {
+	h := map[string]string{}
+
+	for _, r := range rawHeaders {
+		k, v, ok := strings.Cut(r, ": ")
+		if !ok {
+			return nil, fmt.Errorf("invalid header: %s", r)
+		}
+
+		h[k] = v
+	}
+
+	return h, nil
 }
 
 // HttpCmdOpts represents the parsed http command line opts
@@ -189,6 +209,7 @@ type HttpCmdOpts struct {
 	Protocol string
 	Port     int
 	Resolver string
+	Headers  []string
 }
 
 func init() {
@@ -204,4 +225,5 @@ func init() {
 	httpCmd.Flags().StringVar(&httpCmdOpts.Protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
 	httpCmd.Flags().IntVar(&httpCmdOpts.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
+	httpCmd.Flags().StringArrayVarP(&httpCmdOpts.Headers, "header", "H", nil, "Specifies a HTTP header to be added to the request, in the format \"Key: Value\". Multiple headers can be added by adding multiple flags")
 }

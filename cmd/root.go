@@ -22,8 +22,6 @@ var (
 
 	httpCmdOpts *HttpCmdOpts
 
-	// TODO: headers   map[string]string
-
 	opts = model.PostMeasurement{}
 	ctx  = model.Context{}
 )
