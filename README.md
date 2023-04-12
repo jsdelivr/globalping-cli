@@ -58,6 +58,34 @@ Once the Globalping CLI is installed, you can verify that it is working by runni
 
 ```bash
 globalping --help
+
+Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
+The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.
+
+Usage:
+  globalping [command]
+
+Measurement Commands:
+  dns         Resolve a DNS record similarly to dig
+  http        Perform a HEAD or GET request to a host
+  mtr         Run an MTR test, similar to traceroute
+  ping        Run a ping test
+  traceroute  Run a traceroute test
+
+Additional Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  version     Print the version number of Globalping CLI
+
+Flags:
+  -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
+  -F, --from string   Comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world"). (default "world")
+  -h, --help          help for globalping
+  -J, --json          Output results in JSON format (default false)
+      --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands
+  -L, --limit int     Limit the number of probes to use (default 1)
+
+Use "globalping [command] --help" for more information about a command.
 ```
 
 ## Development setup
