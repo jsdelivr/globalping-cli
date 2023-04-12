@@ -57,9 +57,7 @@ nfpms:
     formats:
       - deb
       - rpm
-      - apk
       - archlinux
-      # - termux.deb
 
 brews:
   - name: globalping
