@@ -16,9 +16,8 @@ func init() {
 
 var installProbeCmd = &cobra.Command{
 	Use:   "install-probe",
-	Short: "Installs and runs the Globalping probe locally in a Docker container.",
-	Long: `Installs and runs the Globalping probe locally in a Docker container.
-This command pulls the globalping-probe container and runs it. It requires Docker to be installed.`,
+	Short: "Join the community powered Globalping platform by running a Docker container.",
+	Long: `Pull and run the Globalping probe Docker container on this machine. It requires Docker to be installed.`,
 	Run: installProbeCmdRun,
 }
 
@@ -28,7 +27,7 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 	err := dockerInfoCmd.Run()
 	if err != nil {
 		fmt.Printf("docker info command failed: %v\n\n", err)
-		fmt.Println("Docker was not detected on your system. Docker is required to install the Globalping probe. Please install Docker and try again.")
+		fmt.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
 		return
 	}
 
@@ -40,9 +39,9 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ok := askUser("The Globalping probe container will now be pulled and run. Do you agree ?")
+	ok := askUser("The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else. Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe) ")
 	if !ok {
-		fmt.Println("Globalping probe installation not confirmed, exiting ...")
+		fmt.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
 		return
 	}
 
@@ -55,7 +54,7 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fmt.Printf("The Globalping probe has been installed successfully.\n")
+	fmt.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
 }
 
 func askUser(s string) bool {
