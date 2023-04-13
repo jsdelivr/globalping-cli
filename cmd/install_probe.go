@@ -38,9 +38,9 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ok := askUser("The globalping-probe container will now be pulled and run. Do you agree ?")
+	ok := askUser("The Globalping probe container will now be pulled and run. Do you agree ?")
 	if !ok {
-		fmt.Println("globalping-probe installation not confirmed, exiting ...")
+		fmt.Println("Globalping probe installation not confirmed, exiting ...")
 		return
 	}
 
@@ -52,6 +52,8 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		fmt.Printf("docker info command failed: %v\n\n", err)
 		return
 	}
+
+	fmt.Printf("The Globalping probe has been installed successfully.\n")
 }
 
 func askUser(s string) bool {
