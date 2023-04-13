@@ -34,7 +34,7 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 	dockerInspectCmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
 	containerStatus, err := dockerInspectCmd.Output()
 	if err == nil {
-		fmt.Printf("The globalping-probe container is already installed on your system and is in the status: %s\n", containerStatus)
+		fmt.Printf("The globalping-probe container is already installed on your system. Current status: %s\n", containerStatus)
 		return
 	}
 
