@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,7 +35,8 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 	dockerInspectCmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
 	containerStatus, err := dockerInspectCmd.Output()
 	if err == nil {
-		fmt.Printf("The globalping-probe container is already installed on your system. Current status: %s\n", containerStatus)
+		containerStatusStr := string(bytes.TrimSpace(containerStatus))
+		fmt.Printf("The globalping-probe container is already installed on your system. Current status: %s\n", containerStatusStr)
 		return
 	}
 
