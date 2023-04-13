@@ -66,16 +66,17 @@ Usage:
   globalping [command]
 
 Measurement Commands:
-  dns         Resolve a DNS record similarly to dig
-  http        Perform a HEAD or GET request to a host
-  mtr         Run an MTR test, similar to traceroute
-  ping        Run a ping test
-  traceroute  Run a traceroute test
+  dns           Resolve a DNS record similarly to dig
+  http          Perform a HEAD or GET request to a host
+  mtr           Run an MTR test, similar to traceroute
+  ping          Run a ping test
+  traceroute    Run a traceroute test
 
 Additional Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  version     Print the version number of Globalping CLI
+  completion    Generate the autocompletion script for the specified shell
+  help          Help about any command
+  install-probe Join the community powered Globalping platform by running a Docker container.
+  version       Print the version number of Globalping CLI
 
 Flags:
   -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
