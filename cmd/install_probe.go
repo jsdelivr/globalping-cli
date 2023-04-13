@@ -17,8 +17,8 @@ func init() {
 var installProbeCmd = &cobra.Command{
 	Use:   "install-probe",
 	Short: "Join the community powered Globalping platform by running a Docker container.",
-	Long: `Pull and run the Globalping probe Docker container on this machine. It requires Docker to be installed.`,
-	Run: installProbeCmdRun,
+	Long:  `Pull and run the Globalping probe Docker container on this machine. It requires Docker to be installed.`,
+	Run:   installProbeCmdRun,
 }
 
 func installProbeCmdRun(cmd *cobra.Command, args []string) {
@@ -39,7 +39,8 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ok := askUser("The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else. Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe) ")
+	ok := askUser(`The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.
+Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)`)
 	if !ok {
 		fmt.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
 		return
@@ -70,6 +71,8 @@ func askUser(s string) bool {
 
 	switch c {
 	case 'Y':
+		return true
+	case '\n':
 		return true
 	default:
 		return false
