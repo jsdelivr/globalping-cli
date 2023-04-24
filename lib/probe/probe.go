@@ -42,6 +42,11 @@ func inspectContainerPodman() error {
 	containerStatus, err := cmd.Output()
 	if err == nil {
 		containerStatusStr := string(bytes.TrimSpace(containerStatus))
+		if containerStatusStr == "" {
+			// false positive as podmain keeps container info after deletion
+			return nil
+		}
+
 		return fmt.Errorf("The globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
 	}
 
