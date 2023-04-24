@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 
+	"github.com/jsdelivr/globalping-cli/lib/probe"
 	"github.com/spf13/cobra"
 )
 
@@ -22,20 +21,18 @@ var installProbeCmd = &cobra.Command{
 }
 
 func installProbeCmdRun(cmd *cobra.Command, args []string) {
-	dockerInfoCmd := exec.Command("docker", "info")
-	dockerInfoCmd.Stderr = os.Stderr
-	err := dockerInfoCmd.Run()
+	containerEngine, err := probe.DetectContainerEngine()
 	if err != nil {
 		fmt.Printf("docker info command failed: %v\n\n", err)
 		fmt.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
 		return
 	}
 
-	dockerInspectCmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
-	containerStatus, err := dockerInspectCmd.Output()
-	if err == nil {
-		containerStatusStr := string(bytes.TrimSpace(containerStatus))
-		fmt.Printf("The globalping-probe container is already installed on your system. Current status: %s\n", containerStatusStr)
+	fmt.Printf("Detected container engine: %s\n\n", containerEngine)
+
+	err = probe.InspectContainer(containerEngine)
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
@@ -46,12 +43,9 @@ Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping
 		return
 	}
 
-	dockerRunCmd := exec.Command("docker", "run", "-d", "--log-driver", "local", "--network", "host", "--restart", "always", "--name", "globalping-probe", "ghcr.io/jsdelivr/globalping-probe")
-	dockerRunCmd.Stdout = os.Stdout
-	dockerRunCmd.Stderr = os.Stderr
-	err = dockerRunCmd.Run()
+	err = probe.RunContainer(containerEngine)
 	if err != nil {
-		fmt.Printf("docker info command failed: %v\n\n", err)
+		fmt.Println(err)
 		return
 	}
 
