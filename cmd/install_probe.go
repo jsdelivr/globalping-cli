@@ -50,6 +50,10 @@ Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping
 	}
 
 	fmt.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
+
+	if containerEngine == probe.ContainerEnginePodman {
+		fmt.Printf("When you using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
+	}
 }
 
 func askUser(s string) bool {
