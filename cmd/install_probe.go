@@ -51,7 +51,7 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 	fmt.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
 
 	if containerEngine == probe.ContainerEnginePodman {
-		fmt.Printf("When you using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
+		fmt.Printf("When you are using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
 	}
 }
 
