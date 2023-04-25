@@ -2,11 +2,10 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 
+	"github.com/jsdelivr/globalping-cli/lib/probe"
 	"github.com/spf13/cobra"
 )
 
@@ -22,40 +21,50 @@ var installProbeCmd = &cobra.Command{
 }
 
 func installProbeCmdRun(cmd *cobra.Command, args []string) {
-	dockerInfoCmd := exec.Command("docker", "info")
-	dockerInfoCmd.Stderr = os.Stderr
-	err := dockerInfoCmd.Run()
+	containerEngine, err := probe.DetectContainerEngine()
 	if err != nil {
 		fmt.Printf("docker info command failed: %v\n\n", err)
 		fmt.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
 		return
 	}
 
-	dockerInspectCmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
-	containerStatus, err := dockerInspectCmd.Output()
-	if err == nil {
-		containerStatusStr := string(bytes.TrimSpace(containerStatus))
-		fmt.Printf("The globalping-probe container is already installed on your system. Current status: %s\n", containerStatusStr)
+	fmt.Printf("Detected container engine: %s\n\n", containerEngine)
+
+	err = probe.InspectContainer(containerEngine)
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
-	ok := askUser(`The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.
-Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)`)
+	ok := askUser(containerPullMessage(containerEngine))
 	if !ok {
 		fmt.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
 		return
 	}
 
-	dockerRunCmd := exec.Command("docker", "run", "-d", "--log-driver", "local", "--network", "host", "--restart", "always", "--name", "globalping-probe", "ghcr.io/jsdelivr/globalping-probe")
-	dockerRunCmd.Stdout = os.Stdout
-	dockerRunCmd.Stderr = os.Stderr
-	err = dockerRunCmd.Run()
+	err = probe.RunContainer(containerEngine)
 	if err != nil {
-		fmt.Printf("docker info command failed: %v\n\n", err)
+		fmt.Println(err)
 		return
 	}
 
 	fmt.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
+
+	if containerEngine == probe.ContainerEnginePodman {
+		fmt.Printf("When you are using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
+	}
+}
+
+func containerPullMessage(containerEngine probe.ContainerEngine) string {
+	pre := "The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.\n"
+	var mid string
+	post := "Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)"
+
+	if containerEngine == probe.ContainerEnginePodman {
+		mid = "We have detected that you are using podman, the 'sudo podman' command will be used to pull the container.\n"
+	}
+
+	return pre + mid + post
 }
 
 func askUser(s string) bool {
