@@ -38,7 +38,7 @@ func inspectContainerDocker() error {
 }
 
 func inspectContainerPodman() error {
-	cmd := exec.Command("podman", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
+	cmd := exec.Command("sudo", "podman", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
 	containerStatus, err := cmd.Output()
 	if err == nil {
 		containerStatusStr := string(bytes.TrimSpace(containerStatus))
@@ -85,7 +85,7 @@ func runContainerDocker() error {
 }
 
 func runContainerPodman() error {
-	cmd := exec.Command("podman", "run", "--cap-add=NET_RAW", "-d", "--network", "host", "--restart=always", "--name", "globalping-probe", "ghcr.io/jsdelivr/globalping-probe")
+	cmd := exec.Command("sudo", "podman", "run", "--cap-add=NET_RAW", "-d", "--network", "host", "--restart=always", "--name", "globalping-probe", "ghcr.io/jsdelivr/globalping-probe")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
