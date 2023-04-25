@@ -36,8 +36,7 @@ func installProbeCmdRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	ok := askUser(`The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.
-Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)`)
+	ok := askUser(containerPullMessage(containerEngine))
 	if !ok {
 		fmt.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
 		return
@@ -54,6 +53,18 @@ Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping
 	if containerEngine == probe.ContainerEnginePodman {
 		fmt.Printf("When you using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
 	}
+}
+
+func containerPullMessage(containerEngine probe.ContainerEngine) string {
+	pre := "The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.\n"
+	var mid string
+	post := "Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)"
+
+	if containerEngine == probe.ContainerEnginePodman {
+		mid = "We have detected that you are using podman, the 'sudo podman' command will be used to pull the container.\n"
+	}
+
+	return pre + mid + post
 }
 
 func askUser(s string) bool {
