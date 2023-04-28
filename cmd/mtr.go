@@ -62,7 +62,7 @@ Examples:
 			return nil
 		}
 
-		view.OutputResults(res.ID, ctx)
+		view.OutputResults(res.ID, ctx, opts)
 		return nil
 	},
 }

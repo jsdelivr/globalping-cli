@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -124,7 +125,6 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 			// Output slightly different format if state is available
 			output.WriteString(generateHeader(result, ctx) + "\n")
 
-			// Output only latency values if flag is set
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 		}
 
@@ -226,23 +226,27 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
-func OutputCI(id string, data *model.GetMeasurement, ctx model.Context) {
-	// String builder for output
-	var output strings.Builder
-
+func OutputCI(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	// Output every result in case of multiple probes
-	for _, result := range data.Results {
+	for i, result := range data.Results {
+		if i > 0 {
+			// new line as separator if more than 1 result
+			fmt.Fprintln(os.Stderr)
+		}
+
 		// Output slightly different format if state is available
-		output.WriteString(generateHeader(result, ctx) + "\n")
+		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
 
-		// Output only latency values if flag is set
-		output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+		if ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" {
+			fmt.Fprintln(os.Stderr, strings.TrimSpace(result.Result.RawHeaders))
+			fmt.Println(strings.TrimSpace(result.Result.RawBody))
+		} else {
+			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
+		}
 	}
-
-	fmt.Println(strings.TrimSpace(output.String()))
 }
 
-func OutputResults(id string, ctx model.Context) {
+func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
@@ -274,7 +278,7 @@ func OutputResults(id string, ctx model.Context) {
 		}
 		switch {
 		case ctx.CI:
-			OutputCI(id, data, ctx)
+			OutputCI(data, ctx, m)
 			return
 		case ctx.JsonOutput:
 			OutputJson(id, fetcher)

@@ -142,7 +142,7 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	view.OutputResults(res.ID, ctx)
+	view.OutputResults(res.ID, ctx, m)
 	return nil
 }
 
@@ -177,7 +177,7 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 			Query:   overrideOpt(urlData.Query, httpCmdOpts.Query),
 			Host:    overrideOpt(urlData.Host, httpCmdOpts.Host),
 			Headers: headers,
-			Method:  httpCmdOpts.Method,
+			Method:  strings.ToUpper(httpCmdOpts.Method),
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
@@ -185,10 +185,10 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 	return m, nil
 }
 
-func parseHttpHeaders(rawHeaders []string) (map[string]string, error) {
+func parseHttpHeaders(headerStrings []string) (map[string]string, error) {
 	h := map[string]string{}
 
-	for _, r := range rawHeaders {
+	for _, r := range headerStrings {
 		k, v, ok := strings.Cut(r, ": ")
 		if !ok {
 			return nil, fmt.Errorf("invalid header: %s", r)

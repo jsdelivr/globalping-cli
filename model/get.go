@@ -18,6 +18,8 @@ type ProbeData struct {
 type ResultData struct {
 	Status           string                 `json:"status"`
 	RawOutput        string                 `json:"rawOutput"`
+	RawHeaders       string                 `json:"rawHeaders"`
+	RawBody          string                 `json:"rawBody"`
 	ResolvedAddress  string                 `json:"resolvedAddress"`
 	ResolvedHostname string                 `json:"resolvedHostname"`
 	Stats            map[string]interface{} `json:"stats,omitempty"`

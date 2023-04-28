@@ -44,35 +44,35 @@ func TestOverrideOpt(t *testing.T) {
 }
 
 func TestParseHttpHeaders_None(t *testing.T) {
-	rawHeaders := []string{}
+	headerStrings := []string{}
 
-	m, err := parseHttpHeaders(rawHeaders)
+	m, err := parseHttpHeaders(headerStrings)
 	assert.NoError(t, err)
 
 	assert.Nil(t, nil, m)
 }
 
 func TestParseHttpHeaders_Single(t *testing.T) {
-	rawHeaders := []string{"ABC: 123x"}
+	headerStrings := []string{"ABC: 123x"}
 
-	m, err := parseHttpHeaders(rawHeaders)
+	m, err := parseHttpHeaders(headerStrings)
 	assert.NoError(t, err)
 
 	assert.Equal(t, map[string]string{"ABC": "123x"}, m)
 }
 
 func TestParseHttpHeaders_Multiple(t *testing.T) {
-	rawHeaders := []string{"ABC: 123x", "DEF: 456y,789z"}
+	headerStrings := []string{"ABC: 123x", "DEF: 456y,789z"}
 
-	m, err := parseHttpHeaders(rawHeaders)
+	m, err := parseHttpHeaders(headerStrings)
 	assert.NoError(t, err)
 
 	assert.Equal(t, map[string]string{"ABC": "123x", "DEF": "456y,789z"}, m)
 }
 
 func TestParseHttpHeaders_Invalid(t *testing.T) {
-	rawHeaders := []string{"ABC=123x"}
+	headerStrings := []string{"ABC=123x"}
 
-	_, err := parseHttpHeaders(rawHeaders)
+	_, err := parseHttpHeaders(headerStrings)
 	assert.ErrorContains(t, err, "invalid header")
 }

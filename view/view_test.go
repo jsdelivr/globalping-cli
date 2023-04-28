@@ -1,22 +1,13 @@
 package view
 
 import (
+	"io"
+	"os"
 	"testing"
 
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGenerateHeaders(t *testing.T) {
-	for scenario, fn := range map[string]func(t *testing.T){
-		"base": testHeadersBase,
-		"tags": testHeadersTags,
-	} {
-		t.Run(scenario, func(t *testing.T) {
-			fn(t)
-		})
-	}
-}
 
 var (
 	testContext = model.Context{
@@ -37,11 +28,11 @@ var (
 	}
 )
 
-func testHeadersBase(t *testing.T) {
+func TestHeadersBase(t *testing.T) {
 	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateHeader(testResult, testContext))
 }
 
-func testHeadersTags(t *testing.T) {
+func TestHeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
 
@@ -49,4 +40,235 @@ func testHeadersTags(t *testing.T) {
 
 	newResult.Probe.Tags = []string{"tag", "tag2"}
 	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateHeader(newResult, testContext))
+}
+
+func TestOutputCIHTTPGet(t *testing.T) {
+	osStdErr := os.Stderr
+	osStdOut := os.Stdout
+
+	rStdErr, myStdErr, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdErr.Close()
+
+	rStdOut, myStdOut, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdOut.Close()
+
+	os.Stderr = myStdErr
+	os.Stdout = myStdOut
+
+	defer func() {
+		os.Stderr = osStdErr
+		os.Stdout = osStdOut
+	}()
+
+	ctx := model.Context{
+		Cmd: "http",
+		CI:  true,
+	}
+
+	m := model.PostMeasurement{
+		Options: &model.MeasurementOptions{
+			Request: &model.RequestOptions{
+				Method: "GET",
+			},
+		},
+	}
+
+	data := &model.GetMeasurement{
+		Results: []model.MeasurementResponse{
+			{
+				Probe: model.ProbeData{
+					Continent: "EU",
+					Country:   "DE",
+					City:      "Berlin",
+					ASN:       123,
+					Network:   "Network 1",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 1\nBody 1",
+					RawHeaders: "Headers 1",
+					RawBody:    "Body 1",
+				},
+			},
+
+			{
+				Probe: model.ProbeData{
+					Continent: "NA",
+					Country:   "US",
+					City:      "New York",
+					State:     "NY",
+					ASN:       567,
+					Network:   "Network 2",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 2\nBody 2",
+					RawHeaders: "Headers 2",
+					RawBody:    "Body 2",
+				},
+			},
+		},
+	}
+
+	OutputCI(data, ctx, m)
+	myStdOut.Close()
+	myStdErr.Close()
+
+	errContent, err := io.ReadAll(rStdErr)
+	assert.NoError(t, err)
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\nHeaders 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\nHeaders 2\n", string(errContent))
+
+	outContent, err := io.ReadAll(rStdOut)
+	assert.NoError(t, err)
+	assert.Equal(t, "Body 1\nBody 2\n", string(outContent))
+}
+
+func TestOutputCIHTTPHead(t *testing.T) {
+	osStdErr := os.Stderr
+	osStdOut := os.Stdout
+
+	rStdErr, myStdErr, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdErr.Close()
+
+	rStdOut, myStdOut, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdOut.Close()
+
+	os.Stderr = myStdErr
+	os.Stdout = myStdOut
+
+	defer func() {
+		os.Stderr = osStdErr
+		os.Stdout = osStdOut
+	}()
+
+	ctx := model.Context{
+		Cmd: "http",
+		CI:  true,
+	}
+
+	m := model.PostMeasurement{
+		Options: &model.MeasurementOptions{
+			Request: &model.RequestOptions{
+				Method: "HEAD",
+			},
+		},
+	}
+
+	data := &model.GetMeasurement{
+		Results: []model.MeasurementResponse{
+			{
+				Probe: model.ProbeData{
+					Continent: "EU",
+					Country:   "DE",
+					City:      "Berlin",
+					ASN:       123,
+					Network:   "Network 1",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 1",
+					RawHeaders: "Headers 1",
+				},
+			},
+
+			{
+				Probe: model.ProbeData{
+					Continent: "NA",
+					Country:   "US",
+					City:      "New York",
+					State:     "NY",
+					ASN:       567,
+					Network:   "Network 2",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 2",
+					RawHeaders: "Headers 2",
+				},
+			},
+		},
+	}
+
+	OutputCI(data, ctx, m)
+	myStdOut.Close()
+	myStdErr.Close()
+
+	errContent, err := io.ReadAll(rStdErr)
+	assert.NoError(t, err)
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+
+	outContent, err := io.ReadAll(rStdOut)
+	assert.NoError(t, err)
+	assert.Equal(t, "Headers 1\nHeaders 2\n", string(outContent))
+}
+
+func TestOutputCIPing(t *testing.T) {
+	osStdErr := os.Stderr
+	osStdOut := os.Stdout
+
+	rStdErr, myStdErr, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdErr.Close()
+
+	rStdOut, myStdOut, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdOut.Close()
+
+	os.Stderr = myStdErr
+	os.Stdout = myStdOut
+
+	defer func() {
+		os.Stderr = osStdErr
+		os.Stdout = osStdOut
+	}()
+
+	ctx := model.Context{
+		Cmd: "ping",
+		CI:  true,
+	}
+
+	m := model.PostMeasurement{}
+
+	data := &model.GetMeasurement{
+		Results: []model.MeasurementResponse{
+			{
+				Probe: model.ProbeData{
+					Continent: "EU",
+					Country:   "DE",
+					City:      "Berlin",
+					ASN:       123,
+					Network:   "Network 1",
+				},
+				Result: model.ResultData{
+					RawOutput: "Ping Results 1",
+				},
+			},
+
+			{
+				Probe: model.ProbeData{
+					Continent: "NA",
+					Country:   "US",
+					City:      "New York",
+					State:     "NY",
+					ASN:       567,
+					Network:   "Network 2",
+				},
+				Result: model.ResultData{
+					RawOutput: "Ping Results 2",
+				},
+			},
+		},
+	}
+
+	OutputCI(data, ctx, m)
+	myStdOut.Close()
+	myStdErr.Close()
+
+	errContent, err := io.ReadAll(rStdErr)
+	assert.NoError(t, err)
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+
+	outContent, err := io.ReadAll(rStdOut)
+	assert.NoError(t, err)
+	assert.Equal(t, "Ping Results 1\nPing Results 2\n", string(outContent))
 }
