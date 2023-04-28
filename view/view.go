@@ -78,7 +78,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 
 var apiPollInterval = 500 * time.Millisecond
 
-func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
+func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	var err error
 
 	// Create new writer
@@ -137,8 +137,7 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 		fmt.Printf("failed to stop writer: %v\n", err)
 	}
 
-	// Print full output
-	fmt.Println(strings.TrimSpace(output.String()))
+	PrintStandardResults(data, ctx, m)
 }
 
 // If json flag is used, only output json
@@ -227,7 +226,11 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 }
 
 func OutputCI(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
-	// Output every result in case of multiple probes
+	PrintStandardResults(data, ctx, m)
+}
+
+// Prints non-json non-latency results to the screen
+func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	for i, result := range data.Results {
 		if i > 0 {
 			// new line as separator if more than 1 result
@@ -291,5 +294,5 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 		}
 	}
 
-	LiveView(id, data, ctx)
+	LiveView(id, data, ctx, m)
 }

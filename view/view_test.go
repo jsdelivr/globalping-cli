@@ -42,7 +42,7 @@ func TestHeadersTags(t *testing.T) {
 	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateHeader(newResult, testContext))
 }
 
-func TestOutputCIHTTPGet(t *testing.T) {
+func TestPrintStandardResultsHTTPGet(t *testing.T) {
 	osStdErr := os.Stderr
 	osStdOut := os.Stdout
 
@@ -110,7 +110,7 @@ func TestOutputCIHTTPGet(t *testing.T) {
 		},
 	}
 
-	OutputCI(data, ctx, m)
+	PrintStandardResults(data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -123,7 +123,7 @@ func TestOutputCIHTTPGet(t *testing.T) {
 	assert.Equal(t, "Body 1\nBody 2\n", string(outContent))
 }
 
-func TestOutputCIHTTPHead(t *testing.T) {
+func TestPrintStandardResultsHTTPHead(t *testing.T) {
 	osStdErr := os.Stderr
 	osStdOut := os.Stdout
 
@@ -189,7 +189,7 @@ func TestOutputCIHTTPHead(t *testing.T) {
 		},
 	}
 
-	OutputCI(data, ctx, m)
+	PrintStandardResults(data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -202,7 +202,7 @@ func TestOutputCIHTTPHead(t *testing.T) {
 	assert.Equal(t, "Headers 1\nHeaders 2\n", string(outContent))
 }
 
-func TestOutputCIPing(t *testing.T) {
+func TestPrintStandardResultsPing(t *testing.T) {
 	osStdErr := os.Stderr
 	osStdOut := os.Stdout
 
@@ -260,7 +260,7 @@ func TestOutputCIPing(t *testing.T) {
 		},
 	}
 
-	OutputCI(data, ctx, m)
+	PrintStandardResults(data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
