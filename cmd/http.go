@@ -104,6 +104,9 @@ Examples:
   # HTTP GET request to google.com from 2 probes from London or Belgium in CI mode
   http google.com from London,Belgium --limit 2 --method get --ci
 
+  # HTTP GET request to google.com from a probe in London. Returns the full output
+  http google.com from London --method get --full
+
   # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2. 2 http headers are added to the request.
   http jsdelivr.com from aws+montreal --protocol http2 --header "Accept-Encoding: br,gzip" -H "Accept-Language: *"
 
@@ -164,6 +167,12 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 		return m, err
 	}
 
+	method := strings.ToUpper(httpCmdOpts.Method)
+	if ctx.Full {
+		// override method to GET
+		method = "GET"
+	}
+
 	m.Target = urlData.Host
 	m.Locations = createLocations(ctx.From)
 	m.Limit = ctx.Limit
@@ -177,7 +186,7 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 			Query:   overrideOpt(urlData.Query, httpCmdOpts.Query),
 			Host:    overrideOpt(urlData.Host, httpCmdOpts.Host),
 			Headers: headers,
-			Method:  strings.ToUpper(httpCmdOpts.Method),
+			Method:  method,
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
@@ -226,4 +235,5 @@ func init() {
 	httpCmd.Flags().IntVar(&httpCmdOpts.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	httpCmd.Flags().StringVar(&httpCmdOpts.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
 	httpCmd.Flags().StringArrayVarP(&httpCmdOpts.Headers, "header", "H", nil, "Specifies a HTTP header to be added to the request, in the format \"Key: Value\". Multiple headers can be added by adding multiple flags")
+	httpCmd.Flags().BoolVar(&ctx.Full, "full", false, "Full output. Uses an HTTP GET request, and outputs the status, headers and body to the output")
 }

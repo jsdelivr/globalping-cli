@@ -116,11 +116,11 @@ func TestPrintStandardResultsHTTPGet(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\nHeaders 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\nHeaders 2\n", string(errContent))
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Body 1\nBody 2\n", string(outContent))
+	assert.Equal(t, "Body 1\n\nBody 2\n", string(outContent))
 }
 
 func TestPrintStandardResultsHTTPHead(t *testing.T) {
@@ -195,11 +195,11 @@ func TestPrintStandardResultsHTTPHead(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Headers 1\nHeaders 2\n", string(outContent))
+	assert.Equal(t, "Headers 1\n\nHeaders 2\n", string(outContent))
 }
 
 func TestPrintStandardResultsPing(t *testing.T) {
@@ -266,9 +266,9 @@ func TestPrintStandardResultsPing(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Ping Results 1\nPing Results 2\n", string(outContent))
+	assert.Equal(t, "Ping Results 1\n\nPing Results 2\n", string(outContent))
 }

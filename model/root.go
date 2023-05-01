@@ -13,4 +13,6 @@ type Context struct {
 	Latency bool
 	// CI flag is used to determine whether the output should be in a format that is easy to parse by a CI tool
 	CI bool
+	// Full output
+	Full bool
 }

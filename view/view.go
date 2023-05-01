@@ -234,14 +234,17 @@ func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model
 	for i, result := range data.Results {
 		if i > 0 {
 			// new line as separator if more than 1 result
-			fmt.Fprintln(os.Stderr)
+			fmt.Println()
 		}
 
 		// Output slightly different format if state is available
 		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
 
 		if ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" {
-			fmt.Fprintln(os.Stderr, strings.TrimSpace(result.Result.RawHeaders))
+			if ctx.Full {
+				fmt.Println(strings.TrimSpace(result.Result.RawHeaders))
+				fmt.Println()
+			}
 			fmt.Println(strings.TrimSpace(result.Result.RawBody))
 		} else {
 			fmt.Println(strings.TrimSpace(result.Result.RawOutput))

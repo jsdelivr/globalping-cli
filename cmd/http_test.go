@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,4 +76,81 @@ func TestParseHttpHeaders_Invalid(t *testing.T) {
 
 	_, err := parseHttpHeaders(headerStrings)
 	assert.ErrorContains(t, err, "invalid header")
+}
+
+func TestBuildHttpMeasurementRequest_FULL(t *testing.T) {
+	ctx = model.Context{
+		Target: "https://example.com/my/path?x=123&yz=abc",
+		From:   "london",
+		Full:   true,
+	}
+
+	httpCmdOpts = &HttpCmdOpts{
+		Method: "HEAD",
+	}
+
+	m, err := buildHttpMeasurementRequest()
+	assert.NoError(t, err)
+
+	expectedM := model.PostMeasurement{Limit: 0,
+		Locations: []model.Locations{
+			{Magic: "london"}},
+		Type:              "http",
+		Target:            "example.com",
+		InProgressUpdates: true,
+		Options: &model.MeasurementOptions{
+			Protocol: "https",
+			Request: &model.RequestOptions{
+				Headers: map[string]string{},
+				Path:    "/my/path",
+				Host:    "example.com",
+				Query:   "x=123&yz=abc",
+				Method:  "GET",
+			},
+		},
+	}
+
+	assert.Equal(t, expectedM, m)
+
+	// restore
+	httpCmdOpts = &HttpCmdOpts{}
+	ctx = model.Context{}
+}
+
+func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
+	ctx = model.Context{
+		Target: "https://example.com/my/path?x=123&yz=abc",
+		From:   "london",
+	}
+
+	httpCmdOpts = &HttpCmdOpts{
+		Method: "HEAD",
+	}
+
+	m, err := buildHttpMeasurementRequest()
+	assert.NoError(t, err)
+
+	expectedM := model.PostMeasurement{Limit: 0,
+		Locations: []model.Locations{
+			{Magic: "london"}},
+		Type:              "http",
+		Target:            "example.com",
+		InProgressUpdates: true,
+		Options: &model.MeasurementOptions{
+			Protocol: "https",
+			Request: &model.RequestOptions{
+				Headers: map[string]string{},
+				Path:    "/my/path",
+				Host:    "example.com",
+				Query:   "x=123&yz=abc",
+				Method:  "HEAD",
+			},
+		},
+	}
+
+	assert.Equal(t, expectedM, m)
+
+	// restore
+	httpCmdOpts = &HttpCmdOpts{}
+	ctx = model.Context{}
 }
