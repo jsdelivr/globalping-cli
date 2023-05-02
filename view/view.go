@@ -240,16 +240,16 @@ func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model
 		// Output slightly different format if state is available
 		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
 
-		if ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" {
-			if ctx.Full {
-				fmt.Println(strings.TrimSpace(result.Result.RawHeaders))
-				fmt.Println()
-			}
+		if isBodyOnlyHttpGet(ctx, m) {
 			fmt.Println(strings.TrimSpace(result.Result.RawBody))
 		} else {
 			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
 		}
 	}
+}
+
+func isBodyOnlyHttpGet(ctx model.Context, m model.PostMeasurement) bool {
+	return ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !ctx.Full
 }
 
 func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
