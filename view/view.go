@@ -15,12 +15,12 @@ import (
 
 var (
 	// UI styles
-	highlight = lipgloss.NewStyle().
-			Bold(true).Foreground(lipgloss.Color("#17D4A7"))
+	terminalLayoutHighlight = lipgloss.NewStyle().
+				Bold(true).Foreground(lipgloss.Color("#17D4A7"))
 
-	arrow = lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
+	terminalLayoutArrow = lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
 
-	bold = lipgloss.NewStyle().Bold(true)
+	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
 // Used to slice the output to fit the terminal in live view
@@ -72,7 +72,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 	if ctx.CI {
 		return "> " + output.String()
 	} else {
-		return arrow + highlight.Render(output.String())
+		return terminalLayoutArrow + terminalLayoutHighlight.Render(output.String())
 	}
 }
 
@@ -191,9 +191,9 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 			}
 		} else {
 			if ctx.Cmd == "ping" {
-				output.WriteString(bold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
-				output.WriteString(bold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
-				output.WriteString(bold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
+				output.WriteString(terminalLayoutBold.Render("Min: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
+				output.WriteString(terminalLayoutBold.Render("Max: ") + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
+				output.WriteString(terminalLayoutBold.Render("Avg: ") + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
 			}
 
 			if ctx.Cmd == "dns" {
@@ -202,7 +202,7 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 					fmt.Println(err)
 					return
 				}
-				output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+				output.WriteString(terminalLayoutBold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
 			}
 
 			if ctx.Cmd == "http" {
@@ -211,22 +211,18 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 					fmt.Println(err)
 					return
 				}
-				output.WriteString(bold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
-				output.WriteString(bold.Render("Download: ") + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
-				output.WriteString(bold.Render("First byte: ") + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
-				output.WriteString(bold.Render("DNS: ") + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
-				output.WriteString(bold.Render("TLS: ") + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
-				output.WriteString(bold.Render("TCP: ") + fmt.Sprintf("%v ms\n", timings.Interface["tcp"]))
+				output.WriteString(terminalLayoutBold.Render("Total: ") + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
+				output.WriteString(terminalLayoutBold.Render("Download: ") + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
+				output.WriteString(terminalLayoutBold.Render("First byte: ") + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
+				output.WriteString(terminalLayoutBold.Render("DNS: ") + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
+				output.WriteString(terminalLayoutBold.Render("TLS: ") + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
+				output.WriteString(terminalLayoutBold.Render("TCP: ") + fmt.Sprintf("%v ms\n", timings.Interface["tcp"]))
 			}
 		}
 
 	}
 
 	fmt.Println(strings.TrimSpace(output.String()))
-}
-
-func OutputCI(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
-	PrintStandardResults(data, ctx, m)
 }
 
 // Prints non-json non-latency results to the screen
@@ -282,19 +278,23 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 				return
 			}
 		}
-		switch {
-		case ctx.CI:
-			OutputCI(data, ctx, m)
-			return
-		case ctx.JsonOutput:
-			OutputJson(id, fetcher)
-			return
-		case ctx.Latency:
+
+		if ctx.Latency {
 			OutputLatency(id, data, ctx)
 			return
-		default:
-			panic(fmt.Sprintf("case not handled. %+v", ctx))
 		}
+
+		if ctx.JsonOutput {
+			OutputJson(id, fetcher)
+			return
+		}
+
+		if ctx.CI {
+			PrintStandardResults(data, ctx, m)
+			return
+		}
+
+		panic(fmt.Sprintf("case not handled. %+v", ctx))
 	}
 
 	LiveView(id, data, ctx, m)
