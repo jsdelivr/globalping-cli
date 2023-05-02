@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -77,7 +78,7 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 
 var apiPollInterval = 500 * time.Millisecond
 
-func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
+func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	var err error
 
 	// Create new writer
@@ -124,7 +125,6 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 			// Output slightly different format if state is available
 			output.WriteString(generateHeader(result, ctx) + "\n")
 
-			// Output only latency values if flag is set
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 		}
 
@@ -137,8 +137,7 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context) {
 		fmt.Printf("failed to stop writer: %v\n", err)
 	}
 
-	// Print full output
-	fmt.Println(strings.TrimSpace(output.String()))
+	PrintStandardResults(data, ctx, m)
 }
 
 // If json flag is used, only output json
@@ -226,23 +225,34 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 	fmt.Println(strings.TrimSpace(output.String()))
 }
 
-func OutputCI(id string, data *model.GetMeasurement, ctx model.Context) {
-	// String builder for output
-	var output strings.Builder
-
-	// Output every result in case of multiple probes
-	for _, result := range data.Results {
-		// Output slightly different format if state is available
-		output.WriteString(generateHeader(result, ctx) + "\n")
-
-		// Output only latency values if flag is set
-		output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
-	}
-
-	fmt.Println(strings.TrimSpace(output.String()))
+func OutputCI(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
+	PrintStandardResults(data, ctx, m)
 }
 
-func OutputResults(id string, ctx model.Context) {
+// Prints non-json non-latency results to the screen
+func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
+	for i, result := range data.Results {
+		if i > 0 {
+			// new line as separator if more than 1 result
+			fmt.Println()
+		}
+
+		// Output slightly different format if state is available
+		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
+
+		if isBodyOnlyHttpGet(ctx, m) {
+			fmt.Println(strings.TrimSpace(result.Result.RawBody))
+		} else {
+			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
+		}
+	}
+}
+
+func isBodyOnlyHttpGet(ctx model.Context, m model.PostMeasurement) bool {
+	return ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !ctx.Full
+}
+
+func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
@@ -274,7 +284,7 @@ func OutputResults(id string, ctx model.Context) {
 		}
 		switch {
 		case ctx.CI:
-			OutputCI(id, data, ctx)
+			OutputCI(data, ctx, m)
 			return
 		case ctx.JsonOutput:
 			OutputJson(id, fetcher)
@@ -287,5 +297,5 @@ func OutputResults(id string, ctx model.Context) {
 		}
 	}
 
-	LiveView(id, data, ctx)
+	LiveView(id, data, ctx, m)
 }
