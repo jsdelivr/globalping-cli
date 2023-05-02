@@ -5,6 +5,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/lib"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -79,8 +80,13 @@ func createContext(cmd string, args []string) error {
 
 	// Check if it is a terminal or being piped/redirected
 	// We want to disable realtime updates if that is the case
-	o, _ := os.Stdout.Stat()
-	if (o.Mode() & os.ModeCharDevice) != os.ModeCharDevice {
+	stdoutFileInfo, err := os.Stdout.Stat()
+	if err != nil {
+		return errors.Wrapf(err, "stdout stat failed")
+	}
+
+	if (stdoutFileInfo.Mode() & os.ModeCharDevice) == 0 {
+		// stdout is piped, run in ci mode
 		ctx.CI = true
 	}
 
