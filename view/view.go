@@ -125,7 +125,11 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 			// Output slightly different format if state is available
 			output.WriteString(generateHeader(result, ctx) + "\n")
 
-			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+			if isBodyOnlyHttpGet(ctx, m) {
+				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
+			} else {
+				output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+			}
 		}
 
 		areaPrinter.Update(sliceOutput(output.String(), w, h))
@@ -137,7 +141,9 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 		fmt.Printf("failed to stop writer: %v\n", err)
 	}
 
-	PrintStandardResults(data, ctx, m)
+	if os.Getenv("LIVE_DEBUG") != "1" {
+		PrintStandardResults(data, ctx, m)
+	}
 }
 
 // If json flag is used, only output json
