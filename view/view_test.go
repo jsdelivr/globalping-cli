@@ -354,3 +354,26 @@ func TestPrintStandardResultsPing(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Ping Results 1\n\nPing Results 2\n", string(outContent))
 }
+
+func TestTrimOutput(t *testing.T) {
+	output := `> EU, GB, London, ASN:12345
+TEST CONTENT
+ABCD
+EDF
+XYZ
+LOREM	IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM
+TEST OUTPUT 123456
+IOPU
+GHJKL
+LOREM IPSUM LOREM IPSUM LOREM IPSUM`
+
+	res := trimOutput(output, 84, 7)
+
+	expectedRes := `LOREM  IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM LOREM IPSUM
+TEST OUTPUT 123456
+IOPU
+GHJKL
+LOREM IPSUM LOREM IPSUM LOREM IPSUM`
+
+	assert.Equal(t, expectedRes, res)
+}

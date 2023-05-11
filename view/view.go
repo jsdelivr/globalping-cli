@@ -23,28 +23,39 @@ var (
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
-// Used to slice the output to fit the terminal in live view
-func sliceOutput(output string, w, h int) string {
+// Used to trim the output to fit the terminal in live view
+func trimOutput(output string, w, h int) string {
+	maxW := w
+	maxH := h - 2 // 2 extra lines to be safe from overflow
+
+	text := strings.ReplaceAll(output, "\t", "  ")
+
 	// Split output into lines
-	lines := strings.Split(output, "\n")
+	lines := strings.Split(text, "\n")
 
-	// Subtract 2 lines from height to account for the header
-	h = h - 2
-
-	// If output is too long, slice it in reverse
-	if len(lines) > h {
-		lines = lines[len(lines)-h:]
+	if len(lines) > maxH {
+		//  too many lines, trim first lines
+		lines = lines[len(lines)-maxH:]
 	}
 
-	// If any line is too long, slice it
+	for i := 0; i < len(lines); i++ {
+		if len(lines[i]) > maxW {
+			// line is too long, trim end
+			lines[i] = lines[i][:maxW]
+		}
+	}
+
 	for i, line := range lines {
-		if len(line) > w {
-			lines[i] = line[:w]
+		if len(line) > maxW {
+			// line is too long, trim end
+			lines[i] = line[:maxW]
 		}
 	}
 
 	// Join lines back into a string
-	return strings.Join(lines, "\n")
+	txt := strings.Join(lines, "\n")
+
+	return txt
 }
 
 // Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
@@ -132,7 +143,7 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 			}
 		}
 
-		areaPrinter.Update(sliceOutput(output.String(), w, h))
+		areaPrinter.Update(trimOutput(output.String(), w, h))
 	}
 
 	// Stop area printer and clear area
