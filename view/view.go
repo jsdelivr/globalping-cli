@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/mattn/go-runewidth"
 	"github.com/pterm/pterm"
 )
 
@@ -24,9 +25,13 @@ var (
 )
 
 // Used to trim the output to fit the terminal in live view
-func trimOutput(output string, w, h int) string {
-	maxW := w
-	maxH := h - 2 // 2 extra lines to be safe from overflow
+func trimOutput(output string, terminalW, terminalH int) string {
+	maxW := terminalW - 2 // 2 extra chars to be safe from overflow
+	maxH := terminalH - 2 // 2 extra lines to be safe from overflow
+
+	if maxW <= 0 || maxH <= 0 {
+		panic("terminal width / height too limited to display results")
+	}
 
 	text := strings.ReplaceAll(output, "\t", "  ")
 
@@ -39,9 +44,11 @@ func trimOutput(output string, w, h int) string {
 	}
 
 	for i := 0; i < len(lines); i++ {
-		if len(lines[i]) > maxW {
-			// line is too long, trim end
-			lines[i] = lines[i][:maxW]
+		for runewidth.StringWidth(lines[i]) > maxW {
+			// if line width > max, trim until it fits
+			runes := []rune(lines[i])
+			trimmedLine := string(runes[:len(runes)-1])
+			lines[i] = trimmedLine
 		}
 	}
 
