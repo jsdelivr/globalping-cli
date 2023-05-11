@@ -26,8 +26,8 @@ var (
 
 // Used to trim the output to fit the terminal in live view
 func trimOutput(output string, terminalW, terminalH int) string {
-	maxW := terminalW - 2 // 2 extra chars to be safe from overflow
-	maxH := terminalH - 2 // 2 extra lines to be safe from overflow
+	maxW := terminalW - 4 // 4 extra chars to be safe from overflow
+	maxH := terminalH - 4 // 4 extra lines to be safe from overflow
 
 	if maxW <= 0 || maxH <= 0 {
 		panic("terminal width / height too limited to display results")
@@ -44,18 +44,11 @@ func trimOutput(output string, terminalW, terminalH int) string {
 	}
 
 	for i := 0; i < len(lines); i++ {
-		for runewidth.StringWidth(lines[i]) > maxW {
-			// if line width > max, trim until it fits
-			runes := []rune(lines[i])
-			trimmedLine := string(runes[:len(runes)-1])
+		rWidth := runewidth.StringWidth(lines[i])
+		if rWidth > maxW {
+			line := lines[i]
+			trimmedLine := string(lines[i][:len(line)-rWidth+maxW])
 			lines[i] = trimmedLine
-		}
-	}
-
-	for i, line := range lines {
-		if len(line) > maxW {
-			// line is too long, trim end
-			lines[i] = line[:maxW]
 		}
 	}
 
