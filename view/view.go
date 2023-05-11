@@ -10,7 +10,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
-	"github.com/mattn/go-runewidth"
 	"github.com/pterm/pterm"
 )
 
@@ -44,18 +43,8 @@ func trimOutput(output string, terminalW, terminalH int) string {
 	}
 
 	for i := 0; i < len(lines); i++ {
-		for runewidth.StringWidth(lines[i]) > maxW {
-			// if line width > max, trim until it fits
-			runes := []rune(lines[i])
-			trimmedLine := string(runes[:len(runes)-1])
-			lines[i] = trimmedLine
-		}
-	}
-
-	for i, line := range lines {
-		if len(line) > maxW {
-			// line is too long, trim end
-			lines[i] = line[:maxW]
+		if maxW < len(lines[i]) {
+			lines[i] = lines[i][:maxW]
 		}
 	}
 
