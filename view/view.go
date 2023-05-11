@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/mattn/go-runewidth"
 	"github.com/pterm/pterm"
 )
 
@@ -23,28 +24,45 @@ var (
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
-// Used to slice the output to fit the terminal in live view
-func sliceOutput(output string, w, h int) string {
-	// Split output into lines
-	lines := strings.Split(output, "\n")
+// Used to trim the output to fit the terminal in live view
+func trimOutput(output string, terminalW, terminalH int) string {
+	maxW := terminalW - 2 // 2 extra chars to be safe from overflow
+	maxH := terminalH - 2 // 2 extra lines to be safe from overflow
 
-	// Subtract 2 lines from height to account for the header
-	h = h - 2
-
-	// If output is too long, slice it in reverse
-	if len(lines) > h {
-		lines = lines[len(lines)-h:]
+	if maxW <= 0 || maxH <= 0 {
+		panic("terminal width / height too limited to display results")
 	}
 
-	// If any line is too long, slice it
+	text := strings.ReplaceAll(output, "\t", "  ")
+
+	// Split output into lines
+	lines := strings.Split(text, "\n")
+
+	if len(lines) > maxH {
+		//  too many lines, trim first lines
+		lines = lines[len(lines)-maxH:]
+	}
+
+	for i := 0; i < len(lines); i++ {
+		for runewidth.StringWidth(lines[i]) > maxW {
+			// if line width > max, trim until it fits
+			runes := []rune(lines[i])
+			trimmedLine := string(runes[:len(runes)-1])
+			lines[i] = trimmedLine
+		}
+	}
+
 	for i, line := range lines {
-		if len(line) > w {
-			lines[i] = line[:w]
+		if len(line) > maxW {
+			// line is too long, trim end
+			lines[i] = line[:maxW]
 		}
 	}
 
 	// Join lines back into a string
-	return strings.Join(lines, "\n")
+	txt := strings.Join(lines, "\n")
+
+	return txt
 }
 
 // Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
@@ -132,7 +150,7 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 			}
 		}
 
-		areaPrinter.Update(sliceOutput(output.String(), w, h))
+		areaPrinter.Update(trimOutput(output.String(), w, h))
 	}
 
 	// Stop area printer and clear area
