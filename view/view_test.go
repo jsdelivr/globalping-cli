@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/jsdelivr/globalping-cli/mocks"
 	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/stretchr/testify/assert"
 )
@@ -75,6 +77,8 @@ func TestPrintStandardResultsHTTPGet(t *testing.T) {
 		},
 	}
 
+	id := "123abc"
+
 	data := &model.GetMeasurement{
 		Results: []model.MeasurementResponse{
 			{
@@ -110,13 +114,97 @@ func TestPrintStandardResultsHTTPGet(t *testing.T) {
 		},
 	}
 
-	PrintStandardResults(data, ctx, m)
+	PrintStandardResults(id, data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
 	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+
+	outContent, err := io.ReadAll(rStdOut)
+	assert.NoError(t, err)
+	assert.Equal(t, "Body 1\n\nBody 2\n", string(outContent))
+}
+
+func TestPrintStandardResultsHTTPGetShare(t *testing.T) {
+	osStdErr := os.Stderr
+	osStdOut := os.Stdout
+
+	rStdErr, myStdErr, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdErr.Close()
+
+	rStdOut, myStdOut, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdOut.Close()
+
+	os.Stderr = myStdErr
+	os.Stdout = myStdOut
+
+	defer func() {
+		os.Stderr = osStdErr
+		os.Stdout = osStdOut
+	}()
+
+	ctx := model.Context{
+		Cmd:   "http",
+		CI:    true,
+		Share: true,
+	}
+
+	m := model.PostMeasurement{
+		Options: &model.MeasurementOptions{
+			Request: &model.RequestOptions{
+				Method: "GET",
+			},
+		},
+	}
+
+	id := "123abc"
+
+	data := &model.GetMeasurement{
+		Results: []model.MeasurementResponse{
+			{
+				Probe: model.ProbeData{
+					Continent: "EU",
+					Country:   "DE",
+					City:      "Berlin",
+					ASN:       123,
+					Network:   "Network 1",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 1\nBody 1",
+					RawHeaders: "Headers 1",
+					RawBody:    "Body 1",
+				},
+			},
+
+			{
+				Probe: model.ProbeData{
+					Continent: "NA",
+					Country:   "US",
+					City:      "New York",
+					State:     "NY",
+					ASN:       567,
+					Network:   "Network 2",
+				},
+				Result: model.ResultData{
+					RawOutput:  "Headers 2\nBody 2",
+					RawHeaders: "Headers 2",
+					RawBody:    "Body 2",
+				},
+			},
+		},
+	}
+
+	PrintStandardResults(id, data, ctx, m)
+	myStdOut.Close()
+	myStdErr.Close()
+
+	errContent, err := io.ReadAll(rStdErr)
+	assert.NoError(t, err)
+	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n> View the results online: https://www.jsdelivr.com/globalping?measurement=123abc\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
@@ -157,6 +245,8 @@ func TestPrintStandardResultsHTTPGetFull(t *testing.T) {
 		},
 	}
 
+	id := "123abc"
+
 	data := &model.GetMeasurement{
 		Results: []model.MeasurementResponse{
 			{
@@ -192,7 +282,7 @@ func TestPrintStandardResultsHTTPGetFull(t *testing.T) {
 		},
 	}
 
-	PrintStandardResults(data, ctx, m)
+	PrintStandardResults(id, data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -238,6 +328,8 @@ func TestPrintStandardResultsHTTPHead(t *testing.T) {
 		},
 	}
 
+	id := "123abc"
+
 	data := &model.GetMeasurement{
 		Results: []model.MeasurementResponse{
 			{
@@ -271,7 +363,7 @@ func TestPrintStandardResultsHTTPHead(t *testing.T) {
 		},
 	}
 
-	PrintStandardResults(data, ctx, m)
+	PrintStandardResults(id, data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -311,6 +403,8 @@ func TestPrintStandardResultsPing(t *testing.T) {
 
 	m := model.PostMeasurement{}
 
+	id := "123abc"
+
 	data := &model.GetMeasurement{
 		Results: []model.MeasurementResponse{
 			{
@@ -342,7 +436,7 @@ func TestPrintStandardResultsPing(t *testing.T) {
 		},
 	}
 
-	PrintStandardResults(data, ctx, m)
+	PrintStandardResults(id, data, ctx, m)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -398,4 +492,51 @@ some text e
 some text f`
 
 	assert.Equal(t, expectedRes, res)
+}
+
+func TestOutputJson(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	id := "my-id"
+
+	b := []byte(`{"fake": "results"}`)
+
+	fetcher := mocks.NewMockMeasurementsFetcher(ctrl)
+	fetcher.EXPECT().GetRawMeasurement(id).Times(1).Return(b, nil)
+
+	ctx := model.Context{
+		JsonOutput: true,
+		Share:      true,
+	}
+	osStdErr := os.Stderr
+	osStdOut := os.Stdout
+
+	rStdErr, myStdErr, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdErr.Close()
+
+	rStdOut, myStdOut, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rStdOut.Close()
+
+	os.Stderr = myStdErr
+	os.Stdout = myStdOut
+
+	defer func() {
+		os.Stderr = osStdErr
+		os.Stdout = osStdOut
+	}()
+
+	OutputJson(id, fetcher, ctx)
+	myStdOut.Close()
+	myStdErr.Close()
+
+	errContent, err := io.ReadAll(rStdErr)
+	assert.NoError(t, err)
+	assert.Equal(t, "> View the results online: https://www.jsdelivr.com/globalping?measurement=my-id\n", string(errContent))
+
+	outContent, err := io.ReadAll(rStdOut)
+	assert.NoError(t, err)
+	assert.Equal(t, "{\"fake\": \"results\"}\n", string(outContent))
 }

@@ -15,4 +15,6 @@ type Context struct {
 	CI bool
 	// Full output
 	Full bool
+	// Display share message
+	Share bool
 }

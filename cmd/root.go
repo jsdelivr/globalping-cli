@@ -52,6 +52,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
 	rootCmd.PersistentFlags().BoolVar(&ctx.Latency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
+	rootCmd.PersistentFlags().BoolVar(&ctx.Share, "share", false, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
 }
 
 func createContext(cmd string, args []string) error {

@@ -5,6 +5,8 @@ go 1.20
 require (
 	github.com/andybalholm/brotli v1.0.5
 	github.com/charmbracelet/lipgloss v0.7.1
+	github.com/golang/mock v1.6.0
+	github.com/mattn/go-runewidth v0.0.14
 	github.com/pkg/errors v0.9.1
 	github.com/pterm/pterm v0.12.58
 	github.com/spf13/cobra v1.7.0
@@ -24,7 +26,6 @@ require (
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
