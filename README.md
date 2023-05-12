@@ -95,6 +95,11 @@ Install golangci-lint
 curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b bin v1.52.2
 ```
 
+Install mockgen
+```shell
+GOBIN=$(pwd)/bin go install github.com/golang/mock/mockgen@v1.6.0
+```
+
 Run golangci-lint
 ```shell
 bin/golangci-lint run
@@ -104,3 +109,9 @@ Run tests
 ```shell
 go test ./...
 ```
+
+To regenerate the mocks
+```shell
+mocks/gen_mocks.sh
+```
+

@@ -80,10 +80,15 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 		}
 	}
 
+	headerWithFormat := formatWithLeadingArrow(ctx, output.String())
+	return headerWithFormat
+}
+
+func formatWithLeadingArrow(ctx model.Context, text string) string {
 	if ctx.CI {
-		return "> " + output.String()
+		return "> " + text
 	} else {
-		return terminalLayoutArrow + terminalLayoutHighlight.Render(output.String())
+		return terminalLayoutArrow + terminalLayoutHighlight.Render(text)
 	}
 }
 
@@ -153,18 +158,22 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 	}
 
 	if os.Getenv("LIVE_DEBUG") != "1" {
-		PrintStandardResults(data, ctx, m)
+		PrintStandardResults(id, data, ctx, m)
 	}
 }
 
 // If json flag is used, only output json
-func OutputJson(id string, fetcher client.MeasurementsFetcher) {
+func OutputJson(id string, fetcher client.MeasurementsFetcher, ctx model.Context) {
 	output, err := fetcher.GetRawMeasurement(id)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(string(output))
+
+	if ctx.Share {
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
+	}
 }
 
 // If latency flag is used, only output latency values
@@ -240,10 +249,14 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 	}
 
 	fmt.Println(strings.TrimSpace(output.String()))
+
+	if ctx.Share {
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
+	}
 }
 
 // Prints non-json non-latency results to the screen
-func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
+func PrintStandardResults(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	for i, result := range data.Results {
 		if i > 0 {
 			// new line as separator if more than 1 result
@@ -258,6 +271,10 @@ func PrintStandardResults(data *model.GetMeasurement, ctx model.Context, m model
 		} else {
 			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
 		}
+	}
+
+	if ctx.Share {
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
 	}
 }
 
@@ -302,12 +319,12 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 		}
 
 		if ctx.JsonOutput {
-			OutputJson(id, fetcher)
+			OutputJson(id, fetcher, ctx)
 			return
 		}
 
 		if ctx.CI {
-			PrintStandardResults(data, ctx, m)
+			PrintStandardResults(id, data, ctx, m)
 			return
 		}
 
@@ -315,4 +332,8 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 	}
 
 	LiveView(id, data, ctx, m)
+}
+
+func shareMessage(id string) string {
+	return fmt.Sprintf("View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
 }
