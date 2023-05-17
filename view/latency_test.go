@@ -40,13 +40,31 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
-					Tags:      []string{"tag"},
+					Tags:      []string{"tag-1"},
 				},
 				Result: model.ResultData{
 					Stats: map[string]interface{}{
 						"min": 8,
 						"avg": 12,
 						"max": 20,
+					},
+				},
+			},
+			{
+				Probe: model.ProbeData{
+					Continent: "Continent B",
+					Country:   "Country B",
+					State:     "State B",
+					City:      "City B",
+					ASN:       12349,
+					Network:   "Network B",
+					Tags:      []string{"tag B"},
+				},
+				Result: model.ResultData{
+					Stats: map[string]interface{}{
+						"min": 9,
+						"avg": 15,
+						"max": 22,
 					},
 				},
 			},
@@ -62,11 +80,11 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag-1)\n> Continent B, Country B, (State B), City B, ASN:12349, Network B\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nMin: 8 ms\nMax: 20 ms\nAvg: 12 ms\n", string(outContent))
+	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\nMin: 9 ms\nMax: 22 ms\nAvg: 15 ms\n", string(outContent))
 }
 
 func TestOutputLatency_Ping_CI(t *testing.T) {
@@ -123,11 +141,11 @@ func TestOutputLatency_Ping_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nMin: 8 ms\nMax: 20 ms\nAvg: 12 ms\n", string(outContent))
+	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n", string(outContent))
 }
 
 func TestOutputLatency_DNS_Not_CI(t *testing.T) {
@@ -179,11 +197,11 @@ func TestOutputLatency_DNS_Not_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nTotal: 44 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\n", string(outContent))
 }
 
 func TestOutputLatency_DNS_CI(t *testing.T) {
@@ -236,11 +254,11 @@ func TestOutputLatency_DNS_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nTotal: 44 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\n", string(outContent))
 }
 
 func TestOutputLatency_Http_Not_CI(t *testing.T) {
@@ -292,11 +310,11 @@ func TestOutputLatency_Http_Not_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nTotal: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
 }
 
 func TestOutputLatency_Http_CI(t *testing.T) {
@@ -349,9 +367,9 @@ func TestOutputLatency_Http_CI(t *testing.T) {
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errContent))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\nTotal: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
 }

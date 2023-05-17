@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
@@ -11,45 +10,44 @@ import (
 
 // Output latency values
 func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
-	// String builder for output
-	var output strings.Builder
-
 	// Output every result in case of multiple probes
-	for _, result := range data.Results {
-		// Output slightly different format if state is available
-		output.WriteString(generateHeader(result, ctx) + "\n")
-
-		if ctx.Cmd == "ping" {
-			output.WriteString(latencyStatHeader("Min", ctx.CI) + fmt.Sprintf("%v ms\n", result.Result.Stats["min"]))
-			output.WriteString(latencyStatHeader("Max", ctx.CI) + fmt.Sprintf("%v ms\n", result.Result.Stats["max"]))
-			output.WriteString(latencyStatHeader("Avg", ctx.CI) + fmt.Sprintf("%v ms\n\n", result.Result.Stats["avg"]))
+	for i, result := range data.Results {
+		if i > 0 {
+			// new line as separator if more than 1 result
+			fmt.Println()
 		}
 
-		if ctx.Cmd == "dns" {
+		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
+
+		switch ctx.Cmd {
+		case "ping":
+			fmt.Println(latencyStatHeader("Min", ctx.CI) + fmt.Sprintf("%v ms", result.Result.Stats["min"]))
+			fmt.Println(latencyStatHeader("Max", ctx.CI) + fmt.Sprintf("%v ms", result.Result.Stats["max"]))
+			fmt.Println(latencyStatHeader("Avg", ctx.CI) + fmt.Sprintf("%v ms", result.Result.Stats["avg"]))
+		case "dns":
 			timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			output.WriteString(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms\n\n", timings.Interface["total"]))
-		}
-
-		if ctx.Cmd == "http" {
+			fmt.Println(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["total"]))
+		case "http":
 			timings, err := client.DecodeTimings(ctx.Cmd, result.Result.TimingsRaw)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			output.WriteString(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms\n", timings.Interface["total"]))
-			output.WriteString(latencyStatHeader("Download", ctx.CI) + fmt.Sprintf("%v ms\n", timings.Interface["download"]))
-			output.WriteString(latencyStatHeader("First byte", ctx.CI) + fmt.Sprintf("%v ms\n", timings.Interface["firstByte"]))
-			output.WriteString(latencyStatHeader("DNS", ctx.CI) + fmt.Sprintf("%v ms\n", timings.Interface["dns"]))
-			output.WriteString(latencyStatHeader("TLS", ctx.CI) + fmt.Sprintf("%v ms\n", timings.Interface["tls"]))
-			output.WriteString(latencyStatHeader("TCP", ctx.CI) + fmt.Sprintf("%v ms\n\n", timings.Interface["tcp"]))
+			fmt.Println(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["total"]))
+			fmt.Println(latencyStatHeader("Download", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["download"]))
+			fmt.Println(latencyStatHeader("First byte", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["firstByte"]))
+			fmt.Println(latencyStatHeader("DNS", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["dns"]))
+			fmt.Println(latencyStatHeader("TLS", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["tls"]))
+			fmt.Println(latencyStatHeader("TCP", ctx.CI) + fmt.Sprintf("%v ms", timings.Interface["tcp"]))
+		default:
+			panic("unexpected command for latency output: " + ctx.Cmd)
 		}
+
 	}
-
-	fmt.Println(strings.TrimSpace(output.String()))
 
 	if ctx.Share {
 		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
