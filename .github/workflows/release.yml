@@ -27,12 +27,12 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@v4
         with:
-          version: v1.16.2
+          version: v1.17.2
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
           CHOCOLATEY_APIKEY: ${{ secrets.CHOCOLATEY_APIKEY }}
-          
+
       - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $VERSION_NAME
       - uses: actions/upload-artifact@v3
