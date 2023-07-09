@@ -62,7 +62,7 @@ nfpms:
 brews:
   - name: globalping
     homepage: https://github.com/jsdelivr/globalping-cli
-    tap:
+    repository:
       owner: jsdelivr
       name: homebrew-globalping
     commit_author:
