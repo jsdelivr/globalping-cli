@@ -35,6 +35,17 @@ jobs:
 
       - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $VERSION_NAME
+      
+      - name: Release to Winget
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: jsdelivr.Globalping
+          installers-regex: 'Windows'
+          version: ${{ github.event.release.tag_name }}
+          max-versions-to-keep: 5
+          token: ${{ secrets.GHTOKEN_WINGET }}
+          
+          
       - uses: actions/upload-artifact@v3
         with:
           name: goreleaser-deb
