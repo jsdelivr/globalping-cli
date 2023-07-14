@@ -41,7 +41,7 @@ jobs:
         with:
           identifier: jsdelivr.Globalping
           installers-regex: 'Windows'
-          version: ${{ github.event.release.tag_name }}
+          version: ${{ env.VERSION_NAME }}
           max-versions-to-keep: 5
           token: ${{ secrets.GHTOKEN_WINGET }}
           
