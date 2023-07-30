@@ -174,28 +174,5 @@ Most commands have their own unique parameters, explore them to run and automate
 If you get stuck or want to provide your feedback please open a new issue.
 
 ## Development setup
-Install golangci-lint
-```shell
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b bin v1.52.2
-```
 
-Install mockgen
-```shell
-GOBIN=$(pwd)/bin go install github.com/golang/mock/mockgen@v1.6.0
-```
-
-Run golangci-lint
-```shell
-bin/golangci-lint run
-```
-
-Run tests
-```shell
-go test ./...
-```
-
-To regenerate the mocks
-```shell
-mocks/gen_mocks.sh
-```
-
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
