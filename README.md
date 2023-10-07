@@ -96,6 +96,8 @@ Flags:
 Use "globalping [command] --help" for more information about a command.
 ```
 
+#### Next we recommend [reading our best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about how to effectively select locations.
+
 ### Run your first test
 
 The following command will show a real-time result of ping from probes that have the parameters Comcast and Seattle.
