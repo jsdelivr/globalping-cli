@@ -35,6 +35,7 @@ jobs:
 
       - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $VERSION_NAME
+
       - uses: actions/upload-artifact@v3
         with:
           name: goreleaser-deb
@@ -43,6 +44,13 @@ jobs:
         with:
           name: goreleaser-rpm
           path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
+      - uses: actions/upload-artifact@v3
+        with:
+          name: goreleaser-windows
+          path: |
+            dist/globalping_Windows_arm64.zip
+            dist/globalping_Windows_x86_64.zip
+            dist/globalping_Windows_i386.zip 
 
   deploy:
     needs: goreleaser
@@ -54,13 +62,27 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: goreleaser-rpm
-      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
-      - run: echo globalping_${{ env.VERSION_NAME }}_linux_amd64
-      - run: ls -la
-      - uses: jsdelivr/upload-packagecloud@v3
+      - uses: actions/download-artifact@v3
         with:
-          DEB-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
-          RPM-PACKAGE-NAME: globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
-          PACKAGECLOUD-USERNAME: jsdelivr
-          PACKAGECLOUD-REPO: globalping
-          PACKAGECLOUD-TOKEN: ${{ secrets.PACKAGECLOUD_APIKEY }}
+          name: goreleaser-windows
+        
+      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
+      - run: ls -la
+
+      - name: Release to Packagecloud
+        uses: jsdelivr/upload-packagecloud@v3
+        with:
+          deb-package-name: globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
+          rpm-package-name: globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
+          packagecloud-username: jsdelivr
+          packagecloud-repo: globalping
+          packagecloud-token: ${{ secrets.PACKAGECLOUD_APIKEY }}
+
+      - name: Release to Winget
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: jsdelivr.Globalping
+          installers-regex: 'Windows_(arm64|x86_64|i386).zip'
+          version: ${{ env.VERSION_NAME }}
+          max-versions-to-keep: 5
+          token: ${{ secrets.GHTOKEN_WINGET }}
