@@ -1,23 +1,21 @@
 <h1 align="center"> <a href="https://www.jsdelivr.com/globalping"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
 
-<p align="center">Access a global network of probes without leaving your console. Powered by the Globalping community!</p>
+<p align="center">Run measurement commands from a global network of probes right from your console with the official command-line interface for <a href="https://github.com/jsdelivr/globalping">Globalping</a>. Powered by the Globalping community!</p>
 
 <p align="center"><img width="80%" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
 </p>
 
-- The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network.
+## Key features
 - Run networking commands from any location in the world
-- Supported commands: ping, mtr, traceroute, dns resolve, HTTP
-- Includes detailed timings and latency metrics with every test
-- Real-time results right in your command line
-- Human friendly format and output
-- Cross-platform. Linux, MacOS, Windows are all supported
-- Auto-updated via all automated installation methods
-- [Check our website for online tools, our Slack app and more!](https://www.jsdelivr.com/globalping)
+- Real-time results for ping, mtr, traceroute, DNS resolve, HTTP
+- Detailed timings and latency metrics
+- Human-friendly format and output
+- Runs on Linux, MacOS, and Windows
+- Auto-updates through package managers
+- Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping), including our online tools, Slack app, and more
 
-## Installation - Quick start
-
-Simply run these commands to install the repo and CLI! This way you will get all future updates by simply running an update using your package manager.
+## Installation
+Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update using your package manager.
 
 ### Ubuntu/Debian (deb)
 
@@ -55,17 +53,24 @@ winget install globalping
 ```
 
 ### Binary installation
+Every new release is compiled into binaries ready to run on most operating systems and provided as assets on GitHub. You can download and execute these binaries directly on your system.
 
-Every new release is compiled into binaries ready to run on most operating systems and attached as assets on GitHub. You can download and run the binaries directly on your system, but note that you will have to repeat this process for every new release. [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
+> [!ATTENTION] 
+> Opting for this installation method means you'll have to repeat this manual process for every new release to update the CLI!
 
+[Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
-## Getting Started with Globalping CLI
+## Updating the CLI
+If you've installed the Globalping CLI via a package manager, you only need to run the manager's update command to get the latest Globalping CLI version.
 
-Once the Globalping CLI is installed, you can verify that it is working by running:
+## Getting started with Globalping CLI
 
+After installing, verify the Globalping CLI is working by running:
+
+`globalping --help`
+
+The result shows how to use the CLI and which commands and flags are available:
 ```bash
-globalping --help
-
 Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
 The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.
 
@@ -96,13 +101,13 @@ Flags:
 Use "globalping [command] --help" for more information about a command.
 ```
 
-#### Next we recommend [reading our best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about how to effectively select locations.
+### Run your first tests
+Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags. 
 
-### Run your first test
+#### Filter locations
+Use the `+` symbol as a filter to select the desired location of the probes more precisely.
 
-The following command will show a real-time result of ping from probes that have the parameters Comcast and Seattle.
-You can use the + symbol as a filter to select probes more precisely.  
-
+For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
 ```bash
 globalping ping google.com from Comcast+Seattle
 > NA, US, (WA), Seattle, ASN:7922, Comcast Cable Communications, LLC
@@ -116,11 +121,21 @@ PING  (142.250.217.78) 56(84) bytes of data.
 rtt min/avg/max/mdev = 13.985/14.779/15.886/0.807 ms
 ```
 
-To select multiple locations you can use a comma as a delimiter. You can mix and match the location types without issues. 
-We also set a limit of 4 probes to get 1 answer per location, otherwise the default limit of 1 would result in a random result from one of the four locations.
+> [!TIP]
+> We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
 
-Last we use the `--latency` parameter to only get the summary latency data instead of the full raw ping output. 
+#### Define multiple locations and basic flags
+Use a comma `,` as a delimiter to select multiple locations from which to run a command from. 
 
+> [!TIP]
+> You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
+
+If you want to run your command from multiple locations, you should also specify the number of tests to run with the `--limit` flag. 
+For example, if you want to run ping from four different locations, add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
+
+Let's also introduce you to another handy flag: If you're only interested in the latency metrics for your tests and not in the full raw output, add `--latency` to your command.
+
+With everything we've discussed in mind, we can create the following command and look at its result:
 ```bash
 globalping ping google.com from Amazon,Germany,USA,Dallas --limit 4 --latency
 > AS, KR, Seoul, ASN:16509, Amazon.com, Inc. (aws-ap-northeast-2)
@@ -143,9 +158,11 @@ Min: 1.579 ms
 Max: 1.588 ms
 Avg: 1.584 ms
 ```
+#### Share results online
+Add a link to your result with the `--share` flag to view the test results online. This allows you to share your results with other people!
 
-The `--share` parameter will add a link to end of any test to view the results online. 
-Note that these links expire after a few weeks depending on the type of user. GitHub Sponsors get their tests stored for longer.
+> [!NOTE]
+> Shareable links and the associated saved measurement results expire after a few weeks, depending on the user type. GitHub sponsors, for example, enjoy extended result storage.
 
 ```bash
  globalping dns google.com from gcp-asia-south1 --share
@@ -171,10 +188,15 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://www.jsdelivr.com/globalping?measurement=xrfXUEAOGfzwfHFz
 ```
 
-Most commands have their own unique parameters, explore them to run and automate your network tests in powerful ways.
+#### Learn about available flags
+Most commands have shared and unique flags. We recommend that you familiarize yourself with these so that you can run and automate your network tests in powerful ways.
 
-If you get stuck or want to provide your feedback please open a new issue.
+Simply run the command you want to learn more about with the `--help` flag:
 
-## Development setup
+`globalping [command] --help`
 
+## Support and Feedback
+If you are stuck or want to give us your feedback, please [open a new issue](https://github.com/jsdelivr/globalping-cli/issues).
+
+## Development
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
