@@ -10,12 +10,12 @@
 - Real-time results for ping, mtr, traceroute, DNS resolve, HTTP
 - Detailed timings and latency metrics
 - Human-friendly format and output
-- Runs on Linux, MacOS, and Windows
-- Auto-updates through package managers
+- Supports Linux, MacOS, and Windows
+- Auto-updated through package managers
 - Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping), including our online tools, Slack app, and more
 
 ## Installation
-Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update using your package manager.
+Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
 
 ### Ubuntu/Debian (deb)
 
@@ -55,12 +55,12 @@ winget install globalping
 ### Binary installation
 Every new release is compiled into binaries ready to run on most operating systems and provided as assets on GitHub. You can download and execute these binaries directly on your system.
 
-> [!ATTENTION] 
-> Opting for this installation method means you'll have to repeat this manual process for every new release to update the CLI!
+> [!IMPORTANT] 
+> Opting for this installation method means you'll have to repeat this manual process to update the CLI to a newer release!
 
 [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
-## Updating the CLI
+## Updating
 If you've installed the Globalping CLI via a package manager, you only need to run the manager's update command to get the latest Globalping CLI version.
 
 ## Getting started with Globalping CLI
@@ -107,6 +107,9 @@ Globalping relies on a community-hosted probe network, enabling you to run netwo
 #### Filter locations
 Use the `+` symbol as a filter to select the desired location of the probes more precisely.
 
+> [!TIP]
+> You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
+
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
 ```bash
 globalping ping google.com from Comcast+Seattle
@@ -126,9 +129,6 @@ rtt min/avg/max/mdev = 13.985/14.779/15.886/0.807 ms
 
 #### Define multiple locations and basic flags
 Use a comma `,` as a delimiter to select multiple locations from which to run a command from. 
-
-> [!TIP]
-> You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
 
 If you want to run your command from multiple locations, you should also specify the number of tests to run with the `--limit` flag. 
 For example, if you want to run ping from four different locations, add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
@@ -161,7 +161,7 @@ Avg: 1.584 ms
 #### Share results online
 Add a link to your result with the `--share` flag to view the test results online. This allows you to share your results with other people!
 
-> [!NOTE]
+> [!IMPORTANT]
 > Shareable links and the associated saved measurement results expire after a few weeks, depending on the user type. GitHub sponsors, for example, enjoy extended result storage.
 
 ```bash
