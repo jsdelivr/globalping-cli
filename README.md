@@ -13,7 +13,7 @@
 - Human-friendly format and output
 - Supports Linux, MacOS, and Windows
 - Auto-updated via all automated installation methods
-- Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping), including our online tools, Slack app, and more
+- Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping/integrations), including our online tools, Slack app, and more
 
 ## Installation
 Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
