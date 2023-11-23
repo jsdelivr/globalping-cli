@@ -1,17 +1,18 @@
 <h1 align="center"> <a href="https://www.jsdelivr.com/globalping"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
 
-<p align="center">Run measurement commands from a global network of probes right from your console with the official command-line interface for <a href="https://github.com/jsdelivr/globalping">Globalping</a>. Powered by the Globalping community!</p>
+<p align="center">Access a global network of probes without leaving your console. Benchmark your internet infrastructure, automate uptime and latency monitoring with scripts, or optimize your anycast network – from any location and free of charge. Powered by the Globalping community!</p>
 
 <p align="center"><img width="80%" src="https://user-images.githubusercontent.com/1834071/217010016-9da38f12-906a-47cf-adca-18017588efe5.png">
 </p>
 
 ## Key features
+- The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network
 - Run networking commands from any location in the world
-- Real-time results for ping, mtr, traceroute, DNS resolve, HTTP
-- Detailed timings and latency metrics
+- Real-time results for all supported commands: ping, mtr, traceroute, DNS resolve, HTTP
+- Includes detailed timings and latency metrics for every test
 - Human-friendly format and output
 - Supports Linux, MacOS, and Windows
-- Auto-updated through package managers
+- Auto-updated via all automated installation methods
 - Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping), including our online tools, Slack app, and more
 
 ## Installation
@@ -105,11 +106,6 @@ Use "globalping [command] --help" for more information about a command.
 Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags. 
 
 #### Filter locations
-Use the `+` symbol as a filter to select the desired location of the probes more precisely.
-
-> [!TIP]
-> You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
-
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
 ```bash
 globalping ping google.com from Comcast+Seattle
@@ -123,17 +119,14 @@ PING  (142.250.217.78) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 402ms
 rtt min/avg/max/mdev = 13.985/14.779/15.886/0.807 ms
 ```
+You can use the `+` symbol as a filter to select the desired location of the probes more precisely.
 
 > [!TIP]
-> We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
+> You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
 
 #### Define multiple locations and basic flags
-Select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
-For example, if you want to run ping from four different locations, add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
+With the following command, we execute four ping commands at four different locations and obtain the summarized latency metrics for each test as a result:
 
-Let's also introduce you to another handy flag: If you're only interested in the latency metrics for your tests and not the full raw output, add `--latency` to your command.
-
-With everything we've discussed in mind, we can create the following command and look at its result:
 ```bash
 globalping ping google.com from Amazon,Germany,USA,Dallas --limit 4 --latency
 > AS, KR, Seoul, ASN:16509, Amazon.com, Inc. (aws-ap-northeast-2)
@@ -156,6 +149,14 @@ Min: 1.579 ms
 Max: 1.588 ms
 Avg: 1.584 ms
 ```
+You can select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
+For example, to run ping from four different locations (as we did in the example above), add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
+
+Finally, you can use the `--latency` parameter to only get the summarized latency data instead of the full raw output.
+
+> [!TIP]
+> We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
+
 #### Share results online
 Include a link at the bottom of your results using the `--share` flag to view and share the test results online.
 
