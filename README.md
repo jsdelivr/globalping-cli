@@ -128,12 +128,10 @@ rtt min/avg/max/mdev = 13.985/14.779/15.886/0.807 ms
 > We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
 
 #### Define multiple locations and basic flags
-Use a comma `,` as a delimiter to select multiple locations from which to run a command from. 
-
-If you want to run your command from multiple locations, you should also specify the number of tests to run with the `--limit` flag. 
+Select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
 For example, if you want to run ping from four different locations, add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
 
-Let's also introduce you to another handy flag: If you're only interested in the latency metrics for your tests and not in the full raw output, add `--latency` to your command.
+Let's also introduce you to another handy flag: If you're only interested in the latency metrics for your tests and not the full raw output, add `--latency` to your command.
 
 With everything we've discussed in mind, we can create the following command and look at its result:
 ```bash
@@ -159,10 +157,10 @@ Max: 1.588 ms
 Avg: 1.584 ms
 ```
 #### Share results online
-Add a link to your result with the `--share` flag to view the test results online. This allows you to share your results with other people!
+Include a link at the bottom of your results using the `--share` flag to view and share the test results online.
 
 > [!IMPORTANT]
-> Shareable links and the associated saved measurement results expire after a few weeks, depending on the user type. GitHub sponsors, for example, enjoy extended result storage.
+> Shareable links and the respective saved measurement results expire after a few weeks, depending on the user type. GitHub Sponsors, for example, enjoy extended result storage.
 
 ```bash
  globalping dns google.com from gcp-asia-south1 --share
@@ -191,7 +189,7 @@ google.com.             300     IN      A       142.250.183.206
 #### Learn about available flags
 Most commands have shared and unique flags. We recommend that you familiarize yourself with these so that you can run and automate your network tests in powerful ways.
 
-Simply run the command you want to learn more about with the `--help` flag:
+Simply execute the command you want to learn more about with the `--help` flag:
 
 `globalping [command] --help`
 
