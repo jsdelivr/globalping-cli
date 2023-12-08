@@ -108,7 +108,7 @@ Globalping relies on a community-hosted probe network, enabling you to run netwo
 #### Filter locations
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
 ```bash
-globalping ping google.com from Comcast+Seattle
+globalping ping google.com --from Comcast+Seattle
 > NA, US, (WA), Seattle, ASN:7922, Comcast Cable Communications, LLC
 PING  (142.250.217.78) 56(84) bytes of data.
 64 bytes from sea09s29-in-f14.1e100.net (142.250.217.78): icmp_seq=1 ttl=58 time=14.0 ms
@@ -128,7 +128,7 @@ You can use the `+` symbol as a filter to select the desired location of the pro
 With the following command, we execute four ping commands at four different locations and obtain the summarized latency metrics for each test as a result:
 
 ```bash
-globalping ping google.com from Amazon,Germany,USA,Dallas --limit 4 --latency
+globalping ping google.com --from Amazon,Germany,USA,Dallas --limit 4 --latency
 > AS, KR, Seoul, ASN:16509, Amazon.com, Inc. (aws-ap-northeast-2)
 Min: 33.163 ms
 Max: 33.256 ms
@@ -164,7 +164,7 @@ Include a link at the bottom of your results using the `--share` flag to view an
 > Shareable links and the respective saved measurement results expire after a few weeks, depending on the user type. GitHub Sponsors, for example, enjoy extended result storage.
 
 ```bash
- globalping dns google.com from gcp-asia-south1 --share
+ globalping dns google.com --from gcp-asia-south1 --share
 > AS, IN, Mumbai, ASN:396982, Google LLC (gcp-asia-south1)
 ; <<>> DiG 9.16.37-Debian <<>> -t A google.com -p 53 -4 +timeout=3 +tries=2 +nocookie +nsid
 ;; global options: +cmd
