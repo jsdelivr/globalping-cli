@@ -81,7 +81,7 @@ func overrideOptInt(orig, new int) int {
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
-	Use:     "http [target] from [measurement ID | location]",
+	Use:     "http [target] from [location | measurement ID]",
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API. Detailed performance stats as available for every request.

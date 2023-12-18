@@ -98,7 +98,7 @@ Additional Commands:
 
 Flags:
   -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
-  -F, --from string   Measurement ID or comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world"). (default "world")
+  -F, --from string   Comma-separated list of location values to match against or measurement ID. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world"). (default "world")
   -h, --help          help for globalping
   -J, --json          Output results in JSON format (default false)
       --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands

@@ -47,7 +47,7 @@ func Execute() {
 
 func init() {
 	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "world", `Measurement ID or comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").`)
+	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "world", `Comma-separated list of location values to match against or measurement ID. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world").`)
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")

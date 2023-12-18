@@ -11,7 +11,7 @@ import (
 
 // pingCmd represents the ping command
 var pingCmd = &cobra.Command{
-	Use:     "ping [target] from [measurement ID | location]",
+	Use:     "ping [target] from [location | measurement ID]",
 	GroupID: "Measurements",
 	Short:   "Run a ping test",
 	Long: `The ping command allows sending ping requests to a target. Often used to test the network latency and stability.
