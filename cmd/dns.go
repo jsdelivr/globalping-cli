@@ -11,7 +11,7 @@ import (
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:     "dns [target] from [location]",
+	Use:     "dns [target] from [location | measurement ID]",
 	GroupID: "Measurements",
 	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
@@ -25,6 +25,9 @@ Using the dig format @resolver. For example:
   Examples:
   # Resolve google.com from 2 probes in New York
   dns google.com from New York --limit 2
+
+  # Resolve google.com using probes from previous measurement
+  dns google.com from rvasVvKnj48cxNjC
 
   # Resolve google.com from 2 probes from London or Belgium with trace enabled
   dns google.com from London,Belgium --limit 2 --trace

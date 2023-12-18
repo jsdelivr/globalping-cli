@@ -6,6 +6,7 @@
 </p>
 
 ## Key features
+
 - The official command-line interface for the [Globalping](https://github.com/jsdelivr/globalping) network
 - Run networking commands from any location in the world
 - Real-time results for all supported commands: ping, mtr, traceroute, DNS resolve, HTTP
@@ -16,6 +17,7 @@
 - Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping/integrations), including our online tools, Slack app, and more
 
 ## Installation
+
 Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
 
 ### Ubuntu/Debian (deb)
@@ -54,14 +56,16 @@ winget install globalping
 ```
 
 ### Binary installation
+
 Every new release is compiled into binaries ready to run on most operating systems and provided as assets on GitHub. You can download and execute these binaries directly on your system.
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > Opting for this installation method means you'll have to repeat this manual process to update the CLI to a newer release!
 
 [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
 ## Updating
+
 If you've installed the Globalping CLI via a package manager, you only need to run the manager's update command to get the latest Globalping CLI version.
 
 ## Getting started with Globalping CLI
@@ -71,6 +75,7 @@ After installing, verify the Globalping CLI is working by running:
 `globalping --help`
 
 The result shows how to use the CLI and which commands and flags are available:
+
 ```bash
 Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
 The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.
@@ -93,7 +98,7 @@ Additional Commands:
 
 Flags:
   -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
-  -F, --from string   Comma-separated list of location values to match against. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world"). (default "world")
+  -F, --from string   Comma-separated list of location values to match against or measurement ID. For example the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network (default "world"). (default "world")
   -h, --help          help for globalping
   -J, --json          Output results in JSON format (default false)
       --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands
@@ -103,10 +108,13 @@ Use "globalping [command] --help" for more information about a command.
 ```
 
 ### Run your first tests
-Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags. 
+
+Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags.
 
 #### Filter locations
+
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
+
 ```bash
 globalping ping google.com from Comcast+Seattle
 > NA, US, (WA), Seattle, ASN:7922, Comcast Cable Communications, LLC
@@ -119,12 +127,14 @@ PING  (142.250.217.78) 56(84) bytes of data.
 3 packets transmitted, 3 received, 0% packet loss, time 402ms
 rtt min/avg/max/mdev = 13.985/14.779/15.886/0.807 ms
 ```
+
 You can use the `+` symbol as a filter to select the desired location of the probes more precisely.
 
 > [!TIP]
 > You can mix and match any location type, including countries, continents, cities, US states, regions, ASNs, ISP names, eyeball or data center tags, and cloud region names.
 
 #### Define multiple locations and basic flags
+
 With the following command, we execute four ping commands at four different locations and obtain the summarized latency metrics for each test as a result:
 
 ```bash
@@ -149,6 +159,7 @@ Min: 1.579 ms
 Max: 1.588 ms
 Avg: 1.584 ms
 ```
+
 You can select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
 For example, to run ping from four different locations (as we did in the example above), add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
 
@@ -158,6 +169,7 @@ Finally, you can use the `--latency` parameter to only get the summarized latenc
 > We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
 
 #### Share results online
+
 Include a link at the bottom of your results using the `--share` flag to view and share the test results online.
 
 > [!IMPORTANT]
@@ -187,7 +199,35 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://www.jsdelivr.com/globalping?measurement=xrfXUEAOGfzwfHFz
 ```
 
+#### Reselect probes
+
+You can select the same probes used in a previous measurement.
+
+```bash
+globalping dns google.com from rvasVvKnj48cxNjC
+> AS, IN, Mumbai, ASN:396982, Google LLC (gcp-asia-south1)
+; <<>> DiG 9.16.42-Debian <<>> -t A google.com -p 53 -4 +timeout=3 +tries=2 +nocookie +nosplit +nsid
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 42607
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+;; QUESTION SECTION:
+;google.com.                    IN      A
+
+;; ANSWER SECTION:
+google.com.             300     IN      A       142.250.199.174
+
+;; Query time: 5 msec
+;; SERVER: x.x.x.x#53(x.x.x.x)
+;; WHEN: Mon Dec 18 10:01:00 UTC 2023
+;; MSG SIZE  rcvd: 55
+```
+
 #### Learn about available flags
+
 Most commands have shared and unique flags. We recommend that you familiarize yourself with these so that you can run and automate your network tests in powerful ways.
 
 Simply execute the command you want to learn more about with the `--help` flag:
@@ -195,7 +235,9 @@ Simply execute the command you want to learn more about with the `--help` flag:
 `globalping [command] --help`
 
 ## Support and Feedback
+
 If you are stuck or want to give us your feedback, please [open a new issue](https://github.com/jsdelivr/globalping-cli/issues).
 
 ## Development
+
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
