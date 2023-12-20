@@ -133,54 +133,26 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// build http measurement
-	m, err := buildHttpMeasurementRequest()
+	opts := model.PostMeasurement{
+		Type:              PostMeasurementTypeHttp,
+		Limit:             ctx.Limit,
+		InProgressUpdates: inProgressUpdates(ctx.CI),
+	}
+	urlData, err := parseUrlData(ctx.Target)
 	if err != nil {
 		return err
 	}
-
-	opts = m
-	res, showHelp, err := client.PostAPI(opts)
-	if err != nil {
-		if showHelp {
-			return err
-		}
-		fmt.Println(err)
-		return nil
-	}
-
-	view.OutputResults(res.ID, ctx, m)
-	return nil
-}
-
-const PostMeasurementTypeHttp = "http"
-
-// buildHttpMeasurementRequest builds the measurement request for the http type
-func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
-	m := model.PostMeasurement{
-		Type: PostMeasurementTypeHttp,
-	}
-
-	urlData, err := parseUrlData(ctx.Target)
-	if err != nil {
-		return m, err
-	}
-
 	headers, err := parseHttpHeaders(httpCmdOpts.Headers)
 	if err != nil {
-		return m, err
+		return err
 	}
-
 	method := strings.ToUpper(httpCmdOpts.Method)
 	if ctx.Full {
 		// override method to GET
 		method = "GET"
 	}
-
-	m.Target = urlData.Host
-	m.Locations = createLocations(ctx.From)
-	m.Limit = ctx.Limit
-	m.InProgressUpdates = inProgressUpdates(ctx.CI)
-	m.Options = &model.MeasurementOptions{
+	opts.Target = urlData.Host
+	opts.Options = &model.MeasurementOptions{
 		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
 		Packets:  packets,
@@ -193,9 +165,35 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
+	isPreviousMeasurementId := false
+	opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
-	return m, nil
+	res, showHelp, err := client.PostAPI(opts)
+	if err != nil {
+		if showHelp {
+			return err
+		}
+		fmt.Println(err)
+		return nil
+	}
+
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveMeasurementID(res.ID)
+		if err != nil {
+			fmt.Printf("warning: %s\n", err)
+		}
+	}
+
+	view.OutputResults(res.ID, ctx, opts)
+	return nil
 }
+
+const PostMeasurementTypeHttp = "http"
 
 func parseHttpHeaders(headerStrings []string) (map[string]string, error) {
 	h := map[string]string{}

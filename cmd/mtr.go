@@ -46,7 +46,6 @@ Examples:
 		opts = model.PostMeasurement{
 			Type:              "mtr",
 			Target:            ctx.Target,
-			Locations:         createLocations(ctx.From),
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
@@ -54,6 +53,12 @@ Examples:
 				Port:     port,
 				Packets:  packets,
 			},
+		}
+		isPreviousMeasurementId := false
+		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+		if err != nil {
+			fmt.Println(err)
+			return nil
 		}
 
 		res, showHelp, err := client.PostAPI(opts)
@@ -63,6 +68,14 @@ Examples:
 			}
 			fmt.Println(err)
 			return nil
+		}
+
+		// Save measurement ID to history
+		if !isPreviousMeasurementId {
+			err := saveMeasurementID(res.ID)
+			if err != nil {
+				fmt.Printf("warning: %s\n", err)
+			}
 		}
 
 		view.OutputResults(res.ID, ctx, opts)
