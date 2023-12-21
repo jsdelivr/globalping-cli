@@ -11,7 +11,7 @@ import (
 
 // mtrCmd represents the mtr command
 var mtrCmd = &cobra.Command{
-	Use:     "mtr [target] from [location | measurement ID]",
+	Use:     "mtr [target] from [location | measurement ID | @1 | first | @-1 | last]",
 	GroupID: "Measurements",
 	Short:   "Run an MTR test, similar to traceroute",
 	Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
@@ -22,6 +22,12 @@ Examples:
 
   # MTR google.com using probes from previous measurement
   mtr google.com from rvasVvKnj48cxNjC
+
+  # MTR google.com using probes from first measurement in session
+  mtr google.com from @1
+
+  # MTR google.com using probes from last measurement in session
+  mtr google.com from last
 
   # MTR 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
   mtr 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci

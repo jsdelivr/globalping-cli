@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/icza/backscanner"
 	"github.com/jsdelivr/globalping-cli/model"
 )
 
@@ -44,7 +46,7 @@ func createLocations(from string) ([]model.Locations, bool, error) {
 	return locations, false, nil
 }
 
-// Maps a location like @1, ~1, last or previous to a measurement ID
+// Maps a location to a measurement ID if possible
 func mapToMeasurementID(location string) (string, error) {
 	if location == "" {
 		return "", nil
@@ -56,14 +58,10 @@ func mapToMeasurementID(location string) (string, error) {
 		}
 		return getMeasurementID(index)
 	}
-	if location[0] == '~' {
-		index, err := strconv.Atoi(location[1:])
-		if err != nil {
-			return "", fmt.Errorf("%s: invalid index", location[1:])
-		}
-		return getMeasurementID(-index)
+	if location == "first" {
+		return getMeasurementID(1)
 	}
-	if location == "last" || location == "previous" {
+	if location == "last" {
 		return getMeasurementID(-1)
 	}
 	return "", nil
@@ -82,10 +80,31 @@ func getMeasurementID(index int) (string, error) {
 		return "", fmt.Errorf("failed to open previous measurements file: %s", err)
 	}
 	defer f.Close()
-	// TODO: Read the file in reverse
+	// Read ids from the end of the file
 	if index < 0 {
-		return "", errors.New("not supported")
+		fStats, err := f.Stat()
+		if err != nil {
+			return "", fmt.Errorf("failed to read previous measurements: %s", err)
+		}
+		if fStats.Size() == 0 {
+			return "", errors.New("no previous measurements found")
+		}
+		scanner := backscanner.New(f, int(fStats.Size()-1)) // -1 to skip last newline
+		for {
+			index++
+			b, _, err := scanner.LineBytes()
+			if err != nil {
+				if err == io.EOF {
+					return "", fmt.Errorf("%d: index out of range", index)
+				}
+				return "", fmt.Errorf("failed to read previous measurements: %s", err)
+			}
+			if index == 0 {
+				return string(b), nil
+			}
+		}
 	}
+	// Read ids from the beginning of the file
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		index--

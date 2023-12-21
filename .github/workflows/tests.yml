@@ -8,14 +8,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ["1.20"]
+        os: [ubuntu-latest, macOS-latest, windows-latest]
+    name: ${{ matrix.os }} Go ${{ matrix.go }} Tests
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.20.x'
+          go-version: ${{ matrix.go }}
           cache: true
       - name: Install dependencies
         run: go get .
