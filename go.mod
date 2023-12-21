@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.0.5
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/golang/mock v1.6.0
+	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70
 	github.com/mattn/go-runewidth v0.0.14
 	github.com/pkg/errors v0.9.1
 	github.com/pterm/pterm v0.12.58
@@ -21,7 +22,6 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gookit/color v1.5.3 // indirect
-	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
