@@ -139,18 +139,54 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// build http measurement
-	opts := model.PostMeasurement{
+	opts, err := buildHttpMeasurementRequest()
+	if err != nil {
+		return err
+	}
+	isPreviousMeasurementId := false
+	opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	res, showHelp, err := client.PostAPI(*opts)
+	if err != nil {
+		if showHelp {
+			return err
+		}
+		fmt.Println(err)
+		return nil
+	}
+
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveMeasurementID(res.ID)
+		if err != nil {
+			fmt.Printf("warning: %s\n", err)
+		}
+	}
+
+	view.OutputResults(res.ID, ctx, *opts)
+	return nil
+}
+
+const PostMeasurementTypeHttp = "http"
+
+// buildHttpMeasurementRequest builds the measurement request for the http type
+func buildHttpMeasurementRequest() (*model.PostMeasurement, error) {
+	opts := &model.PostMeasurement{
 		Type:              PostMeasurementTypeHttp,
 		Limit:             ctx.Limit,
 		InProgressUpdates: inProgressUpdates(ctx.CI),
 	}
 	urlData, err := parseUrlData(ctx.Target)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	headers, err := parseHttpHeaders(httpCmdOpts.Headers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	method := strings.ToUpper(httpCmdOpts.Method)
 	if ctx.Full {
@@ -171,35 +207,8 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
-	isPreviousMeasurementId := false
-	opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	res, showHelp, err := client.PostAPI(opts)
-	if err != nil {
-		if showHelp {
-			return err
-		}
-		fmt.Println(err)
-		return nil
-	}
-
-	// Save measurement ID to history
-	if !isPreviousMeasurementId {
-		err := saveMeasurementID(res.ID)
-		if err != nil {
-			fmt.Printf("warning: %s\n", err)
-		}
-	}
-
-	view.OutputResults(res.ID, ctx, opts)
-	return nil
+	return opts, nil
 }
-
-const PostMeasurementTypeHttp = "http"
 
 func parseHttpHeaders(headerStrings []string) (map[string]string, error) {
 	h := map[string]string{}

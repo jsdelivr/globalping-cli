@@ -14,6 +14,12 @@ import (
 	"github.com/jsdelivr/globalping-cli/model"
 )
 
+var (
+	ErrorNoPreviousMeasurements = errors.New("no previous measurements found")
+	ErrInvalidIndex             = errors.New("invalid index")
+	ErrIndexOutOfRange          = errors.New("index out of range")
+)
+
 func inProgressUpdates(ci bool) bool {
 	return !(ci)
 }
@@ -54,7 +60,7 @@ func mapToMeasurementID(location string) (string, error) {
 	if location[0] == '@' {
 		index, err := strconv.Atoi(location[1:])
 		if err != nil {
-			return "", fmt.Errorf("%s: invalid index", location[1:])
+			return "", ErrInvalidIndex
 		}
 		return getMeasurementID(index)
 	}
@@ -70,12 +76,12 @@ func mapToMeasurementID(location string) (string, error) {
 // Returns the measurement ID at the given index from the session history
 func getMeasurementID(index int) (string, error) {
 	if index == 0 {
-		return "", fmt.Errorf("%d: invalid index", index)
+		return "", ErrInvalidIndex
 	}
 	f, err := os.Open(getMeasurementsPath())
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return "", errors.New("no previous measurements found")
+			return "", ErrorNoPreviousMeasurements
 		}
 		return "", fmt.Errorf("failed to open previous measurements file: %s", err)
 	}
@@ -87,7 +93,7 @@ func getMeasurementID(index int) (string, error) {
 			return "", fmt.Errorf("failed to read previous measurements: %s", err)
 		}
 		if fStats.Size() == 0 {
-			return "", errors.New("no previous measurements found")
+			return "", ErrorNoPreviousMeasurements
 		}
 		scanner := backscanner.New(f, int(fStats.Size()-1)) // -1 to skip last newline
 		for {
@@ -95,7 +101,7 @@ func getMeasurementID(index int) (string, error) {
 			b, _, err := scanner.LineBytes()
 			if err != nil {
 				if err == io.EOF {
-					return "", fmt.Errorf("%d: index out of range", index)
+					return "", ErrIndexOutOfRange
 				}
 				return "", fmt.Errorf("failed to read previous measurements: %s", err)
 			}
@@ -115,7 +121,7 @@ func getMeasurementID(index int) (string, error) {
 	if err := scanner.Err(); err != nil {
 		return "", fmt.Errorf("failed to read previous measurements: %s", err)
 	}
-	return "", fmt.Errorf("%d: index out of range", index)
+	return "", ErrIndexOutOfRange
 }
 
 // Saves the measurement ID to the session history
