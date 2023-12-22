@@ -11,7 +11,7 @@ import (
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last]",
+	Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.

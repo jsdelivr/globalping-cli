@@ -11,7 +11,7 @@ import (
 
 // tracerouteCmd represents the traceroute command
 var tracerouteCmd = &cobra.Command{
-	Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last]",
+	Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Run a traceroute test",
 	Long: `traceroute tracks the route packets take from an IP network on their way to a given host.

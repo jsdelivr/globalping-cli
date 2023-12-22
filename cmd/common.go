@@ -67,7 +67,7 @@ func mapToMeasurementID(location string) (string, error) {
 	if location == "first" {
 		return getMeasurementID(1)
 	}
-	if location == "last" {
+	if location == "last" || location == "previous" {
 		return getMeasurementID(-1)
 	}
 	return "", nil

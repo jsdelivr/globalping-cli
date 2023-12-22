@@ -100,7 +100,7 @@ Flags:
   -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
   -F, --from string   Comma-separated list of location values to match against or a measurement ID
                       For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-                      Or use [@1 | first, @2 ... @-2, @-1 | last] to run with the probes from previous measurements. (default "world")
+                      Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements. (default "world")
   -h, --help          help for globalping
   -J, --json          Output results in JSON format (default false)
       --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands
@@ -203,7 +203,7 @@ google.com.             300     IN      A       142.250.183.206
 
 #### Reselect probes
 
-You can select the same probes used in a previous measurement.
+You can select the same probes used in a previous measurement by passing the measurement ID to the `--from` flag.
 
 ```bash
 globalping dns google.com from rvasVvKnj48cxNjC
@@ -226,6 +226,54 @@ google.com.             300     IN      A       142.250.199.174
 ;; SERVER: x.x.x.x#53(x.x.x.x)
 ;; WHEN: Mon Dec 18 10:01:00 UTC 2023
 ;; MSG SIZE  rcvd: 55
+```
+
+#### Reselect probes from measurements in the current session
+
+Use `[@1 | first, @2 ... @-2, @-1 | last | previous]` to select the probes from previous measurements in the current session.
+
+```bash
+globalping ping google.com from USA  --latency
+> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+Min: 7.314 ms
+Max: 7.413 ms
+Avg: 7.359 ms
+
+globalping ping google.com from Germany  --latency
+> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+Min: 4.87 ms
+Max: 4.936 ms
+Avg: 4.911 ms
+
+globalping ping google.com from previous --latency
+> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+Min: 4.87 ms
+Max: 4.936 ms
+Avg: 4.911 ms
+
+globalping ping google.com from @-1 --latency
+> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+Min: 4.87 ms
+Max: 4.936 ms
+Avg: 4.911 ms
+
+globalping ping google.com from @-2 --latency
+> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+Min: 7.314 ms
+Max: 7.413 ms
+Avg: 7.359 ms
+
+globalping ping google.com from first --latency
+> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+Min: 7.314 ms
+Max: 7.413 ms
+Avg: 7.359 ms
+
+globalping ping google.com from @1 --latency
+> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+Min: 7.314 ms
+Max: 7.413 ms
+Avg: 7.359 ms
 ```
 
 #### Learn about available flags

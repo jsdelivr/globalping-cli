@@ -84,6 +84,11 @@ func testCreateLocationsSessionLastMeasurement(t *testing.T) {
 	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
+
+	locations, isPreviousMeasurementId, err = createLocations("previous")
+	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
+	assert.True(t, isPreviousMeasurementId)
+	assert.Nil(t, err)
 }
 
 func testCreateLocationsSessionFirstMeasurement(t *testing.T) {
