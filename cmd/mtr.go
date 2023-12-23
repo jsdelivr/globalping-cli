@@ -29,6 +29,9 @@ Examples:
   # MTR google.com using probes from last measurement in session
   mtr google.com from last
 
+  # MTR google.com using probes from second to last measurement in session
+  mtr google.com from @-2
+
   # MTR 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
   mtr 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 

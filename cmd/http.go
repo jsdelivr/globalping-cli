@@ -113,6 +113,9 @@ Examples:
   # HTTP GET request google.com using probes from last measurement in session
   http google.com from last --method get
 
+  # HTTP GET request google.com using probes from second to last measurement in session
+  http google.com from @-2 --method get
+
   # HTTP GET request to google.com from a probe in London. Returns the full output
   http google.com from London --method get --full
 

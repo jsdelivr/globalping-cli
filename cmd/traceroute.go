@@ -29,6 +29,9 @@ Examples:
   # Traceroute google.com using probes from last measurement in session
   traceroute google.com from last
 
+  # Traceroute google.com using probes from second to last measurement in session
+  traceroute google.com from @-2
+
   # Traceroute 1.1.1.1 from 2 probes from USA or Belgium in CI mode
   traceroute 1.1.1.1 from USA,Belgium --limit 2 --ci
 

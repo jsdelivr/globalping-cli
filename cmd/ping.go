@@ -29,6 +29,9 @@ Examples:
   # Ping google.com using probes from last measurement in session
   ping google.com from last
 
+  # Ping google.com using probes from second to last measurement in session
+  ping google.com from @-2
+
   # Ping 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
   ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 

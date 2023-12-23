@@ -35,6 +35,9 @@ Using the dig format @resolver. For example:
   # Resolve google.com using probes from last measurement in session
   dns google.com from last
 
+  # Resolve google.com using probes from second to last measurement in session
+  dns google.com from @-2
+
   # Resolve google.com from 2 probes from London or Belgium with trace enabled
   dns google.com from London,Belgium --limit 2 --trace
 
