@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -157,22 +158,29 @@ func getSessionPath() string {
 	if SESSION_PATH != "" {
 		return SESSION_PATH
 	}
-	ppId := os.Getppid()
-	pStartTime := getProcessStartTime(ppId)
-	SESSION_PATH = filepath.Join(os.TempDir(), fmt.Sprintf("globalping_%d_%d", ppId, pStartTime))
+	SESSION_PATH = filepath.Join(os.TempDir(), getSessionId())
 	return SESSION_PATH
 }
 
-func getProcessStartTime(id int) int64 {
-	process, err := process.NewProcess(int32(id))
+func getSessionId() string {
+	p, err := process.NewProcess(int32(os.Getppid()))
 	if err != nil {
-		return 0
+		return "globalping"
 	}
-	startTime, err := process.CreateTime()
-	if err != nil {
-		return 0
+	// Workaround for bash.exe on Windows
+	// PPID is different on each run.
+	// https://cygwin.com/git/gitweb.cgi?p=newlib-cygwin.git;a=commit;h=448cf5aa4b429d5a9cebf92a0da4ab4b5b6d23fe
+	if runtime.GOOS == "windows" {
+		name, _ := p.Name()
+		if name == "bash.exe" {
+			p, err = p.Parent()
+			if err != nil {
+				return "globalping"
+			}
+		}
 	}
-	return startTime
+	createTime, _ := p.CreateTime()
+	return fmt.Sprintf("globalping_%d_%d", p.Pid, createTime)
 }
 
 func getMeasurementsPath() string {
