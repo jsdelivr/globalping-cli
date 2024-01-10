@@ -12,6 +12,7 @@ import (
 
 	"github.com/icza/backscanner"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/shirou/gopsutil/process"
 )
 
 var (
@@ -19,6 +20,8 @@ var (
 	ErrInvalidIndex             = errors.New("invalid index")
 	ErrIndexOutOfRange          = errors.New("index out of range")
 )
+
+var SESSION_PATH string
 
 func inProgressUpdates(ci bool) bool {
 	return !(ci)
@@ -150,7 +153,25 @@ func saveMeasurementID(id string) error {
 }
 
 func getSessionPath() string {
-	return fmt.Sprintf("%s/globalping_%d", os.TempDir(), os.Getppid())
+	if SESSION_PATH != "" {
+		return SESSION_PATH
+	}
+	ppId := os.Getppid()
+	pStartTime := getProcessStartTime(ppId)
+	SESSION_PATH = fmt.Sprintf("%s/globalping_%d_%d", os.TempDir(), ppId, pStartTime)
+	return SESSION_PATH
+}
+
+func getProcessStartTime(id int) int64 {
+	process, err := process.NewProcess(int32(id))
+	if err != nil {
+		return 0
+	}
+	startTime, err := process.CreateTime()
+	if err != nil {
+		return 0
+	}
+	return startTime
 }
 
 func getMeasurementsPath() string {
