@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -158,7 +159,7 @@ func getSessionPath() string {
 	}
 	ppId := os.Getppid()
 	pStartTime := getProcessStartTime(ppId)
-	SESSION_PATH = fmt.Sprintf("%s/globalping_%d_%d", os.TempDir(), ppId, pStartTime)
+	SESSION_PATH = filepath.Join(os.TempDir(), fmt.Sprintf("globalping_%d_%d", ppId, pStartTime))
 	return SESSION_PATH
 }
 
@@ -175,5 +176,5 @@ func getProcessStartTime(id int) int64 {
 }
 
 func getMeasurementsPath() string {
-	return getSessionPath() + "/measurements"
+	return filepath.Join(getSessionPath(), "measurements")
 }
