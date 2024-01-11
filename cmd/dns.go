@@ -79,8 +79,7 @@ Using the dig format @resolver. For example:
 		isPreviousMeasurementId := false
 		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
 		if err != nil {
-			fmt.Println(err)
-			return nil
+			return err
 		}
 
 		res, showHelp, err := client.PostAPI(opts)

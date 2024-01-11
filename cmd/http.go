@@ -149,8 +149,7 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 	isPreviousMeasurementId := false
 	opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return err
 	}
 
 	res, showHelp, err := client.PostAPI(*opts)
