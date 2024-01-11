@@ -27,32 +27,32 @@ jobs:
       - name: Run tests
         run: go test ./... -v
       - name: Build
-        run: go build -o bin/globalping
+        run: go build -o bin/
       - name: Test windows cmd
         if: matrix.os == 'windows-latest'
         shell: cmd
         run: |
-          bin\globalping.exe ping cdn.jsdelivr.net
-          bin\globalping.exe ping cdn.jsdelivr.net from @-1
+          bin\globalping-cli.exe ping cdn.jsdelivr.net
+          bin\globalping-cli.exe ping cdn.jsdelivr.net from @-1
       - name: Test windows powershell
         if: matrix.os == 'windows-latest'
         shell: powershell
         run: |
-          bin\globalping.exe ping cdn.jsdelivr.net
-          bin\globalping.exe ping cdn.jsdelivr.net from '@-1'
+          bin\globalping-cli.exe ping cdn.jsdelivr.net
+          bin\globalping-cli.exe ping cdn.jsdelivr.net from '@-1'
       - name: Test windows bash
         if: matrix.os == 'windows-latest'
         shell: bash
         run: |
-          ./bin/globalping.exe ping cdn.jsdelivr.net
-          ./bin/globalping.exe ping cdn.jsdelivr.net from @-1
+          ./bin/globalping-cli.exe ping cdn.jsdelivr.net
+          ./bin/globalping-cli.exe ping cdn.jsdelivr.net from @-1
       - name: Test macOS
         if: matrix.os == 'macOS-latest'
         run: |
-          ./bin/globalping ping cdn.jsdelivr.net
-          ./bin/globalping ping cdn.jsdelivr.net from @-1
+          ./bin/globalping-cli ping cdn.jsdelivr.net
+          ./bin/globalping-cli ping cdn.jsdelivr.net from @-1
       - name: Test ubuntu
         if: matrix.os == 'ubuntu-latest'
         run: |
-          ./bin/globalping ping cdn.jsdelivr.net
-          ./bin/globalping ping cdn.jsdelivr.net from @-1
+          ./bin/globalping-cli ping cdn.jsdelivr.net
+          ./bin/globalping-cli ping cdn.jsdelivr.net from @-1
