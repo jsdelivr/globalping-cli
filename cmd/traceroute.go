@@ -68,6 +68,7 @@ Examples:
 		isPreviousMeasurementId := false
 		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
 		if err != nil {
+			cmd.SilenceUsage = true
 			return err
 		}
 
