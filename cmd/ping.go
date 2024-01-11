@@ -11,7 +11,7 @@ import (
 
 // pingCmd represents the ping command
 var pingCmd = &cobra.Command{
-	Use:     "ping [target] from [location | measurement ID]",
+	Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Run a ping test",
 	Long: `The ping command allows sending ping requests to a target. Often used to test the network latency and stability.
@@ -22,6 +22,15 @@ Examples:
 
   # Ping google.com using probes from previous measurement
   ping google.com from rvasVvKnj48cxNjC
+
+  # Ping google.com using probes from first measurement in session
+  ping google.com from @1
+
+  # Ping google.com using probes from last measurement in session
+  ping google.com from last
+
+  # Ping google.com using probes from second to last measurement in session
+  ping google.com from @-2
 
   # Ping 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
   ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
@@ -42,12 +51,17 @@ Examples:
 		opts = model.PostMeasurement{
 			Type:              "ping",
 			Target:            ctx.Target,
-			Locations:         createLocations(ctx.From),
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
 				Packets: packets,
 			},
+		}
+		isPreviousMeasurementId := false
+		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+		if err != nil {
+			cmd.SilenceUsage = true
+			return err
 		}
 
 		res, showHelp, err := client.PostAPI(opts)
@@ -57,6 +71,14 @@ Examples:
 			}
 			fmt.Println(err)
 			return nil
+		}
+
+		// Save measurement ID to history
+		if !isPreviousMeasurementId {
+			err := saveMeasurementID(res.ID)
+			if err != nil {
+				fmt.Printf("warning: %s\n", err)
+			}
 		}
 
 		view.OutputResults(res.ID, ctx, opts)

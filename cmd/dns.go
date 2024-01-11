@@ -11,7 +11,7 @@ import (
 
 // dnsCmd represents the dns command
 var dnsCmd = &cobra.Command{
-	Use:     "dns [target] from [location | measurement ID]",
+	Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Resolve a DNS record similarly to dig",
 	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
@@ -28,6 +28,15 @@ Using the dig format @resolver. For example:
 
   # Resolve google.com using probes from previous measurement
   dns google.com from rvasVvKnj48cxNjC
+
+  # Resolve google.com using probes from first measurement in session
+  dns google.com from @1
+
+  # Resolve google.com using probes from last measurement in session
+  dns google.com from last
+
+  # Resolve google.com using probes from second to last measurement in session
+  dns google.com from @-2
 
   # Resolve google.com from 2 probes from London or Belgium with trace enabled
   dns google.com from London,Belgium --limit 2 --trace
@@ -55,7 +64,6 @@ Using the dig format @resolver. For example:
 		opts = model.PostMeasurement{
 			Type:              "dns",
 			Target:            ctx.Target,
-			Locations:         createLocations(ctx.From),
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
@@ -68,6 +76,12 @@ Using the dig format @resolver. For example:
 				Trace: trace,
 			},
 		}
+		isPreviousMeasurementId := false
+		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+		if err != nil {
+			cmd.SilenceUsage = true
+			return err
+		}
 
 		res, showHelp, err := client.PostAPI(opts)
 		if err != nil {
@@ -76,6 +90,14 @@ Using the dig format @resolver. For example:
 			}
 			fmt.Println(err)
 			return nil
+		}
+
+		// Save measurement ID to history
+		if !isPreviousMeasurementId {
+			err := saveMeasurementID(res.ID)
+			if err != nil {
+				fmt.Printf("warning: %s\n", err)
+			}
 		}
 
 		view.OutputResults(res.ID, ctx, opts)

@@ -52,7 +52,7 @@ func findAndRemoveResolver(args []string) (string, []string) {
 	var resolver string
 	resolverIndex := -1
 	for i := 0; i < len(args); i++ {
-		if len(args[i]) > 0 && args[i][0] == '@' {
+		if len(args[i]) > 0 && args[i][0] == '@' && args[i-1] != "from" {
 			resolver = args[i][1:]
 			resolverIndex = i
 			break

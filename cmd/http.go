@@ -81,7 +81,7 @@ func overrideOptInt(orig, new int) int {
 
 // httpCmd represents the http command
 var httpCmd = &cobra.Command{
-	Use:     "http [target] from [location | measurement ID]",
+	Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Perform a HEAD or GET request to a host",
 	Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API. Detailed performance stats as available for every request.
@@ -106,6 +106,15 @@ Examples:
 
   # HTTP GET request google.com using probes from previous measurement
   http google.com from rvasVvKnj48cxNjC --method get
+
+  # HTTP GET request google.com using probes from first measurement in session
+  http google.com from @1 --method get
+
+  # HTTP GET request google.com using probes from last measurement in session
+  http google.com from last --method get
+
+  # HTTP GET request google.com using probes from second to last measurement in session
+  http google.com from @-2 --method get
 
   # HTTP GET request to google.com from a probe in London. Returns the full output
   http google.com from London --method get --full
@@ -133,13 +142,18 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	// build http measurement
-	m, err := buildHttpMeasurementRequest()
+	opts, err := buildHttpMeasurementRequest()
 	if err != nil {
 		return err
 	}
+	isPreviousMeasurementId := false
+	opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+	if err != nil {
+		cmd.SilenceUsage = true
+		return err
+	}
 
-	opts = m
-	res, showHelp, err := client.PostAPI(opts)
+	res, showHelp, err := client.PostAPI(*opts)
 	if err != nil {
 		if showHelp {
 			return err
@@ -148,39 +162,42 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	view.OutputResults(res.ID, ctx, m)
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveMeasurementID(res.ID)
+		if err != nil {
+			fmt.Printf("warning: %s\n", err)
+		}
+	}
+
+	view.OutputResults(res.ID, ctx, *opts)
 	return nil
 }
 
 const PostMeasurementTypeHttp = "http"
 
 // buildHttpMeasurementRequest builds the measurement request for the http type
-func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
-	m := model.PostMeasurement{
-		Type: PostMeasurementTypeHttp,
+func buildHttpMeasurementRequest() (*model.PostMeasurement, error) {
+	opts := &model.PostMeasurement{
+		Type:              PostMeasurementTypeHttp,
+		Limit:             ctx.Limit,
+		InProgressUpdates: inProgressUpdates(ctx.CI),
 	}
-
 	urlData, err := parseUrlData(ctx.Target)
 	if err != nil {
-		return m, err
+		return nil, err
 	}
-
 	headers, err := parseHttpHeaders(httpCmdOpts.Headers)
 	if err != nil {
-		return m, err
+		return nil, err
 	}
-
 	method := strings.ToUpper(httpCmdOpts.Method)
 	if ctx.Full {
 		// override method to GET
 		method = "GET"
 	}
-
-	m.Target = urlData.Host
-	m.Locations = createLocations(ctx.From)
-	m.Limit = ctx.Limit
-	m.InProgressUpdates = inProgressUpdates(ctx.CI)
-	m.Options = &model.MeasurementOptions{
+	opts.Target = urlData.Host
+	opts.Options = &model.MeasurementOptions{
 		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
 		Packets:  packets,
@@ -193,8 +210,7 @@ func buildHttpMeasurementRequest() (model.PostMeasurement, error) {
 		},
 		Resolver: overrideOpt(ctx.Resolver, httpCmdOpts.Resolver),
 	}
-
-	return m, nil
+	return opts, nil
 }
 
 func parseHttpHeaders(headerStrings []string) (map[string]string, error) {

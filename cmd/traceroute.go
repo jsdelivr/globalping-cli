@@ -11,7 +11,7 @@ import (
 
 // tracerouteCmd represents the traceroute command
 var tracerouteCmd = &cobra.Command{
-	Use:     "traceroute [target] from [location | measurement ID]",
+	Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 	GroupID: "Measurements",
 	Short:   "Run a traceroute test",
 	Long: `traceroute tracks the route packets take from an IP network on their way to a given host.
@@ -22,6 +22,15 @@ Examples:
 
   # Traceroute google.com using probes from previous measurement
   traceroute google.com from rvasVvKnj48cxNjC
+
+  # Traceroute google.com using probes from first measurement in session
+  traceroute google.com from @1
+
+  # Traceroute google.com using probes from last measurement in session
+  traceroute google.com from last
+
+  # Traceroute google.com using probes from second to last measurement in session
+  traceroute google.com from @-2
 
   # Traceroute 1.1.1.1 from 2 probes from USA or Belgium in CI mode
   traceroute 1.1.1.1 from USA,Belgium --limit 2 --ci
@@ -49,13 +58,18 @@ Examples:
 		opts = model.PostMeasurement{
 			Type:              "traceroute",
 			Target:            ctx.Target,
-			Locations:         createLocations(ctx.From),
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
 			},
+		}
+		isPreviousMeasurementId := false
+		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+		if err != nil {
+			cmd.SilenceUsage = true
+			return err
 		}
 
 		res, showHelp, err := client.PostAPI(opts)
@@ -65,6 +79,14 @@ Examples:
 			}
 			fmt.Println(err)
 			return nil
+		}
+
+		// Save measurement ID to history
+		if !isPreviousMeasurementId {
+			err := saveMeasurementID(res.ID)
+			if err != nil {
+				fmt.Printf("warning: %s\n", err)
+			}
 		}
 
 		view.OutputResults(res.ID, ctx, opts)

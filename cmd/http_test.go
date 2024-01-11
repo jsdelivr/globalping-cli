@@ -92,9 +92,8 @@ func TestBuildHttpMeasurementRequest_FULL(t *testing.T) {
 	m, err := buildHttpMeasurementRequest()
 	assert.NoError(t, err)
 
-	expectedM := model.PostMeasurement{Limit: 0,
-		Locations: []model.Locations{
-			{Magic: "london"}},
+	expectedM := &model.PostMeasurement{
+		Limit:             0,
 		Type:              "http",
 		Target:            "example.com",
 		InProgressUpdates: true,
@@ -130,9 +129,8 @@ func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	m, err := buildHttpMeasurementRequest()
 	assert.NoError(t, err)
 
-	expectedM := model.PostMeasurement{Limit: 0,
-		Locations: []model.Locations{
-			{Magic: "london"}},
+	expectedM := &model.PostMeasurement{
+		Limit:             0,
 		Type:              "http",
 		Target:            "example.com",
 		InProgressUpdates: true,
