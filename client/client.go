@@ -19,13 +19,13 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	// Format post data
 	postData, err := json.Marshal(measurement)
 	if err != nil {
-		return model.PostResponse{}, false, errors.New("err: failed to marshal post data - please report this bug")
+		return model.PostResponse{}, false, errors.New("failed to marshal post data - please report this bug")
 	}
 
 	// Create a new request
 	req, err := http.NewRequest("POST", ApiUrl, bytes.NewBuffer(postData))
 	if err != nil {
-		return model.PostResponse{}, false, errors.New("err: failed to create request - please report this bug")
+		return model.PostResponse{}, false, errors.New("failed to create request - please report this bug")
 	}
 	req.Header.Set("User-Agent", userAgent())
 	req.Header.Set("Accept-Encoding", "br")
@@ -35,7 +35,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return model.PostResponse{}, false, errors.New("err: request failed - please try again later")
+		return model.PostResponse{}, false, errors.New("request failed - please try again later")
 	}
 	defer resp.Body.Close()
 
@@ -46,7 +46,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 
 		err = json.NewDecoder(resp.Body).Decode(&data)
 		if err != nil {
-			return model.PostResponse{}, false, errors.New("err: invalid error format returned - please report this bug")
+			return model.PostResponse{}, false, errors.New("invalid error format returned - please report this bug")
 		}
 
 		// 422 error
@@ -56,19 +56,20 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 
 		// 400 error
 		if data.Error.Type == "validation_error" {
+			resErr := ""
 			for _, v := range data.Error.Params {
-				fmt.Printf("err: %s\n", v)
+				resErr += fmt.Sprintf(" - %s\n", v)
 			}
-			return model.PostResponse{}, true, errors.New("invalid parameters - please check the help for more information")
+			return model.PostResponse{}, true, fmt.Errorf("invalid parameters\n%sPlease check the help for more information", resErr)
 		}
 
 		// 500 error
 		if data.Error.Type == "api_error" {
-			return model.PostResponse{}, false, errors.New("err: internal server error - please try again later")
+			return model.PostResponse{}, false, errors.New("internal server error - please try again later")
 		}
 
 		// If the error type is unknown
-		return model.PostResponse{}, false, fmt.Errorf("err: unknown error response: %s", data.Error.Type)
+		return model.PostResponse{}, false, fmt.Errorf("unknown error response: %s", data.Error.Type)
 	}
 
 	// Read the response body
@@ -81,8 +82,7 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	var data model.PostResponse
 	err = json.NewDecoder(bodyReader).Decode(&data)
 	if err != nil {
-		fmt.Println(err)
-		return model.PostResponse{}, false, errors.New("err: invalid post measurement format returned - please report this bug")
+		return model.PostResponse{}, false, fmt.Errorf("invalid post measurement format returned - please report this bug: %s", err)
 	}
 
 	return data, false, nil

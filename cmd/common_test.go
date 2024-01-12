@@ -74,7 +74,7 @@ func testLocationsMultipleWhitespace(t *testing.T) {
 }
 
 func testCreateLocationsSessionLastMeasurement(t *testing.T) {
-	saveMeasurementID(measurementID1)
+	_ = saveMeasurementID(measurementID1)
 	locations, isPreviousMeasurementId, err := createLocations("@1")
 	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
@@ -92,8 +92,8 @@ func testCreateLocationsSessionLastMeasurement(t *testing.T) {
 }
 
 func testCreateLocationsSessionFirstMeasurement(t *testing.T) {
-	saveMeasurementID(measurementID1)
-	saveMeasurementID(measurementID2)
+	_ = saveMeasurementID(measurementID1)
+	_ = saveMeasurementID(measurementID2)
 	locations, isPreviousMeasurementId, err := createLocations("@-1")
 	assert.Equal(t, []model.Locations{{Magic: measurementID2}}, locations)
 	assert.True(t, isPreviousMeasurementId)
@@ -106,10 +106,10 @@ func testCreateLocationsSessionFirstMeasurement(t *testing.T) {
 }
 
 func testCreateLocationsSessionMeasurementAtIndex(t *testing.T) {
-	saveMeasurementID(measurementID1)
-	saveMeasurementID(measurementID2)
-	saveMeasurementID(measurementID3)
-	saveMeasurementID(measurementID4)
+	_ = saveMeasurementID(measurementID1)
+	_ = saveMeasurementID(measurementID2)
+	_ = saveMeasurementID(measurementID3)
+	_ = saveMeasurementID(measurementID4)
 	locations, isPreviousMeasurementId, err := createLocations("@2")
 	assert.Equal(t, []model.Locations{{Magic: measurementID2}}, locations)
 	assert.True(t, isPreviousMeasurementId)
@@ -149,7 +149,7 @@ func testCreateLocationsSessionInvalidIndex(t *testing.T) {
 	assert.False(t, isPreviousMeasurementId)
 	assert.Equal(t, ErrInvalidIndex, err)
 
-	saveMeasurementID(measurementID1)
+	_ = saveMeasurementID(measurementID1)
 	locations, isPreviousMeasurementId, err = createLocations("@2")
 	assert.Nil(t, locations)
 	assert.False(t, isPreviousMeasurementId)
@@ -180,7 +180,7 @@ func TestSaveMeasurementID(t *testing.T) {
 }
 
 func testSaveMeasurementIDNewSession(t *testing.T) {
-	saveMeasurementID(measurementID1)
+	_ = saveMeasurementID(measurementID1)
 	assert.FileExists(t, getMeasurementsPath())
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
@@ -197,7 +197,7 @@ func testSaveMeasurementIDExistingSession(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create measurements file: %s", err)
 	}
-	saveMeasurementID(measurementID2)
+	_ = saveMeasurementID(measurementID2)
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
 	expected := []byte(measurementID1 + "\n" + measurementID2 + "\n")

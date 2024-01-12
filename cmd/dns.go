@@ -85,18 +85,17 @@ Using the dig format @resolver. For example:
 
 		res, showHelp, err := client.PostAPI(opts)
 		if err != nil {
-			if showHelp {
-				return err
+			if !showHelp {
+				cmd.SilenceUsage = true
 			}
-			fmt.Println(err)
-			return nil
+			return err
 		}
 
 		// Save measurement ID to history
 		if !isPreviousMeasurementId {
 			err := saveMeasurementID(res.ID)
 			if err != nil {
-				fmt.Printf("warning: %s\n", err)
+				fmt.Printf("Warning: %s\n", err)
 			}
 		}
 
