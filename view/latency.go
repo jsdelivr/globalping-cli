@@ -52,6 +52,7 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 	if ctx.Share {
 		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
 	}
+	fmt.Println()
 }
 
 func latencyStatHeader(title string, ci bool) string {

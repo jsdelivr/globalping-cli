@@ -13,6 +13,7 @@ import (
 )
 
 var ApiUrl = "https://api.globalping.io/v1/measurements"
+var PacketsMax = 16
 
 // Post measurement to Globalping API - boolean indicates whether to print CLI help on error
 func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error) {

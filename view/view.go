@@ -174,6 +174,7 @@ func OutputJson(id string, fetcher client.MeasurementsFetcher, ctx model.Context
 	if ctx.Share {
 		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
 	}
+	fmt.Println()
 }
 
 // Prints non-json non-latency results to the screen

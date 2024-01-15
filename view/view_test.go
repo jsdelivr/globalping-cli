@@ -538,5 +538,5 @@ func TestOutputJson(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "{\"fake\": \"results\"}\n", string(outContent))
+	assert.Equal(t, "{\"fake\": \"results\"}\n\n", string(outContent))
 }

@@ -84,7 +84,7 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\nMin: 9 ms\nMax: 22 ms\nAvg: 15 ms\n", string(outContent))
+	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\nMin: 9 ms\nMax: 22 ms\nAvg: 15 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_Ping_CI(t *testing.T) {
@@ -145,7 +145,7 @@ func TestOutputLatency_Ping_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n", string(outContent))
+	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_DNS_Not_CI(t *testing.T) {
@@ -201,7 +201,7 @@ func TestOutputLatency_DNS_Not_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_DNS_CI(t *testing.T) {
@@ -258,7 +258,7 @@ func TestOutputLatency_DNS_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_Http_Not_CI(t *testing.T) {
@@ -314,7 +314,7 @@ func TestOutputLatency_Http_Not_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_Http_CI(t *testing.T) {
@@ -371,5 +371,5 @@ func TestOutputLatency_Http_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n", string(outContent))
+	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n\n", string(outContent))
 }

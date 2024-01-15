@@ -39,50 +39,65 @@ Examples:
   ping jsdelivr.com from aws+montreal --latency
 
   # Ping jsdelivr.com from a probe in ASN 123 with json output
-  ping jsdelivr.com from 123 --json`,
+  ping jsdelivr.com from 123 --json
+  
+  # Continuously ping google.com from New York
+  ping google.com from New York --infinite`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Create context
 		err := createContext(cmd.CalledAs(), args)
 		if err != nil {
 			return err
 		}
-
-		// Make post struct
-		opts = model.PostMeasurement{
-			Type:              "ping",
-			Target:            ctx.Target,
-			Limit:             ctx.Limit,
-			InProgressUpdates: inProgressUpdates(ctx.CI),
-			Options: &model.MeasurementOptions{
-				Packets: packets,
-			},
-		}
-		isPreviousMeasurementId := false
-		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
-		if err != nil {
-			cmd.SilenceUsage = true
-			return err
-		}
-
-		res, showHelp, err := client.PostAPI(opts)
-		if err != nil {
-			if !showHelp {
-				cmd.SilenceUsage = true
-			}
-			return err
-		}
-
-		// Save measurement ID to history
-		if !isPreviousMeasurementId {
-			err := saveMeasurementID(res.ID)
-			if err != nil {
-				fmt.Printf("Warning: %s\n", err)
+		if infinite {
+			packets = client.PacketsMax
+			for {
+				ctx.From, err = ping(cmd)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
-		view.OutputResults(res.ID, ctx, opts)
-		return nil
+		_, err = ping(cmd)
+		return err
 	},
+}
+
+func ping(cmd *cobra.Command) (string, error) {
+	opts = model.PostMeasurement{
+		Type:              "ping",
+		Target:            ctx.Target,
+		Limit:             ctx.Limit,
+		InProgressUpdates: inProgressUpdates(ctx.CI),
+		Options: &model.MeasurementOptions{
+			Packets: packets,
+		},
+	}
+	locations, isPreviousMeasurementId, err := createLocations(ctx.From)
+	if err != nil {
+		cmd.SilenceUsage = true
+		return "", err
+	}
+	opts.Locations = locations
+
+	res, showHelp, err := client.PostAPI(opts)
+	if err != nil {
+		if !showHelp {
+			cmd.SilenceUsage = true
+		}
+		return "", err
+	}
+
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveMeasurementID(res.ID)
+		if err != nil {
+			fmt.Printf("Warning: %s\n", err)
+		}
+	}
+
+	view.OutputResults(res.ID, ctx, opts)
+	return res.ID, nil
 }
 
 func init() {
@@ -90,4 +105,5 @@ func init() {
 
 	// ping specific flags
 	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+	pingCmd.Flags().BoolVar(&infinite, "infinite", false, "Continuously send ping request to a target (default false)")
 }

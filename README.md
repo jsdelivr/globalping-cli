@@ -276,6 +276,15 @@ Max: 7.413 ms
 Avg: 7.359 ms
 ```
 
+#### Continuously ping
+
+Use the `--infinite` flag to continuously ping a host.
+
+```bash
+globalping ping google.com from USA --infinite
+...
+```
+
 #### Learn about available flags
 
 Most commands have shared and unique flags. We recommend that you familiarize yourself with these so that you can run and automate your network tests in powerful ways.
