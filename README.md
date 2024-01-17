@@ -276,13 +276,35 @@ Max: 7.413 ms
 Avg: 7.359 ms
 ```
 
-#### Continuously ping
+#### Continuous non-stop measurements
 
-Use the `--infinite` flag to continuously ping a host.
+> [!IMPORTANT]
+> Currently this feature is limited to the ping command
+
+You can use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS.
+Note that while it looks like a single measurement, in actuality its multiple measurements from the same probes combined into a single output.
+This means that eventually you will run out of credits and the test will stop.
 
 ```bash
-globalping ping google.com from USA --infinite
-...
+globalping ping cdn.jsdelivr.net from Europe --infinite
+> EU, SE, Stockholm, ASN:42708, GleSYS AB
+PING cdn.jsdelivr.net (151.101.1.229)
+151.101.1.229: icmp_seq=1 ttl=59 time=0.85 ms
+151.101.1.229: icmp_seq=2 ttl=59 time=5.86 ms
+^C
+```
+
+If you select multiple probes when using `--infinite` the output will change to a summary comparison table.
+
+```bash
+globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite 
+Location                                             | Loss  | Sent | Last    | Avg      | Min     | Max
+EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH  | 0.00% | 21   | 5.43 ms | 5.71 ms  | 5.30 ms | 11.98 ms
+EU, NL, Rotterdam, ASN:210630, IncogNET LLC          | 0.00% | 21   | 1.76 ms | 1.81 ms  | 1.76 ms | 1.96 ms
+EU, LU, Luxembourg, ASN:53667, FranTech Solutions    | 0.00% | 21   | 5.14 ms | 13.03 ms | 4.80 ms | 75.71 ms
+EU, ES, Madrid, ASN:20473, The Constant Company, LLC | 0.00% | 21   | 0.67 ms | 0.73 ms  | 0.59 ms | 1.08 ms
+EU, DE, Frankfurt, ASN:16276, OVH SAS                | 0.00% | 21   | 1.47 ms | 1.43 ms  | 1.35 ms | 1.51 ms
+^C
 ```
 
 #### Learn about available flags
