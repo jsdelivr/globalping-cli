@@ -89,20 +89,38 @@ func PostAPI(measurement model.PostMeasurement) (model.PostResponse, bool, error
 	return data, false, nil
 }
 
-func DecodeTimings(cmd string, timings json.RawMessage) (model.Timings, error) {
-	var data model.Timings
-
-	if cmd == "ping" {
-		err := json.Unmarshal(timings, &data.Arr)
-		if err != nil {
-			return model.Timings{}, errors.New("invalid timings format returned (ping)")
-		}
-	} else {
-		err := json.Unmarshal(timings, &data.Interface)
-		if err != nil {
-			return model.Timings{}, errors.New("invalid timings format returned (other)")
-		}
+func DecodeDNSTimings(timings json.RawMessage) (*model.DNSTimings, error) {
+	t := &model.DNSTimings{}
+	err := json.Unmarshal(timings, t)
+	if err != nil {
+		return nil, errors.New("invalid timings format returned (other)")
 	}
+	return t, nil
+}
 
-	return data, nil
+func DecodeHTTPTimings(timings json.RawMessage) (*model.HTTPTimings, error) {
+	t := &model.HTTPTimings{}
+	err := json.Unmarshal(timings, t)
+	if err != nil {
+		return nil, errors.New("invalid timings format returned (other)")
+	}
+	return t, nil
+}
+
+func DecodePingTimings(timings json.RawMessage) ([]model.PingTiming, error) {
+	t := []model.PingTiming{}
+	err := json.Unmarshal(timings, &t)
+	if err != nil {
+		return nil, errors.New("invalid timings format returned (ping)")
+	}
+	return t, nil
+}
+
+func DecodePingStats(stats json.RawMessage) (*model.PingStats, error) {
+	s := &model.PingStats{}
+	err := json.Unmarshal(stats, s)
+	if err != nil {
+		return nil, errors.New("invalid stats format returned")
+	}
+	return s, nil
 }

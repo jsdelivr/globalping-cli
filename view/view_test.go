@@ -31,17 +31,17 @@ var (
 )
 
 func TestHeadersBase(t *testing.T) {
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateHeader(testResult, testContext))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateHeader(&testResult, !testContext.CI))
 }
 
 func TestHeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
 
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateHeader(newResult, testContext))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateHeader(&newResult, !testContext.CI))
 
 	newResult.Probe.Tags = []string{"tag", "tag2"}
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateHeader(newResult, testContext))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateHeader(&newResult, !testContext.CI))
 }
 
 func TestPrintStandardResultsHTTPGet(t *testing.T) {

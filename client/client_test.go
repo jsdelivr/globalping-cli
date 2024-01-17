@@ -239,13 +239,15 @@ func testGetPing(t *testing.T) {
 
 	assert.Equal(t, "PING", res.Results[0].Result.RawOutput)
 	assert.Equal(t, "1.1.1.1", res.Results[0].Result.ResolvedAddress)
-	assert.Equal(t, 27.088, res.Results[0].Result.Stats["avg"])
-	assert.Equal(t, 28.193, res.Results[0].Result.Stats["max"])
-	assert.Equal(t, 24.891, res.Results[0].Result.Stats["min"])
-	assert.Equal(t, float64(3), res.Results[0].Result.Stats["total"])
-	assert.Equal(t, float64(3), res.Results[0].Result.Stats["rcv"])
-	assert.Equal(t, float64(0), res.Results[0].Result.Stats["loss"])
-	assert.Equal(t, float64(0), res.Results[0].Result.Stats["drop"])
+	stats, err := client.DecodePingStats(res.Results[0].Result.StatsRaw)
+	assert.NoError(t, err)
+	assert.Equal(t, float64(27.088), stats.Avg)
+	assert.Equal(t, float64(28.193), stats.Max)
+	assert.Equal(t, float64(24.891), stats.Min)
+	assert.Equal(t, 3, stats.Total)
+	assert.Equal(t, 3, stats.Rcv)
+	assert.Equal(t, 0, stats.Drop)
+	assert.Equal(t, float64(0), stats.Loss)
 }
 
 func testGetTraceroute(t *testing.T) {
@@ -415,9 +417,8 @@ func testGetDns(t *testing.T) {
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings
-	timings, _ := client.DecodeTimings("dns", res.Results[0].Result.TimingsRaw)
-	assert.Equal(t, float64(15), timings.Interface["total"])
-	assert.Nil(t, timings.Arr)
+	timings, _ := client.DecodeDNSTimings(res.Results[0].Result.TimingsRaw)
+	assert.Equal(t, float64(15), timings.Total)
 }
 
 func testGetMtr(t *testing.T) {
@@ -647,12 +648,11 @@ func testGetHttp(t *testing.T) {
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings
-	timings, _ := client.DecodeTimings("dns", res.Results[0].Result.TimingsRaw)
-	assert.Nil(t, timings.Arr)
-	assert.Equal(t, float64(583), timings.Interface["total"])
-	assert.Equal(t, float64(18), timings.Interface["download"])
-	assert.Equal(t, float64(450), timings.Interface["firstByte"])
-	assert.Equal(t, float64(24), timings.Interface["dns"])
-	assert.Equal(t, float64(70), timings.Interface["tls"])
-	assert.Equal(t, float64(19), timings.Interface["tcp"])
+	timings, _ := client.DecodeHTTPTimings(res.Results[0].Result.TimingsRaw)
+	assert.Equal(t, 583, timings.Total)
+	assert.Equal(t, 18, timings.Download)
+	assert.Equal(t, 450, timings.FirstByte)
+	assert.Equal(t, 24, timings.DNS)
+	assert.Equal(t, 70, timings.TLS)
+	assert.Equal(t, 19, timings.TCP)
 }

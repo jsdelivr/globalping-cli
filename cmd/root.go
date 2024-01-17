@@ -20,7 +20,6 @@ var (
 	resolver  string
 	trace     bool
 	queryType string
-	infinite  bool
 
 	httpCmdOpts *HttpCmdOpts
 

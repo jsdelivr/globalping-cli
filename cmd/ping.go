@@ -48,8 +48,8 @@ Examples:
 		if err != nil {
 			return err
 		}
-		if infinite {
-			packets = client.PacketsMax
+		if ctx.Infinite {
+			ctx.Packets = 1 // We sent only one packet first and overwrite it later based on the view type
 			for {
 				ctx.From, err = ping(cmd)
 				if err != nil {
@@ -57,7 +57,6 @@ Examples:
 				}
 			}
 		}
-
 		_, err = ping(cmd)
 		return err
 	},
@@ -70,7 +69,7 @@ func ping(cmd *cobra.Command) (string, error) {
 		Limit:             ctx.Limit,
 		InProgressUpdates: inProgressUpdates(ctx.CI),
 		Options: &model.MeasurementOptions{
-			Packets: packets,
+			Packets: ctx.Packets,
 		},
 	}
 	locations, isPreviousMeasurementId, err := createLocations(ctx.From)
@@ -96,14 +95,18 @@ func ping(cmd *cobra.Command) (string, error) {
 		}
 	}
 
-	view.OutputResults(res.ID, ctx, opts)
-	return res.ID, nil
+	if ctx.Infinite {
+		err = view.OutputInfinite(res.ID, &ctx)
+	} else {
+		view.OutputResults(res.ID, ctx, opts)
+	}
+	return res.ID, err
 }
 
 func init() {
 	rootCmd.AddCommand(pingCmd)
 
 	// ping specific flags
-	pingCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	pingCmd.Flags().BoolVar(&infinite, "infinite", false, "Continuously send ping request to a target (default false)")
+	pingCmd.Flags().IntVar(&ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+	pingCmd.Flags().BoolVar(&ctx.Infinite, "infinite", false, "Continuously send ping request to a target (default false)")
 }

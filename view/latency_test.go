@@ -1,6 +1,7 @@
 package view
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"testing"
@@ -43,11 +44,7 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 					Tags:      []string{"tag-1"},
 				},
 				Result: model.ResultData{
-					Stats: map[string]interface{}{
-						"min": 8,
-						"avg": 12,
-						"max": 20,
-					},
+					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
 			{
@@ -61,11 +58,7 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 					Tags:      []string{"tag B"},
 				},
 				Result: model.ResultData{
-					Stats: map[string]interface{}{
-						"min": 9,
-						"avg": 15,
-						"max": 22,
-					},
+					StatsRaw: json.RawMessage(`{"min":9,"avg":15,"max":22}`),
 				},
 			},
 		},
@@ -84,7 +77,7 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\nMin: 9 ms\nMax: 22 ms\nAvg: 15 ms\n\n", string(outContent))
+	assert.Equal(t, "Min: 8.00 ms\nMax: 20.00 ms\nAvg: 12.00 ms\n\nMin: 9.00 ms\nMax: 22.00 ms\nAvg: 15.00 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_Ping_CI(t *testing.T) {
@@ -121,11 +114,7 @@ func TestOutputLatency_Ping_CI(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: model.ResultData{
-					Stats: map[string]interface{}{
-						"min": 8,
-						"avg": 12,
-						"max": 20,
-					},
+					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
 		},
@@ -145,7 +134,7 @@ func TestOutputLatency_Ping_CI(t *testing.T) {
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8 ms\nMax: 20 ms\nAvg: 12 ms\n\n", string(outContent))
+	assert.Equal(t, "Min: 8.00 ms\nMax: 20.00 ms\nAvg: 12.00 ms\n\n", string(outContent))
 }
 
 func TestOutputLatency_DNS_Not_CI(t *testing.T) {

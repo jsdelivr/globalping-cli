@@ -1,7 +1,9 @@
 package view
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -23,6 +25,8 @@ var (
 
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
+
+var apiPollInterval = 500 * time.Millisecond
 
 // Used to trim the output to fit the terminal in live view
 func trimOutput(output string, terminalW, terminalH int) string {
@@ -59,15 +63,11 @@ func trimOutput(output string, terminalW, terminalH int) string {
 }
 
 // Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
-func generateHeader(result model.MeasurementResponse, ctx model.Context) string {
+func generateHeader(result *model.MeasurementResponse, useStyling bool) string {
 	var output strings.Builder
 
 	// Continent + Country + (State) + City + ASN + Network + (Region Tag)
-	output.WriteString(result.Probe.Continent + ", " + result.Probe.Country + ", ")
-	if result.Probe.State != "" {
-		output.WriteString("(" + result.Probe.State + "), ")
-	}
-	output.WriteString(result.Probe.City + ", ASN:" + fmt.Sprint(result.Probe.ASN) + ", " + result.Probe.Network)
+	output.WriteString(getLocationText(result))
 
 	// Check tags to see if there's a region code
 	if len(result.Probe.Tags) > 0 {
@@ -80,19 +80,16 @@ func generateHeader(result model.MeasurementResponse, ctx model.Context) string 
 		}
 	}
 
-	headerWithFormat := formatWithLeadingArrow(ctx, output.String())
+	headerWithFormat := formatWithLeadingArrow(output.String(), useStyling)
 	return headerWithFormat
 }
 
-func formatWithLeadingArrow(ctx model.Context, text string) string {
-	if ctx.CI {
-		return "> " + text
-	} else {
+func formatWithLeadingArrow(text string, useStyling bool) string {
+	if useStyling {
 		return terminalLayoutArrow + terminalLayoutHighlight.Render(text)
 	}
+	return "> " + text
 }
-
-var apiPollInterval = 500 * time.Millisecond
 
 func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
 	var err error
@@ -137,9 +134,10 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 		output.Reset()
 
 		// Output every result in case of multiple probes
-		for _, result := range data.Results {
+		for i := range data.Results {
+			result := &data.Results[i]
 			// Output slightly different format if state is available
-			output.WriteString(generateHeader(result, ctx) + "\n")
+			output.WriteString(generateHeader(result, !ctx.CI) + "\n")
 
 			if isBodyOnlyHttpGet(ctx, m) {
 				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
@@ -162,7 +160,133 @@ func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 	}
 }
 
+func OutputInfinite(id string, ctx *model.Context) error {
+	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+	res, err := fetcher.GetMeasurement(id)
+	if err != nil {
+		return err
+	}
+	// Probe may not have started yet
+	for len(res.Results) == 0 {
+		time.Sleep(apiPollInterval)
+		res, err = fetcher.GetMeasurement(id)
+		if err != nil {
+			return err
+		}
+	}
+	// Wait for results to be complete
+	for res.Status == "in-progress" {
+		time.Sleep(apiPollInterval)
+		res, err = fetcher.GetMeasurement(res.ID)
+		if err != nil {
+			return err
+		}
+	}
+	if ctx.Latency {
+		OutputLatency(id, res, *ctx)
+		return nil
+	}
+
+	if ctx.JsonOutput {
+		OutputJson(id, fetcher, *ctx)
+		return nil
+	}
+
+	// One location view
+	if len(res.Results) == 1 {
+		if len(ctx.Stats) == 0 {
+			// Initialize state
+			ctx.Stats = []model.MeasurementStats{
+				{
+					Sent: ctx.Packets,
+				},
+			}
+			ctx.Packets = client.PacketsMax
+			// Print header
+			fmt.Println(generateHeader(&res.Results[0], !ctx.CI))
+			fmt.Printf("PING %s (%s)\n", res.Target, res.Results[0].Result.ResolvedAddress)
+		}
+		timings, err := client.DecodePingTimings(res.Results[0].Result.TimingsRaw)
+		if err != nil {
+			return err
+		}
+		for i := range timings {
+			ctx.Stats[0].Sent++
+			t := timings[i]
+			fmt.Printf("%s: icmp_seq=%d ttl=%d time=%.2f ms\n",
+				res.Results[0].Result.ResolvedAddress,
+				ctx.Stats[0].Sent,
+				t.TTL,
+				t.RTT)
+		}
+		return nil
+	}
+
+	// Multiple location view
+	if len(ctx.Stats) == 0 {
+		// Initialize state
+		ctx.Stats = make([]model.MeasurementStats, len(res.Results))
+		for i := range ctx.Stats {
+			ctx.Stats[i].Min = math.MaxFloat64
+		}
+		// Create new writer
+		ctx.Area, err = pterm.DefaultArea.Start()
+		if err != nil {
+			return errors.New("failed to start writer: " + err.Error())
+		}
+	}
+	tableData := pterm.TableData{
+		{"Location", "Loss", "Sent", "Last", "Avg", "Min", "Max"},
+	}
+	for i := range res.Results {
+		result := &res.Results[i]
+		localStats := &ctx.Stats[i]
+		updateMeasurementStats(localStats, result)
+		tableData = append(tableData, []string{
+			getLocationText(result),
+			fmt.Sprintf("%.2f", localStats.Loss) + "%",
+			fmt.Sprintf("%d", localStats.Sent),
+			fmt.Sprintf("%.2f ms", localStats.Last),
+			fmt.Sprintf("%.2f ms", localStats.Avg),
+			fmt.Sprintf("%.2f ms", localStats.Min),
+			fmt.Sprintf("%.2f ms", localStats.Max),
+		})
+	}
+	t, err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Srender()
+	if err != nil {
+		return err
+	}
+	ctx.Area.Update(t)
+	return err
+}
+
+func updateMeasurementStats(localStats *model.MeasurementStats, result *model.MeasurementResponse) error {
+	stats, err := client.DecodePingStats(result.Result.StatsRaw)
+	if err != nil {
+		return err
+	}
+	timings, err := client.DecodePingTimings(result.Result.TimingsRaw)
+	if err != nil {
+		return err
+	}
+	localStats.Lost += stats.Drop
+	if stats.Min < localStats.Min {
+		localStats.Min = stats.Min
+	}
+	if stats.Max > localStats.Max {
+		localStats.Max = stats.Max
+	}
+	localStats.Avg = (localStats.Avg*float64(localStats.Sent) + stats.Avg*float64(stats.Total)) / float64(localStats.Sent+stats.Total)
+	localStats.Sent += stats.Total
+	if len(timings) != 0 {
+		localStats.Last = timings[len(timings)-1].RTT
+	}
+	localStats.Loss = float64(localStats.Lost) / float64(localStats.Sent) * 100
+	return nil
+}
+
 // If json flag is used, only output json
+// TODO: Return errors instead of printing them
 func OutputJson(id string, fetcher client.MeasurementsFetcher, ctx model.Context) {
 	output, err := fetcher.GetRawMeasurement(id)
 	if err != nil {
@@ -172,21 +296,22 @@ func OutputJson(id string, fetcher client.MeasurementsFetcher, ctx model.Context
 	fmt.Println(string(output))
 
 	if ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
 	}
 	fmt.Println()
 }
 
 // Prints non-json non-latency results to the screen
 func PrintStandardResults(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
-	for i, result := range data.Results {
+	for i := range data.Results {
+		result := &data.Results[i]
 		if i > 0 {
 			// new line as separator if more than 1 result
 			fmt.Println()
 		}
 
 		// Output slightly different format if state is available
-		fmt.Fprintln(os.Stderr, generateHeader(result, ctx))
+		fmt.Fprintln(os.Stderr, generateHeader(result, !ctx.CI))
 
 		if isBodyOnlyHttpGet(ctx, m) {
 			fmt.Println(strings.TrimSpace(result.Result.RawBody))
@@ -196,7 +321,7 @@ func PrintStandardResults(id string, data *model.GetMeasurement, ctx model.Conte
 	}
 
 	if ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(ctx, shareMessage(id)))
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
 	}
 }
 
@@ -204,6 +329,7 @@ func isBodyOnlyHttpGet(ctx model.Context, m model.PostMeasurement) bool {
 	return ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !ctx.Full
 }
 
+// TODO: Return errors instead of printing them
 func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 
@@ -213,7 +339,6 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 		fmt.Println(err)
 		return
 	}
-
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
 		time.Sleep(apiPollInterval)
@@ -258,4 +383,16 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
 
 func shareMessage(id string) string {
 	return fmt.Sprintf("View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
+}
+
+func getLocationText(m *model.MeasurementResponse) string {
+	state := ""
+	if m.Probe.State != "" {
+		state = "(" + m.Probe.State + "), "
+	}
+	return m.Probe.Continent +
+		", " + m.Probe.Country +
+		", " + state + m.Probe.City +
+		", ASN:" + fmt.Sprint(m.Probe.ASN) +
+		", " + m.Probe.Network
 }
