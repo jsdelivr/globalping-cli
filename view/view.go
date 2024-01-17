@@ -196,11 +196,7 @@ func OutputInfinite(id string, ctx *model.Context) error {
 	if len(res.Results) == 1 {
 		if len(ctx.Stats) == 0 {
 			// Initialize state
-			ctx.Stats = []model.MeasurementStats{
-				{
-					Sent: ctx.Packets,
-				},
-			}
+			ctx.Stats = make([]model.MeasurementStats, 1)
 			ctx.Packets = client.PacketsMax
 			// Print header
 			fmt.Println(generateHeader(&res.Results[0], !ctx.CI))
