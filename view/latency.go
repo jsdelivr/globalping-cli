@@ -1,6 +1,7 @@
 package view
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,9 +9,8 @@ import (
 	"github.com/jsdelivr/globalping-cli/model"
 )
 
-// Output latency values
-// TODO: return errors instead of printing them
-func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
+// Outputs the latency stats for a measurement
+func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) error {
 	// Output every result in case of multiple probes
 	for i, result := range data.Results {
 		if i > 0 {
@@ -24,8 +24,7 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 		case "ping":
 			stats, err := client.DecodePingStats(result.Result.StatsRaw)
 			if err != nil {
-				fmt.Println(err)
-				return
+				return err
 			}
 			fmt.Println(latencyStatHeader("Min", ctx.CI) + fmt.Sprintf("%.2f ms", stats.Min))
 			fmt.Println(latencyStatHeader("Max", ctx.CI) + fmt.Sprintf("%.2f ms", stats.Max))
@@ -33,15 +32,13 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 		case "dns":
 			timings, err := client.DecodeDNSTimings(result.Result.TimingsRaw)
 			if err != nil {
-				fmt.Println(err)
-				return
+				return err
 			}
 			fmt.Println(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms", timings.Total))
 		case "http":
 			timings, err := client.DecodeHTTPTimings(result.Result.TimingsRaw)
 			if err != nil {
-				fmt.Println(err)
-				return
+				return err
 			}
 			fmt.Println(latencyStatHeader("Total", ctx.CI) + fmt.Sprintf("%v ms", timings.Total))
 			fmt.Println(latencyStatHeader("Download", ctx.CI) + fmt.Sprintf("%v ms", timings.Download))
@@ -50,15 +47,16 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) {
 			fmt.Println(latencyStatHeader("TLS", ctx.CI) + fmt.Sprintf("%v ms", timings.TLS))
 			fmt.Println(latencyStatHeader("TCP", ctx.CI) + fmt.Sprintf("%v ms", timings.TCP))
 		default:
-			panic("unexpected command for latency output: " + ctx.Cmd)
+			return errors.New("unexpected command for latency output: " + ctx.Cmd)
 		}
-
 	}
 
 	if ctx.Share {
 		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
 	}
 	fmt.Println()
+
+	return nil
 }
 
 func latencyStatHeader(title string, ci bool) string {

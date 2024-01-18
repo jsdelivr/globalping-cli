@@ -67,7 +67,8 @@ func TestOutputLatency_Ping_Not_CI(t *testing.T) {
 		Cmd: "ping",
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -124,7 +125,8 @@ func TestOutputLatency_Ping_CI(t *testing.T) {
 		CI:  true,
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -180,7 +182,8 @@ func TestOutputLatency_DNS_Not_CI(t *testing.T) {
 		Cmd: "dns",
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -237,7 +240,8 @@ func TestOutputLatency_DNS_CI(t *testing.T) {
 		CI:  true,
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -293,7 +297,8 @@ func TestOutputLatency_Http_Not_CI(t *testing.T) {
 		Cmd: "http",
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
@@ -350,7 +355,8 @@ func TestOutputLatency_Http_CI(t *testing.T) {
 		CI:  true,
 	}
 
-	OutputLatency(id, data, ctx)
+	err = OutputLatency(id, data, ctx)
+	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 

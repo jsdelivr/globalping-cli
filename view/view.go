@@ -1,10 +1,7 @@
 package view
 
 import (
-	"errors"
 	"fmt"
-	"math"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +24,115 @@ var (
 )
 
 var apiPollInterval = 500 * time.Millisecond
+
+func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error {
+	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+
+	// Wait for first result to arrive from a probe before starting display (can be in-progress)
+	data, err := fetcher.GetMeasurement(id)
+	if err != nil {
+		return err
+	}
+	// Probe may not have started yet
+	for len(data.Results) == 0 {
+		time.Sleep(apiPollInterval)
+		data, err = fetcher.GetMeasurement(id)
+		if err != nil {
+			return err
+		}
+	}
+
+	if ctx.CI || ctx.JsonOutput || ctx.Latency {
+		// Poll API until the measurement is complete
+		for data.Status == "in-progress" {
+			time.Sleep(apiPollInterval)
+			data, err = fetcher.GetMeasurement(id)
+			if err != nil {
+				return err
+			}
+		}
+
+		if ctx.Latency {
+			return OutputLatency(id, data, ctx)
+		}
+
+		if ctx.JsonOutput {
+			return OutputJson(id, fetcher, ctx)
+		}
+
+		if ctx.CI {
+			OutputDefault(id, data, ctx, m)
+			return nil
+		}
+	}
+
+	return liveView(id, data, ctx, m)
+}
+
+func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) error {
+	var err error
+
+	// Create new writer
+	areaPrinter, err := pterm.DefaultArea.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start writer: %v", err)
+	}
+	areaPrinter.RemoveWhenDone = true
+
+	defer func() {
+		// Stop area printer and clear area if not already done
+		err := areaPrinter.Stop()
+		if err != nil {
+			fmt.Printf("failed to stop writer: %v", err)
+		}
+	}()
+
+	w, h, err := pterm.GetTerminalSize()
+	if err != nil {
+		return fmt.Errorf("failed to get terminal size: %v", err)
+	}
+
+	// String builder for output
+	var output strings.Builder
+
+	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+
+	// Poll API until the measurement is complete
+	for data.Status == "in-progress" {
+		time.Sleep(apiPollInterval)
+		data, err = fetcher.GetMeasurement(id)
+		if err != nil {
+			return fmt.Errorf("failed to get data: %v", err)
+		}
+
+		// Reset string builder
+		output.Reset()
+
+		// Output every result in case of multiple probes
+		for i := range data.Results {
+			result := &data.Results[i]
+			// Output slightly different format if state is available
+			output.WriteString(generateHeader(result, !ctx.CI) + "\n")
+
+			if isBodyOnlyHttpGet(ctx, m) {
+				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
+			} else {
+				output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+			}
+		}
+
+		areaPrinter.Update(trimOutput(output.String(), w, h))
+	}
+
+	// Stop area printer and clear area
+	err = areaPrinter.Stop()
+	if err != nil {
+		return fmt.Errorf("failed to stop writer: %v", err)
+	}
+
+	OutputDefault(id, data, ctx, m)
+	return nil
+}
 
 // Used to trim the output to fit the terminal in live view
 func trimOutput(output string, terminalW, terminalH int) string {
@@ -91,290 +197,8 @@ func formatWithLeadingArrow(text string, useStyling bool) string {
 	return "> " + text
 }
 
-func LiveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
-	var err error
-
-	// Create new writer
-	areaPrinter, err := pterm.DefaultArea.Start()
-	if err != nil {
-		fmt.Printf("failed to start writer: %v\n", err)
-		return
-	}
-	areaPrinter.RemoveWhenDone = true
-
-	defer func() {
-		// Stop area printer and clear area if not already done
-		err := areaPrinter.Stop()
-		if err != nil {
-			fmt.Printf("failed to stop writer: %v\n", err)
-		}
-	}()
-
-	w, h, err := pterm.GetTerminalSize()
-	if err != nil {
-		fmt.Printf("failed to get terminal size: %v\n", err)
-		return
-	}
-
-	// String builder for output
-	var output strings.Builder
-
-	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
-
-	// Poll API until the measurement is complete
-	for data.Status == "in-progress" {
-		time.Sleep(apiPollInterval)
-		data, err = fetcher.GetMeasurement(id)
-		if err != nil {
-			fmt.Printf("failed to get data: %v\n", err)
-			return
-		}
-
-		// Reset string builder
-		output.Reset()
-
-		// Output every result in case of multiple probes
-		for i := range data.Results {
-			result := &data.Results[i]
-			// Output slightly different format if state is available
-			output.WriteString(generateHeader(result, !ctx.CI) + "\n")
-
-			if isBodyOnlyHttpGet(ctx, m) {
-				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
-			} else {
-				output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
-			}
-		}
-
-		areaPrinter.Update(trimOutput(output.String(), w, h))
-	}
-
-	// Stop area printer and clear area
-	err = areaPrinter.Stop()
-	if err != nil {
-		fmt.Printf("failed to stop writer: %v\n", err)
-	}
-
-	if os.Getenv("LIVE_DEBUG") != "1" {
-		PrintStandardResults(id, data, ctx, m)
-	}
-}
-
-func OutputInfinite(id string, ctx *model.Context) error {
-	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
-	res, err := fetcher.GetMeasurement(id)
-	if err != nil {
-		return err
-	}
-	// Probe may not have started yet
-	for len(res.Results) == 0 {
-		time.Sleep(apiPollInterval)
-		res, err = fetcher.GetMeasurement(id)
-		if err != nil {
-			return err
-		}
-	}
-	// Wait for results to be complete
-	for res.Status == "in-progress" {
-		time.Sleep(apiPollInterval)
-		res, err = fetcher.GetMeasurement(res.ID)
-		if err != nil {
-			return err
-		}
-	}
-	if ctx.Latency {
-		OutputLatency(id, res, *ctx)
-		return nil
-	}
-
-	if ctx.JsonOutput {
-		OutputJson(id, fetcher, *ctx)
-		return nil
-	}
-
-	// One location view
-	if len(res.Results) == 1 {
-		if len(ctx.Stats) == 0 {
-			// Initialize state
-			ctx.Stats = make([]model.MeasurementStats, 1)
-			ctx.Packets = client.PacketsMax
-			// Print header
-			fmt.Println(generateHeader(&res.Results[0], !ctx.CI))
-			fmt.Printf("PING %s (%s)\n", res.Target, res.Results[0].Result.ResolvedAddress)
-		}
-		timings, err := client.DecodePingTimings(res.Results[0].Result.TimingsRaw)
-		if err != nil {
-			return err
-		}
-		for i := range timings {
-			ctx.Stats[0].Sent++
-			t := timings[i]
-			fmt.Printf("%s: icmp_seq=%d ttl=%d time=%.2f ms\n",
-				res.Results[0].Result.ResolvedAddress,
-				ctx.Stats[0].Sent,
-				t.TTL,
-				t.RTT)
-		}
-		return nil
-	}
-
-	// Multiple location view
-	if len(ctx.Stats) == 0 {
-		// Initialize state
-		ctx.Stats = make([]model.MeasurementStats, len(res.Results))
-		for i := range ctx.Stats {
-			ctx.Stats[i].Min = math.MaxFloat64
-		}
-		// Create new writer
-		ctx.Area, err = pterm.DefaultArea.Start()
-		if err != nil {
-			return errors.New("failed to start writer: " + err.Error())
-		}
-	}
-	tableData := pterm.TableData{
-		{"Location", "Loss", "Sent", "Last", "Avg", "Min", "Max"},
-	}
-	for i := range res.Results {
-		result := &res.Results[i]
-		localStats := &ctx.Stats[i]
-		updateMeasurementStats(localStats, result)
-		tableData = append(tableData, []string{
-			getLocationText(result),
-			fmt.Sprintf("%.2f", localStats.Loss) + "%",
-			fmt.Sprintf("%d", localStats.Sent),
-			fmt.Sprintf("%.2f ms", localStats.Last),
-			fmt.Sprintf("%.2f ms", localStats.Avg),
-			fmt.Sprintf("%.2f ms", localStats.Min),
-			fmt.Sprintf("%.2f ms", localStats.Max),
-		})
-	}
-	t, err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Srender()
-	if err != nil {
-		return err
-	}
-	ctx.Area.Update(t)
-	return err
-}
-
-func updateMeasurementStats(localStats *model.MeasurementStats, result *model.MeasurementResponse) error {
-	stats, err := client.DecodePingStats(result.Result.StatsRaw)
-	if err != nil {
-		return err
-	}
-	timings, err := client.DecodePingTimings(result.Result.TimingsRaw)
-	if err != nil {
-		return err
-	}
-	localStats.Lost += stats.Drop
-	if stats.Min < localStats.Min {
-		localStats.Min = stats.Min
-	}
-	if stats.Max > localStats.Max {
-		localStats.Max = stats.Max
-	}
-	localStats.Avg = (localStats.Avg*float64(localStats.Sent) + stats.Avg*float64(stats.Total)) / float64(localStats.Sent+stats.Total)
-	localStats.Sent += stats.Total
-	if len(timings) != 0 {
-		localStats.Last = timings[len(timings)-1].RTT
-	}
-	localStats.Loss = float64(localStats.Lost) / float64(localStats.Sent) * 100
-	return nil
-}
-
-// If json flag is used, only output json
-// TODO: Return errors instead of printing them
-func OutputJson(id string, fetcher client.MeasurementsFetcher, ctx model.Context) {
-	output, err := fetcher.GetRawMeasurement(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(string(output))
-
-	if ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
-	}
-	fmt.Println()
-}
-
-// Prints non-json non-latency results to the screen
-func PrintStandardResults(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
-	for i := range data.Results {
-		result := &data.Results[i]
-		if i > 0 {
-			// new line as separator if more than 1 result
-			fmt.Println()
-		}
-
-		// Output slightly different format if state is available
-		fmt.Fprintln(os.Stderr, generateHeader(result, !ctx.CI))
-
-		if isBodyOnlyHttpGet(ctx, m) {
-			fmt.Println(strings.TrimSpace(result.Result.RawBody))
-		} else {
-			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
-		}
-	}
-
-	if ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
-	}
-}
-
 func isBodyOnlyHttpGet(ctx model.Context, m model.PostMeasurement) bool {
 	return ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !ctx.Full
-}
-
-// TODO: Return errors instead of printing them
-func OutputResults(id string, ctx model.Context, m model.PostMeasurement) {
-	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
-
-	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := fetcher.GetMeasurement(id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	// Probe may not have started yet
-	for len(data.Results) == 0 {
-		time.Sleep(apiPollInterval)
-		data, err = fetcher.GetMeasurement(id)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-	}
-
-	if ctx.CI || ctx.JsonOutput || ctx.Latency {
-		// Poll API until the measurement is complete
-		for data.Status == "in-progress" {
-			time.Sleep(apiPollInterval)
-			data, err = fetcher.GetMeasurement(id)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-		}
-
-		if ctx.Latency {
-			OutputLatency(id, data, ctx)
-			return
-		}
-
-		if ctx.JsonOutput {
-			OutputJson(id, fetcher, ctx)
-			return
-		}
-
-		if ctx.CI {
-			PrintStandardResults(id, data, ctx, m)
-			return
-		}
-
-		panic(fmt.Sprintf("case not handled. %+v", ctx))
-	}
-
-	LiveView(id, data, ctx, m)
 }
 
 func shareMessage(id string) string {

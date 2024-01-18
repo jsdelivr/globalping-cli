@@ -49,7 +49,7 @@ Examples:
 			return err
 		}
 		if ctx.Infinite {
-			ctx.Packets = 1 // We sent only one packet first and overwrite it later based on the view type
+			ctx.Packets = 1
 			for {
 				ctx.From, err = ping(cmd)
 				if err != nil {
