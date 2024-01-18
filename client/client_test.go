@@ -97,10 +97,18 @@ func testPostValidation(t *testing.T) {
 	client.ApiUrl = server.URL
 
 	_, showHelp, err := client.PostAPI(opts)
-	assert.EqualError(t, err, `invalid parameters
+
+	// Key order is not guaranteed
+	expectedErrV1 := `invalid parameters
  - "measurement" does not match any of the allowed types
  - "target" does not match any of the allowed types
+Please check the help for more information`
+	if err.Error() != expectedErrV1 {
+		assert.EqualError(t, err, `invalid parameters
+ - "target" does not match any of the allowed types
+ - "measurement" does not match any of the allowed types
 Please check the help for more information`)
+	}
 	assert.True(t, showHelp)
 }
 
