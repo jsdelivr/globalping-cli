@@ -54,7 +54,7 @@ func outputSingleLocation(res *model.GetMeasurement, ctx *model.Context) error {
 		ctx.Stats = make([]model.MeasurementStats, 1)
 		// Print header
 		fmt.Println(generateHeader(measurement, !ctx.CI))
-		fmt.Printf("PING %s (%s)\n", res.Target, measurement.Result.ResolvedAddress)
+		fmt.Printf("PING %s (%s) 56(84) bytes of data.\n", res.Target, measurement.Result.ResolvedAddress)
 	}
 	timings, err := client.DecodePingTimings(measurement.Result.TimingsRaw)
 	if err != nil {
@@ -63,7 +63,8 @@ func outputSingleLocation(res *model.GetMeasurement, ctx *model.Context) error {
 	for i := range timings {
 		ctx.Stats[0].Sent++
 		t := timings[i]
-		fmt.Printf("%s: icmp_seq=%d ttl=%d time=%.2f ms\n",
+		fmt.Printf("64 bytes from %s (%s): icmp_seq=%d ttl=%d time=%.2f ms\n",
+			measurement.Result.ResolvedHostname,
 			measurement.Result.ResolvedAddress,
 			ctx.Stats[0].Sent,
 			t.TTL,
@@ -95,12 +96,12 @@ func outputMultipleLocations(res *model.GetMeasurement, ctx *model.Context) erro
 		updateMeasurementStats(localStats, result)
 		tableData = append(tableData, []string{
 			getLocationText(result),
-			fmt.Sprintf("%.2f", localStats.Loss) + "%",
-			fmt.Sprintf("%d", localStats.Sent),
-			formatDuration(localStats.Last),
-			formatDuration(localStats.Avg),
-			formatDuration(localStats.Min),
-			formatDuration(localStats.Max),
+			formatValue(fmt.Sprintf("%.2f", localStats.Loss)+"%", 6),
+			formatValue(fmt.Sprintf("%d", localStats.Sent), 3),
+			formatValue(formatDuration(localStats.Last), 7),
+			formatValue(formatDuration(localStats.Avg), 7),
+			formatValue(formatDuration(localStats.Min), 7),
+			formatValue(formatDuration(localStats.Max), 7),
 		})
 	}
 	t, err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Srender()
@@ -120,6 +121,13 @@ func formatDuration(ms float64) string {
 		return fmt.Sprintf("%.1f ms", ms)
 	}
 	return fmt.Sprintf("%.0f ms", ms)
+}
+
+func formatValue(v string, width int) string {
+	for len(v) < width {
+		v = " " + v
+	}
+	return pterm.NewStyle(pterm.FgDefault).Sprint(v)
 }
 
 func updateMeasurementStats(localStats *model.MeasurementStats, result *model.MeasurementResponse) error {

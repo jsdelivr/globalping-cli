@@ -287,23 +287,24 @@ This means that eventually you will run out of credits and the test will stop.
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --infinite
-> EU, SE, Stockholm, ASN:42708, GleSYS AB
-PING cdn.jsdelivr.net (151.101.1.229)
-151.101.1.229: icmp_seq=1 ttl=59 time=0.85 ms
-151.101.1.229: icmp_seq=2 ttl=59 time=5.86 ms
+> EU, GB, London, ASN:40676, Psychz Networks
+PING cdn.jsdelivr.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=59 time=0.54 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=59 time=0.42 ms
 ^C
 ```
 
 If you select multiple probes when using `--infinite` the output will change to a summary comparison table.
 
 ```bash
-globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite 
-Location                                             | Loss  | Sent | Last    | Avg      | Min     | Max
-EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH  | 0.00% | 21   | 5.43 ms | 5.71 ms  | 5.30 ms | 11.98 ms
-EU, NL, Rotterdam, ASN:210630, IncogNET LLC          | 0.00% | 21   | 1.76 ms | 1.81 ms  | 1.76 ms | 1.96 ms
-EU, LU, Luxembourg, ASN:53667, FranTech Solutions    | 0.00% | 21   | 5.14 ms | 13.03 ms | 4.80 ms | 75.71 ms
-EU, ES, Madrid, ASN:20473, The Constant Company, LLC | 0.00% | 21   | 0.67 ms | 0.73 ms  | 0.59 ms | 1.08 ms
-EU, DE, Frankfurt, ASN:16276, OVH SAS                | 0.00% | 21   | 1.47 ms | 1.43 ms  | 1.35 ms | 1.51 ms
+globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite
+Location                                      | Loss   | Sent | Last    | Avg     | Min     | Max
+EU, NL, Dronten, ASN:41608, NextGenWebs, S.L. |  0.00% |  12  | 25.3 ms | 25.3 ms | 25.2 ms | 25.9 ms
+EU, GB, London, ASN:200904, FoxCloud LLP      |  0.00% |  12  | 3.21 ms | 2.90 ms | 2.32 ms | 3.27 ms
+EU, AT, Vienna, ASN:9009, M247 Europe SRL     |  0.00% |  12  | 6.60 ms | 3.85 ms | 0.30 ms | 11.1 ms
+EU, GB, London, ASN:60841, BerryByte Limited  |  0.00% |  12  | 0.38 ms | 0.41 ms | 0.34 ms | 0.64 ms
+EU, NL, Amsterdam, ASN:199959, GWY IT PTY LTD |  0.00% |  12  | 2.07 ms | 2.32 ms | 1.71 ms | 4.56 ms
+
 ^C
 ```
 

@@ -15,16 +15,16 @@ func TestOutputInfinite_SingleLocation(t *testing.T) {
 	osStdErr := os.Stderr
 	osStdOut := os.Stdout
 
-	rStdErr, myStdErr, err := os.Pipe()
+	rErr, wErr, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer rErr.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
+	rOut, wOut, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdOut.Close()
+	defer rOut.Close()
 
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
+	os.Stderr = wErr
+	os.Stdout = wOut
 
 	defer func() {
 		os.Stderr = osStdErr
@@ -44,44 +44,30 @@ func TestOutputInfinite_SingleLocation(t *testing.T) {
 	err = outputSingleLocation(measurement, ctx)
 	assert.NoError(t, err)
 
-	myStdErr.Close()
-	myStdOut.Close()
+	wErr.Close()
+	wOut.Close()
 
-	errOutput, err := io.ReadAll(rStdErr)
+	errOutput, err := io.ReadAll(rErr)
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(errOutput))
 
-	output, err := io.ReadAll(rStdOut)
+	output, err := io.ReadAll(rOut)
 	assert.NoError(t, err)
 	assert.Equal(t,
 		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
-PING cdn.jsdelivr.net (151.101.1.229)
-151.101.1.229: icmp_seq=1 ttl=60 time=17.64 ms
-151.101.1.229: icmp_seq=2 ttl=60 time=17.64 ms
-151.101.1.229: icmp_seq=3 ttl=60 time=17.64 ms
+PING cdn.jsdelivr.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.64 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=60 time=17.64 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=60 time=17.64 ms
 `,
 		string(output))
 }
 
 func TestOutputInfinite_MultipleLocations(t *testing.T) {
-	osStdErr := os.Stderr
 	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	os.Stdout = w
 
 	ctx := &model.Context{
 		Cmd: "ping",
@@ -91,24 +77,64 @@ func TestOutputInfinite_MultipleLocations(t *testing.T) {
 	err = outputMultipleLocations(measurement, ctx)
 	assert.NoError(t, err)
 
-	myStdErr.Close()
-	myStdOut.Close()
+	w.Close()
+	os.Stdout = osStdOut
 
-	errOutput, err := io.ReadAll(rStdErr)
+	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "", string(errOutput))
+	r.Close()
 
-	output, err := io.ReadAll(rStdOut)
+	r, w, err = os.Pipe()
 	assert.NoError(t, err)
-
+	defer r.Close()
+	os.Stdout = w
+	defer func() {
+		os.Stdout = osStdOut
+	}()
 	expectedTableData := pterm.TableData{
 		{"Location", "Loss", "Sent", "Last", "Avg", "Min", "Max"},
-		{"EU, GB, London, ASN:0, OVH SAS", "0.00%", "1", "0.77 ms", "0.77 ms", "0.77 ms", "0.77 ms"},
-		{"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH", "0.00%", "1", "5.46 ms", "5.46 ms", "5.46 ms", "5.46 ms"},
-		{"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH", "0.00%", "1", "4.07 ms", "4.07 ms", "4.07 ms", "4.07 ms"},
+		{
+			"EU, GB, London, ASN:0, OVH SAS",
+			formatValue("0.00%", 6),
+			formatValue("1", 3),
+			formatValue("0.77 ms", 7),
+			formatValue("0.77 ms", 7),
+			formatValue("0.77 ms", 7),
+			formatValue("0.77 ms", 7),
+		},
+		{
+			"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH",
+			formatValue("0.00%", 6),
+			formatValue("1", 3),
+			formatValue("5.46 ms", 7),
+			formatValue("5.46 ms", 7),
+			formatValue("5.46 ms", 7),
+			formatValue("5.46 ms", 7),
+		},
+		{
+			"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH",
+			formatValue("0.00%", 6),
+			formatValue("1", 3),
+			formatValue("4.07 ms", 7),
+			formatValue("4.07 ms", 7),
+			formatValue("4.07 ms", 7),
+			formatValue("4.07 ms", 7),
+		},
 	}
 	expectedTable, _ := pterm.DefaultTable.WithHasHeader().WithData(expectedTableData).Srender()
-	assert.Equal(t, "\n\n\n\n\n\n\n"+expectedTable+"\n", string(output))
+
+	area, err := pterm.DefaultArea.Start()
+	assert.NoError(t, err)
+	area.Update(expectedTable)
+	area.Stop()
+	w.Close()
+	os.Stdout = osStdOut
+
+	expectedOutput, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	r.Close()
+
+	assert.Equal(t, string(expectedOutput), string(output))
 }
 
 func TestFormatDuration(t *testing.T) {
