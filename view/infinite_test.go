@@ -3,6 +3,7 @@ package view
 import (
 	"encoding/json"
 	"io"
+	"math"
 	"os"
 	"testing"
 
@@ -92,33 +93,40 @@ func TestOutputInfinite_MultipleLocations(t *testing.T) {
 		os.Stdout = osStdOut
 	}()
 	expectedTableData := pterm.TableData{
-		{"Location", "Loss", "Sent", "Last", "Avg", "Min", "Max"},
+		{
+			"Location",
+			formatValue("Sent", 4, pterm.FgLightCyan),
+			formatValue("Loss", 7, pterm.FgLightCyan),
+			formatValue("Last", 8, pterm.FgLightCyan),
+			formatValue("Min", 8, pterm.FgLightCyan),
+			formatValue("Avg", 8, pterm.FgLightCyan),
+			formatValue("Max", 8, pterm.FgLightCyan)},
 		{
 			"EU, GB, London, ASN:0, OVH SAS",
-			formatValue("0.00%", 6),
-			formatValue("1", 3),
-			formatValue("0.77 ms", 7),
-			formatValue("0.77 ms", 7),
-			formatValue("0.77 ms", 7),
-			formatValue("0.77 ms", 7),
+			formatValue("1", 4, pterm.FgDefault),
+			formatValue("0.00%", 7, pterm.FgDefault),
+			formatValue("0.77 ms", 8, pterm.FgDefault),
+			formatValue("0.77 ms", 8, pterm.FgDefault),
+			formatValue("0.77 ms", 8, pterm.FgDefault),
+			formatValue("0.77 ms", 8, pterm.FgDefault),
 		},
 		{
 			"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH",
-			formatValue("0.00%", 6),
-			formatValue("1", 3),
-			formatValue("5.46 ms", 7),
-			formatValue("5.46 ms", 7),
-			formatValue("5.46 ms", 7),
-			formatValue("5.46 ms", 7),
+			formatValue("1", 4, pterm.FgDefault),
+			formatValue("0.00%", 7, pterm.FgDefault),
+			formatValue("5.46 ms", 8, pterm.FgDefault),
+			formatValue("5.46 ms", 8, pterm.FgDefault),
+			formatValue("5.46 ms", 8, pterm.FgDefault),
+			formatValue("5.46 ms", 8, pterm.FgDefault),
 		},
 		{
 			"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH",
-			formatValue("0.00%", 6),
-			formatValue("1", 3),
-			formatValue("4.07 ms", 7),
-			formatValue("4.07 ms", 7),
-			formatValue("4.07 ms", 7),
-			formatValue("4.07 ms", 7),
+			formatValue("1", 4, pterm.FgDefault),
+			formatValue("0.00%", 7, pterm.FgDefault),
+			formatValue("4.07 ms", 8, pterm.FgDefault),
+			formatValue("4.07 ms", 8, pterm.FgDefault),
+			formatValue("4.07 ms", 8, pterm.FgDefault),
+			formatValue("4.07 ms", 8, pterm.FgDefault),
 		},
 	}
 	expectedTable, _ := pterm.DefaultTable.WithHasHeader().WithData(expectedTableData).Srender()
@@ -190,4 +198,66 @@ func TestUpdateMeasurementStats(t *testing.T) {
 		Avg:  3,
 		Max:  6,
 	}, stats)
+}
+
+func TestGetRowValuesNoPacketsRcv(t *testing.T) {
+	stats := model.MeasurementStats{
+		Sent: 1,
+		Lost: -1,
+		Loss: 0,
+		Last: -1,
+		Min:  math.MaxFloat64,
+		Avg:  -1,
+		Max:  -1,
+	}
+	result := model.MeasurementResponse{
+		Probe: model.ProbeData{
+			Continent: "EU",
+			Country:   "GB",
+			City:      "London",
+			Network:   "OVH SAS",
+		},
+	}
+	rowValues := getRowValues(&result, &stats)
+	assert.Equal(t, []string{
+		"EU, GB, London, ASN:0, OVH SAS",
+		formatValue("1", 4, pterm.FgDefault),
+		formatValue("0.00%", 7, pterm.FgDefault),
+		formatValue("-", 8, pterm.FgDefault),
+		formatValue("-", 8, pterm.FgDefault),
+		formatValue("-", 8, pterm.FgDefault),
+		formatValue("-", 8, pterm.FgDefault),
+	},
+		rowValues)
+}
+
+func TestGetRowValues(t *testing.T) {
+	stats := model.MeasurementStats{
+		Sent: 100,
+		Lost: 10,
+		Loss: 10,
+		Last: 12.345,
+		Min:  1.2345,
+		Avg:  8.3456,
+		Max:  123.4567,
+	}
+	result := model.MeasurementResponse{
+		Probe: model.ProbeData{
+			Continent: "EU",
+			Country:   "GB",
+			City:      "London",
+			Network:   "OVH SAS",
+		},
+	}
+	rowValues := getRowValues(&result, &stats)
+	assert.Equal(t, []string{
+		"EU, GB, London, ASN:0, OVH SAS",
+		formatValue("100", 4, pterm.FgDefault),
+		formatValue("10.00%", 7, pterm.FgDefault),
+		formatValue("12.3 ms", 8, pterm.FgDefault),
+		formatValue("1.23 ms", 8, pterm.FgDefault),
+		formatValue("8.35 ms", 8, pterm.FgDefault),
+		formatValue("123 ms", 8, pterm.FgDefault),
+	},
+		rowValues)
 }

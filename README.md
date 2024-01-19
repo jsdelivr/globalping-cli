@@ -298,13 +298,12 @@ If you select multiple probes when using `--infinite` the output will change to 
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite
-Location                                      | Loss   | Sent | Last    | Avg     | Min     | Max
-EU, NL, Dronten, ASN:41608, NextGenWebs, S.L. |  0.00% |  12  | 25.3 ms | 25.3 ms | 25.2 ms | 25.9 ms
-EU, GB, London, ASN:200904, FoxCloud LLP      |  0.00% |  12  | 3.21 ms | 2.90 ms | 2.32 ms | 3.27 ms
-EU, AT, Vienna, ASN:9009, M247 Europe SRL     |  0.00% |  12  | 6.60 ms | 3.85 ms | 0.30 ms | 11.1 ms
-EU, GB, London, ASN:60841, BerryByte Limited  |  0.00% |  12  | 0.38 ms | 0.41 ms | 0.34 ms | 0.64 ms
-EU, NL, Amsterdam, ASN:199959, GWY IT PTY LTD |  0.00% |  12  | 2.07 ms | 2.32 ms | 1.71 ms | 4.56 ms
-
+Location                                                | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London, ASN:16276, OVH SAS                      |   22 |   0.00% |  3.33 ms |  3.07 ms |  3.20 ms |  3.33 ms
+EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH     |   22 |   0.00% |  5.41 ms |  5.30 ms |  5.78 ms |  13.1 ms
+EU, AT, Vienna, ASN:57169, EDIS GmbH                    |   22 |   0.00% |  0.47 ms |  0.46 ms |  0.56 ms |  0.88 ms
+EU, SE, Stockholm, ASN:20473, The Constant Company, LLC |   22 |   0.00% |  1.03 ms |  0.83 ms |  1.15 ms |  4.66 ms
+EU, ES, Madrid, ASN:47787, EDGOO NETWORKS LLC           |   22 |   0.00% |  0.24 ms |  0.13 ms |  0.26 ms |  0.42 ms
 ^C
 ```
 

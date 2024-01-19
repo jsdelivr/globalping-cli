@@ -79,7 +79,10 @@ func outputMultipleLocations(res *model.GetMeasurement, ctx *model.Context) erro
 		// Initialize state
 		ctx.Stats = make([]model.MeasurementStats, len(res.Results))
 		for i := range ctx.Stats {
+			ctx.Stats[i].Last = -1
 			ctx.Stats[i].Min = math.MaxFloat64
+			ctx.Stats[i].Avg = -1
+			ctx.Stats[i].Max = -1
 		}
 		// Create new writer
 		ctx.Area, err = pterm.DefaultArea.Start()
@@ -88,21 +91,21 @@ func outputMultipleLocations(res *model.GetMeasurement, ctx *model.Context) erro
 		}
 	}
 	tableData := pterm.TableData{
-		{"Location", "Loss", "Sent", "Last", "Avg", "Min", "Max"},
+		{
+			"Location",
+			formatValue("Sent", 4, pterm.FgLightCyan),
+			formatValue("Loss", 7, pterm.FgLightCyan),
+			formatValue("Last", 8, pterm.FgLightCyan),
+			formatValue("Min", 8, pterm.FgLightCyan),
+			formatValue("Avg", 8, pterm.FgLightCyan),
+			formatValue("Max", 8, pterm.FgLightCyan),
+		},
 	}
 	for i := range res.Results {
 		result := &res.Results[i]
 		localStats := &ctx.Stats[i]
 		updateMeasurementStats(localStats, result)
-		tableData = append(tableData, []string{
-			getLocationText(result),
-			formatValue(fmt.Sprintf("%.2f", localStats.Loss)+"%", 6),
-			formatValue(fmt.Sprintf("%d", localStats.Sent), 3),
-			formatValue(formatDuration(localStats.Last), 7),
-			formatValue(formatDuration(localStats.Avg), 7),
-			formatValue(formatDuration(localStats.Min), 7),
-			formatValue(formatDuration(localStats.Max), 7),
-		})
+		tableData = append(tableData, getRowValues(result, localStats))
 	}
 	t, err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Srender()
 	if err != nil {
@@ -111,6 +114,34 @@ func outputMultipleLocations(res *model.GetMeasurement, ctx *model.Context) erro
 	ctx.Area.Update(t)
 
 	return nil
+}
+
+func getRowValues(res *model.MeasurementResponse, stats *model.MeasurementStats) []string {
+	last := "-"
+	min := "-"
+	avg := "-"
+	max := "-"
+	if stats.Last != -1 {
+		last = formatDuration(stats.Last)
+	}
+	if stats.Min != math.MaxFloat64 {
+		min = formatDuration(stats.Min)
+	}
+	if stats.Avg != -1 {
+		avg = formatDuration(stats.Avg)
+	}
+	if stats.Max != -1 {
+		max = formatDuration(stats.Max)
+	}
+	return []string{
+		getLocationText(res),
+		formatValue(fmt.Sprintf("%d", stats.Sent), 4, pterm.FgDefault),
+		formatValue(fmt.Sprintf("%.2f", stats.Loss)+"%", 7, pterm.FgDefault),
+		formatValue(last, 8, pterm.FgDefault),
+		formatValue(min, 8, pterm.FgDefault),
+		formatValue(avg, 8, pterm.FgDefault),
+		formatValue(max, 8, pterm.FgDefault),
+	}
 }
 
 func formatDuration(ms float64) string {
@@ -123,11 +154,11 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func formatValue(v string, width int) string {
+func formatValue(v string, width int, color pterm.Color) string {
 	for len(v) < width {
 		v = " " + v
 	}
-	return pterm.NewStyle(pterm.FgDefault).Sprint(v)
+	return pterm.NewStyle(color).Sprint(v)
 }
 
 func updateMeasurementStats(localStats *model.MeasurementStats, result *model.MeasurementResponse) error {
@@ -139,16 +170,14 @@ func updateMeasurementStats(localStats *model.MeasurementStats, result *model.Me
 	if err != nil {
 		return err
 	}
-	if stats.Min < localStats.Min && stats.Min != 0 {
-		localStats.Min = stats.Min
-	}
-	if stats.Max > localStats.Max {
-		localStats.Max = stats.Max
-	}
-	if stats.Avg != 0 {
+	if stats.Rcv > 0 {
+		if stats.Min < localStats.Min && stats.Min != 0 {
+			localStats.Min = stats.Min
+		}
+		if stats.Max > localStats.Max {
+			localStats.Max = stats.Max
+		}
 		localStats.Avg = (localStats.Avg*float64(localStats.Sent) + stats.Avg*float64(stats.Total)) / float64(localStats.Sent+stats.Total)
-	}
-	if len(timings) != 0 {
 		localStats.Last = timings[len(timings)-1].RTT
 	}
 	localStats.Sent += stats.Total
