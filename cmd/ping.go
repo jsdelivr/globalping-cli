@@ -49,7 +49,7 @@ Examples:
 			return err
 		}
 		if ctx.Infinite {
-			ctx.Limit = max(ctx.Limit, 5) // Limit to 5 probes
+			ctx.Limit = min(ctx.Limit, 5) // Limit to 5 probes
 			ctx.Packets = 16              // Default to 16 packets
 			for {
 				ctx.From, err = ping(cmd)
