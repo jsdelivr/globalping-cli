@@ -92,45 +92,9 @@ func TestOutputInfinite_MultipleLocations(t *testing.T) {
 	defer func() {
 		os.Stdout = osStdOut
 	}()
-	expectedTableData := pterm.TableData{
-		{
-			"Location",
-			formatValue("Sent", 4, pterm.FgLightCyan),
-			formatValue("Loss", 7, pterm.FgLightCyan),
-			formatValue("Last", 8, pterm.FgLightCyan),
-			formatValue("Min", 8, pterm.FgLightCyan),
-			formatValue("Avg", 8, pterm.FgLightCyan),
-			formatValue("Max", 8, pterm.FgLightCyan)},
-		{
-			"EU, GB, London, ASN:0, OVH SAS",
-			formatValue("1", 4, pterm.FgDefault),
-			formatValue("0.00%", 7, pterm.FgDefault),
-			formatValue("0.77 ms", 8, pterm.FgDefault),
-			formatValue("0.77 ms", 8, pterm.FgDefault),
-			formatValue("0.77 ms", 8, pterm.FgDefault),
-			formatValue("0.77 ms", 8, pterm.FgDefault),
-		},
-		{
-			"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH",
-			formatValue("1", 4, pterm.FgDefault),
-			formatValue("0.00%", 7, pterm.FgDefault),
-			formatValue("5.46 ms", 8, pterm.FgDefault),
-			formatValue("5.46 ms", 8, pterm.FgDefault),
-			formatValue("5.46 ms", 8, pterm.FgDefault),
-			formatValue("5.46 ms", 8, pterm.FgDefault),
-		},
-		{
-			"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH",
-			formatValue("1", 4, pterm.FgDefault),
-			formatValue("0.00%", 7, pterm.FgDefault),
-			formatValue("4.07 ms", 8, pterm.FgDefault),
-			formatValue("4.07 ms", 8, pterm.FgDefault),
-			formatValue("4.07 ms", 8, pterm.FgDefault),
-			formatValue("4.07 ms", 8, pterm.FgDefault),
-		},
-	}
-	expectedTable, _ := pterm.DefaultTable.WithHasHeader().WithData(expectedTableData).Srender()
 
+	expectedCtx := getDefaultPingCtx(len(measurement.Results))
+	expectedTable := generateTable(measurement, expectedCtx, 76) // 80 - 4. pterm defaults to 80 when terminal size is not detected.
 	area, err := pterm.DefaultArea.Start()
 	assert.NoError(t, err)
 	area.Update(expectedTable)
@@ -152,6 +116,54 @@ func TestFormatDuration(t *testing.T) {
 	assert.Equal(t, "12.3 ms", d)
 	d = formatDuration(123.4567)
 	assert.Equal(t, "123 ms", d)
+}
+
+func TestGenerateTableFull(t *testing.T) {
+	measurement := getPingGetMeasurementMultipleLocations(MeasurementID1)
+	ctx := getDefaultPingCtx(len(measurement.Results))
+	expectedTable := "\x1b[96m\x1b[96mLocation                                       \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
+		"EU, GB, London, ASN:0, OVH SAS                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	table := generateTable(measurement, ctx, 500)
+	assert.Equal(t, expectedTable, table)
+}
+
+func TestGenerateTableOneRowTruncated(t *testing.T) {
+	measurement := getPingGetMeasurementMultipleLocations(MeasurementID1)
+	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
+	ctx := getDefaultPingCtx(len(measurement.Results))
+	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
+		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"EU, DE, Falkenstein, ASN:0, 作者聚集的原创...  |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	table := generateTable(measurement, ctx, 106)
+	assert.Equal(t, expectedTable, table)
+}
+
+func TestGenerateTableMultiLineTruncated(t *testing.T) {
+	measurement := getPingGetMeasurementMultipleLocations(MeasurementID1)
+	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
+	ctx := getDefaultPingCtx(len(measurement.Results))
+	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
+		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"EU, DE, Falkenstein, ASN:0, Hetzner Online ... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Lorem ipsum                                    |      |         |          |          |          |         \n" +
+		"Lorem ipsum dolor sit amet                     |      |         |          |          |          |         \n" +
+		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	table := generateTable(measurement, ctx, 106)
+	assert.Equal(t, expectedTable, table)
+}
+
+func TestGenerateTableMaxTruncated(t *testing.T) {
+	measurement := getPingGetMeasurementMultipleLocations(MeasurementID1)
+	ctx := getDefaultPingCtx(len(measurement.Results))
+	expectedTable := "\x1b[96m\x1b[96mLoc...\x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
+		"EU,... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"EU,... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"EU,... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	table := generateTable(measurement, ctx, 0)
+	assert.Equal(t, expectedTable, table)
 }
 
 func TestUpdateMeasurementStats(t *testing.T) {
@@ -210,23 +222,15 @@ func TestGetRowValuesNoPacketsRcv(t *testing.T) {
 		Avg:  -1,
 		Max:  -1,
 	}
-	result := model.MeasurementResponse{
-		Probe: model.ProbeData{
-			Continent: "EU",
-			Country:   "GB",
-			City:      "London",
-			Network:   "OVH SAS",
-		},
-	}
-	rowValues := getRowValues(&result, &stats)
-	assert.Equal(t, []string{
-		"EU, GB, London, ASN:0, OVH SAS",
-		formatValue("1", 4, pterm.FgDefault),
-		formatValue("0.00%", 7, pterm.FgDefault),
-		formatValue("-", 8, pterm.FgDefault),
-		formatValue("-", 8, pterm.FgDefault),
-		formatValue("-", 8, pterm.FgDefault),
-		formatValue("-", 8, pterm.FgDefault),
+	rowValues := getRowValues(&stats)
+	assert.Equal(t, [7]string{
+		"",
+		"1",
+		"0.00%",
+		"-",
+		"-",
+		"-",
+		"-",
 	},
 		rowValues)
 }
@@ -241,23 +245,15 @@ func TestGetRowValues(t *testing.T) {
 		Avg:  8.3456,
 		Max:  123.4567,
 	}
-	result := model.MeasurementResponse{
-		Probe: model.ProbeData{
-			Continent: "EU",
-			Country:   "GB",
-			City:      "London",
-			Network:   "OVH SAS",
-		},
-	}
-	rowValues := getRowValues(&result, &stats)
-	assert.Equal(t, []string{
-		"EU, GB, London, ASN:0, OVH SAS",
-		formatValue("100", 4, pterm.FgDefault),
-		formatValue("10.00%", 7, pterm.FgDefault),
-		formatValue("12.3 ms", 8, pterm.FgDefault),
-		formatValue("1.23 ms", 8, pterm.FgDefault),
-		formatValue("8.35 ms", 8, pterm.FgDefault),
-		formatValue("123 ms", 8, pterm.FgDefault),
+	rowValues := getRowValues(&stats)
+	assert.Equal(t, [7]string{
+		"",
+		"100",
+		"10.00%",
+		"12.3 ms",
+		"1.23 ms",
+		"8.35 ms",
+		"123 ms",
 	},
 		rowValues)
 }

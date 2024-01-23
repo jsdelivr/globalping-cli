@@ -2,6 +2,7 @@ package view
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/jsdelivr/globalping-cli/model"
 )
@@ -115,4 +116,17 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 			},
 		},
 	}
+}
+
+func getDefaultPingCtx(size int) *model.Context {
+	ctx := &model.Context{
+		Stats: make([]model.MeasurementStats, size),
+	}
+	for i := range ctx.Stats {
+		ctx.Stats[i].Last = -1
+		ctx.Stats[i].Min = math.MaxFloat64
+		ctx.Stats[i].Avg = -1
+		ctx.Stats[i].Max = -1
+	}
+	return ctx
 }

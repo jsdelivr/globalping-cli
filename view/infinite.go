@@ -4,11 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/mattn/go-runewidth"
 	"github.com/pterm/pterm"
+)
+
+// Table defaults
+var (
+	colSeparator = " | "
 )
 
 func OutputInfinite(id string, ctx *model.Context) error {
@@ -90,58 +97,9 @@ func outputMultipleLocations(res *model.GetMeasurement, ctx *model.Context) erro
 			return errors.New("failed to start writer: " + err.Error())
 		}
 	}
-	tableData := pterm.TableData{
-		{
-			"Location",
-			formatValue("Sent", 4, pterm.FgLightCyan),
-			formatValue("Loss", 7, pterm.FgLightCyan),
-			formatValue("Last", 8, pterm.FgLightCyan),
-			formatValue("Min", 8, pterm.FgLightCyan),
-			formatValue("Avg", 8, pterm.FgLightCyan),
-			formatValue("Max", 8, pterm.FgLightCyan),
-		},
-	}
-	for i := range res.Results {
-		result := &res.Results[i]
-		localStats := &ctx.Stats[i]
-		updateMeasurementStats(localStats, result)
-		tableData = append(tableData, getRowValues(result, localStats))
-	}
-	t, err := pterm.DefaultTable.WithHasHeader().WithData(tableData).Srender()
-	if err != nil {
-		return err
-	}
-	ctx.Area.Update(t)
+	ctx.Area.Update(generateTable(res, ctx, pterm.GetTerminalWidth()-4))
 
 	return nil
-}
-
-func getRowValues(res *model.MeasurementResponse, stats *model.MeasurementStats) []string {
-	last := "-"
-	min := "-"
-	avg := "-"
-	max := "-"
-	if stats.Last != -1 {
-		last = formatDuration(stats.Last)
-	}
-	if stats.Min != math.MaxFloat64 {
-		min = formatDuration(stats.Min)
-	}
-	if stats.Avg != -1 {
-		avg = formatDuration(stats.Avg)
-	}
-	if stats.Max != -1 {
-		max = formatDuration(stats.Max)
-	}
-	return []string{
-		getLocationText(res),
-		formatValue(fmt.Sprintf("%d", stats.Sent), 4, pterm.FgDefault),
-		formatValue(fmt.Sprintf("%.2f", stats.Loss)+"%", 7, pterm.FgDefault),
-		formatValue(last, 8, pterm.FgDefault),
-		formatValue(min, 8, pterm.FgDefault),
-		formatValue(avg, 8, pterm.FgDefault),
-		formatValue(max, 8, pterm.FgDefault),
-	}
 }
 
 func formatDuration(ms float64) string {
@@ -154,11 +112,74 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func formatValue(v string, width int, color pterm.Color) string {
-	for len(v) < width {
-		v = " " + v
+func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int) string {
+	table := [][7]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
+	// Calculate max column width and max line width
+	// We handle multi-line values only for the first column
+	maxLineWidth := 0
+	colMax := [7]int{
+		len(table[0][0]),
+		4,
+		7,
+		8,
+		8,
+		8,
+		8,
 	}
-	return pterm.NewStyle(color).Sprint(v)
+	for i := 1; i < len(table[0]); i++ {
+		maxLineWidth += len(table[i]) + len(colSeparator)
+	}
+	for i := range res.Results {
+		result := &res.Results[i]
+		stats := &ctx.Stats[i]
+		updateMeasurementStats(stats, result)
+		row := getRowValues(stats)
+		rowWidth := 0
+		for j := 1; j < len(row); j++ {
+			rowWidth += len(row[j]) + len(colSeparator)
+			colMax[j] = max(colMax[j], len(row[j]))
+		}
+		maxLineWidth = max(maxLineWidth, rowWidth)
+		row[0] = getLocationText(result)
+		colMax[0] = max(colMax[0], len(row[0]))
+		table = append(table, row)
+	}
+	remainingWidth := max(areaWidth-maxLineWidth, 6) // Remaining width for first column
+	colMax[0] = min(colMax[0], remainingWidth)       // Truncate first column if necessary
+	// Generate table string
+	output := ""
+	for i := range table {
+		table[i][0] = strings.ReplaceAll(table[i][0], "\t", "  ") // Replace tabs with spaces
+		lines := strings.Split(table[i][0], "\n")                 // Split first column into lines
+		color := pterm.Reset                                      // No color
+		if i == 0 {
+			color = pterm.FgLightCyan
+		}
+		for k := range lines {
+			width := runewidth.StringWidth(lines[k])
+			if colMax[0] < width {
+				lines[k] = runewidth.FillRight(
+					runewidth.Truncate(lines[k], colMax[0], "..."),
+					colMax[0],
+				)
+			} else if colMax[0] > width {
+				lines[k] = runewidth.FillRight(lines[k], colMax[0])
+			}
+			if color != 0 {
+				lines[k] = pterm.NewStyle(color).Sprint(lines[k])
+			}
+		}
+		for j := 1; j < len(table[i]); j++ {
+			lines[0] += colSeparator + formatValue(table[i][j], color, colMax[j], j != 0)
+			for k := 1; k < len(lines); k++ {
+				lines[k] += colSeparator + formatValue("", 0, colMax[j], false)
+			}
+		}
+		for j := 0; j < len(lines); j++ {
+			output += lines[j] + "\n"
+		}
+	}
+	return output
 }
 
 func updateMeasurementStats(localStats *model.MeasurementStats, result *model.MeasurementResponse) error {
@@ -184,4 +205,46 @@ func updateMeasurementStats(localStats *model.MeasurementStats, result *model.Me
 	localStats.Lost += stats.Drop
 	localStats.Loss = float64(localStats.Lost) / float64(localStats.Sent) * 100
 	return nil
+}
+
+func getRowValues(stats *model.MeasurementStats) [7]string {
+	last := "-"
+	min := "-"
+	avg := "-"
+	max := "-"
+	if stats.Last != -1 {
+		last = formatDuration(stats.Last)
+	}
+	if stats.Min != math.MaxFloat64 {
+		min = formatDuration(stats.Min)
+	}
+	if stats.Avg != -1 {
+		avg = formatDuration(stats.Avg)
+	}
+	if stats.Max != -1 {
+		max = formatDuration(stats.Max)
+	}
+	return [7]string{
+		"",
+		fmt.Sprintf("%d", stats.Sent),
+		fmt.Sprintf("%.2f", stats.Loss) + "%",
+		last,
+		min,
+		avg,
+		max,
+	}
+}
+
+func formatValue(v string, color pterm.Color, width int, toRight bool) string {
+	for len(v) < width {
+		if toRight {
+			v = " " + v
+		} else {
+			v = v + " "
+		}
+	}
+	if color != 0 {
+		v = pterm.NewStyle(color).Sprint(v)
+	}
+	return v
 }

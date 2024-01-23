@@ -49,7 +49,8 @@ Examples:
 			return err
 		}
 		if ctx.Infinite {
-			ctx.Packets = 1
+			ctx.Limit = max(ctx.Limit, 5) // Limit to 5 probes
+			ctx.Packets = 16              // Default to 16 packets
 			for {
 				ctx.From, err = ping(cmd)
 				if err != nil {
