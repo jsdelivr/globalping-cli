@@ -60,7 +60,7 @@ Examples:
 			Options: &model.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
-				Packets:  packets,
+				Packets:  ctx.Packets,
 			},
 		}
 		isPreviousMeasurementId := false
@@ -97,5 +97,5 @@ func init() {
 	// mtr specific flags
 	mtrCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
 	mtrCmd.Flags().IntVar(&port, "port", 0, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
-	mtrCmd.Flags().IntVar(&packets, "packets", 0, "Specifies the number of packets to send to each hop (default 3)")
+	mtrCmd.Flags().IntVar(&ctx.Packets, "packets", 0, "Specifies the number of packets to send to each hop (default 3)")
 }

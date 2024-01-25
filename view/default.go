@@ -18,7 +18,7 @@ func OutputDefault(id string, data *model.GetMeasurement, ctx model.Context, m m
 		}
 
 		// Output slightly different format if state is available
-		fmt.Fprintln(os.Stderr, generateHeader(result, !ctx.CI))
+		fmt.Fprintln(os.Stderr, generateProbeInfo(result, !ctx.CI))
 
 		if isBodyOnlyHttpGet(ctx, m) {
 			fmt.Println(strings.TrimSpace(result.Result.RawBody))

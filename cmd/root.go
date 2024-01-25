@@ -14,7 +14,6 @@ var (
 	// cfgFile string
 
 	// Additional flags
-	packets   int
 	protocol  string
 	port      int
 	resolver  string

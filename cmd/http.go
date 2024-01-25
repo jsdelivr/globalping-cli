@@ -199,7 +199,6 @@ func buildHttpMeasurementRequest() (*model.PostMeasurement, error) {
 	opts.Options = &model.MeasurementOptions{
 		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
-		Packets:  packets,
 		Request: &model.RequestOptions{
 			Path:    overrideOpt(urlData.Path, httpCmdOpts.Path),
 			Query:   overrideOpt(urlData.Query, httpCmdOpts.Query),

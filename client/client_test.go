@@ -230,7 +230,7 @@ func testGetPing(t *testing.T) {
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "ping", res.Type)
-	assert.Equal(t, "finished", res.Status)
+	assert.Equal(t, model.StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-17T18:11:52.825Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-17T18:11:53.969Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -327,7 +327,7 @@ func testGetTraceroute(t *testing.T) {
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "traceroute", res.Type)
-	assert.Equal(t, "finished", res.Status)
+	assert.Equal(t, model.StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T07:55:23.414Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T07:55:25.496Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -405,7 +405,7 @@ func testGetDns(t *testing.T) {
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "dns", res.Type)
-	assert.Equal(t, "finished", res.Status)
+	assert.Equal(t, model.StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:00:37.431Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:00:37.640Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -421,7 +421,7 @@ func testGetDns(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "DNS", res.Results[0].Result.RawOutput)
-	assert.Equal(t, "finished", res.Results[0].Result.Status)
+	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings
@@ -529,7 +529,7 @@ func testGetMtr(t *testing.T) {
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "mtr", res.Type)
-	assert.Equal(t, "finished", res.Status)
+	assert.Equal(t, model.StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:08:25.187Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:08:29.829Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -545,7 +545,7 @@ func testGetMtr(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "MTR", res.Results[0].Result.RawOutput)
-	assert.Equal(t, "finished", res.Results[0].Result.Status)
+	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 }
 
@@ -636,7 +636,7 @@ func testGetHttp(t *testing.T) {
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "http", res.Type)
-	assert.Equal(t, "finished", res.Status)
+	assert.Equal(t, model.StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:16:11.335Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:16:12.548Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -652,7 +652,7 @@ func testGetHttp(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "HTTP", res.Results[0].Result.RawOutput)
-	assert.Equal(t, "finished", res.Results[0].Result.Status)
+	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings

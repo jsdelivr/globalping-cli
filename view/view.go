@@ -44,7 +44,7 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error 
 
 	if ctx.CI || ctx.JsonOutput || ctx.Latency {
 		// Poll API until the measurement is complete
-		for data.Status == "in-progress" {
+		for data.Status == model.StatusInProgress {
 			time.Sleep(apiPollInterval)
 			data, err = fetcher.GetMeasurement(id)
 			if err != nil {
@@ -98,7 +98,7 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 
 	// Poll API until the measurement is complete
-	for data.Status == "in-progress" {
+	for data.Status == model.StatusInProgress {
 		time.Sleep(apiPollInterval)
 		data, err = fetcher.GetMeasurement(id)
 		if err != nil {
@@ -112,7 +112,7 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 		for i := range data.Results {
 			result := &data.Results[i]
 			// Output slightly different format if state is available
-			output.WriteString(generateHeader(result, !ctx.CI) + "\n")
+			output.WriteString(generateProbeInfo(result, !ctx.CI) + "\n")
 
 			if isBodyOnlyHttpGet(ctx, m) {
 				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
@@ -168,8 +168,8 @@ func trimOutput(output string, terminalW, terminalH int) string {
 	return txt
 }
 
-// Generate header that also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
-func generateHeader(result *model.MeasurementResponse, useStyling bool) string {
+// Also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
+func generateProbeInfo(result *model.MeasurementResponse, useStyling bool) string {
 	var output strings.Builder
 
 	// Continent + Country + (State) + City + ASN + Network + (Region Tag)

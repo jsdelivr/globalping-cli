@@ -17,7 +17,7 @@ func getPingGetMeasurement(id string) *model.GetMeasurement {
 	return &model.GetMeasurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      "finished",
+		Status:      model.StatusFinished,
 		CreatedAt:   "2024-01-18T14:09:41.250Z",
 		UpdatedAt:   "2024-01-18T14:09:41.488Z",
 		Target:      "cdn.jsdelivr.net",
@@ -35,7 +35,7 @@ func getPingGetMeasurement(id string) *model.GetMeasurement {
 					Tags:      []string{"eyeball-network"},
 				},
 				Result: model.ResultData{
-					Status:           "finished",
+					Status:           model.StatusFinished,
 					RawOutput:        "PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.\n64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms\n\n--- jsdelivr.map.fastly.net ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 17.639/17.639/17.639/0.000 ms",
 					ResolvedAddress:  "151.101.1.229",
 					ResolvedHostname: "151.101.1.229",
@@ -51,7 +51,7 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 	return &model.GetMeasurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      "finished",
+		Status:      model.StatusFinished,
 		CreatedAt:   "2024-01-18T14:17:41.471Z",
 		UpdatedAt:   "2024-01-18T14:17:41.571Z",
 		Target:      "cdn.jsdelivr.net",
@@ -68,7 +68,7 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: model.ResultData{
-					Status:           "finished",
+					Status:           model.StatusFinished,
 					RawOutput:        "PING  (146.75.73.229) 56(84) bytes of data.\n64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=0.770 ms\n\n---  ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms",
 					ResolvedAddress:  "146.75.73.229",
 					ResolvedHostname: "146.75.73.229",
@@ -87,7 +87,7 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: model.ResultData{
-					Status:           "finished",
+					Status:           model.StatusFinished,
 					RawOutput:        "PING  (104.16.85.20) 56(84) bytes of data.\n64 bytes from 104.16.85.20 (104.16.85.20): icmp_seq=1 ttl=55 time=5.46 ms\n\n---  ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 5.457/5.457/5.457/0.000 ms",
 					ResolvedAddress:  "104.16.85.20",
 					ResolvedHostname: "104.16.85.20",
@@ -106,7 +106,7 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: model.ResultData{
-					Status:           "finished",
+					Status:           model.StatusFinished,
 					RawOutput:        "PING  (104.16.88.20) 56(84) bytes of data.\n64 bytes from 104.16.88.20 (104.16.88.20): icmp_seq=1 ttl=58 time=4.07 ms\n\n---  ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss, time 0ms\nrtt min/avg/max/mdev = 4.069/4.069/4.069/0.000 ms",
 					ResolvedAddress:  "104.16.88.20",
 					ResolvedHostname: "104.16.88.20",

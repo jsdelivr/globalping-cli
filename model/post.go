@@ -1,6 +1,6 @@
 package model
 
-// Modeled from https://github.com/jsdelivr/globalping/blob/master/docs/measurement/post-create.md
+// Docs: https://www.jsdelivr.com/docs/api.globalping.io
 
 // Nested structs
 type Locations struct {

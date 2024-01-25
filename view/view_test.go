@@ -27,17 +27,17 @@ var (
 )
 
 func TestHeadersBase(t *testing.T) {
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateHeader(&testResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateProbeInfo(&testResult, !testContext.CI))
 }
 
 func TestHeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
 
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateHeader(&newResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateProbeInfo(&newResult, !testContext.CI))
 
 	newResult.Probe.Tags = []string{"tag", "tag2"}
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateHeader(&newResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateProbeInfo(&newResult, !testContext.CI))
 }
 
 func TestTrimOutput(t *testing.T) {

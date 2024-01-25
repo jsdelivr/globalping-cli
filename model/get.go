@@ -2,7 +2,7 @@ package model
 
 import "encoding/json"
 
-// Modeled from https://www.jsdelivr.com/docs/api.globalping.io
+// Docs: https://www.jsdelivr.com/docs/api.globalping.io
 
 type ProbeData struct {
 	Continent string   `json:"continent"`
@@ -15,15 +15,24 @@ type ProbeData struct {
 	Tags      []string `json:"tags,omitempty"`
 }
 
+type MeasurementStatus string
+
+const (
+	StatusInProgress MeasurementStatus = "in-progress"
+	StatusFailed     MeasurementStatus = "failed"
+	StatusOffline    MeasurementStatus = "offline"
+	StatusFinished   MeasurementStatus = "finished"
+)
+
 type ResultData struct {
-	Status           string          `json:"status"`
-	RawOutput        string          `json:"rawOutput"`
-	RawHeaders       string          `json:"rawHeaders"`
-	RawBody          string          `json:"rawBody"`
-	ResolvedAddress  string          `json:"resolvedAddress"`
-	ResolvedHostname string          `json:"resolvedHostname"`
-	StatsRaw         json.RawMessage `json:"stats,omitempty"`
-	TimingsRaw       json.RawMessage `json:"timings,omitempty"`
+	Status           MeasurementStatus `json:"status"`
+	RawOutput        string            `json:"rawOutput"`
+	RawHeaders       string            `json:"rawHeaders"`
+	RawBody          string            `json:"rawBody"`
+	ResolvedAddress  string            `json:"resolvedAddress"`
+	ResolvedHostname string            `json:"resolvedHostname"`
+	StatsRaw         json.RawMessage   `json:"stats,omitempty"`
+	TimingsRaw       json.RawMessage   `json:"timings,omitempty"`
 }
 
 type PingStats struct {
@@ -64,7 +73,7 @@ type MeasurementResponse struct {
 type GetMeasurement struct {
 	ID          string                `json:"id"`
 	Type        string                `json:"type"`
-	Status      string                `json:"status"`
+	Status      MeasurementStatus     `json:"status"`
 	CreatedAt   string                `json:"createdAt"`
 	UpdatedAt   string                `json:"updatedAt"`
 	Target      string                `json:"target"`

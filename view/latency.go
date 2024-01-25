@@ -18,7 +18,7 @@ func OutputLatency(id string, data *model.GetMeasurement, ctx model.Context) err
 			fmt.Println()
 		}
 
-		fmt.Fprintln(os.Stderr, generateHeader(&result, !ctx.CI))
+		fmt.Fprintln(os.Stderr, generateProbeInfo(&result, !ctx.CI))
 
 		switch ctx.Cmd {
 		case "ping":
