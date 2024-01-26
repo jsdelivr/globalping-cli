@@ -28,7 +28,7 @@ func OutputInfinite(id string, ctx *model.Context) error {
 	}
 	// Probe may not have started yet
 	for len(res.Results) == 0 {
-		time.Sleep(apiPollInterval)
+		time.Sleep(ctx.APIMinInterval)
 		res, err = fetcher.GetMeasurement(id)
 		if err != nil {
 			return err
@@ -37,7 +37,7 @@ func OutputInfinite(id string, ctx *model.Context) error {
 
 	if ctx.Latency || ctx.JsonOutput {
 		for res.Status == model.StatusInProgress {
-			time.Sleep(apiPollInterval)
+			time.Sleep(ctx.APIMinInterval)
 			res, err = fetcher.GetMeasurement(res.ID)
 			if err != nil {
 				return err
@@ -46,7 +46,6 @@ func OutputInfinite(id string, ctx *model.Context) error {
 		if ctx.Latency {
 			return OutputLatency(id, res, *ctx)
 		}
-
 		if ctx.JsonOutput {
 			return OutputJson(id, fetcher, *ctx)
 		}
@@ -95,7 +94,7 @@ func outputSingleLocation(
 		if res.Status != model.StatusInProgress {
 			break
 		}
-		time.Sleep(apiPollInterval)
+		time.Sleep(ctx.APIMinInterval)
 		res, err = fetcher.GetMeasurement(res.ID)
 		if err != nil {
 			return err
@@ -132,7 +131,7 @@ func outputMultipleLocations(
 		if res.Status != model.StatusInProgress {
 			break
 		}
-		time.Sleep(apiPollInterval)
+		time.Sleep(ctx.APIMinInterval)
 		res, err = fetcher.GetMeasurement(res.ID)
 		if err != nil {
 			return err
@@ -256,7 +255,9 @@ func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.Mea
 	}
 	mStats.Sent += pStats.Total
 	mStats.Lost += pStats.Drop
-	mStats.Loss = float64(mStats.Lost) / float64(mStats.Sent) * 100
+	if mStats.Sent > 0 {
+		mStats.Loss = float64(mStats.Lost) / float64(mStats.Sent) * 100
+	}
 	return &mStats, nil
 }
 

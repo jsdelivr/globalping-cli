@@ -23,8 +23,6 @@ var (
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
-var apiPollInterval = 500 * time.Millisecond
-
 func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error {
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 
@@ -35,7 +33,7 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error 
 	}
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
-		time.Sleep(apiPollInterval)
+		time.Sleep(ctx.APIMinInterval)
 		data, err = fetcher.GetMeasurement(id)
 		if err != nil {
 			return err
@@ -45,7 +43,7 @@ func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error 
 	if ctx.CI || ctx.JsonOutput || ctx.Latency {
 		// Poll API until the measurement is complete
 		for data.Status == model.StatusInProgress {
-			time.Sleep(apiPollInterval)
+			time.Sleep(ctx.APIMinInterval)
 			data, err = fetcher.GetMeasurement(id)
 			if err != nil {
 				return err
@@ -99,7 +97,7 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 
 	// Poll API until the measurement is complete
 	for data.Status == model.StatusInProgress {
-		time.Sleep(apiPollInterval)
+		time.Sleep(ctx.APIMinInterval)
 		data, err = fetcher.GetMeasurement(id)
 		if err != nil {
 			return fmt.Errorf("failed to get data: %v", err)

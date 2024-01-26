@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/lib"
 	"github.com/jsdelivr/globalping-cli/model"
@@ -23,7 +24,9 @@ var (
 	httpCmdOpts *HttpCmdOpts
 
 	opts = model.PostMeasurement{}
-	ctx  = model.Context{}
+	ctx  = model.Context{
+		APIMinInterval: 500 * time.Millisecond,
+	}
 )
 
 // rootCmd represents the base command when called without any subcommands

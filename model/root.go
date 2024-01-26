@@ -1,6 +1,10 @@
 package model
 
-import "github.com/pterm/pterm"
+import (
+	"time"
+
+	"github.com/pterm/pterm"
+)
 
 // Used in thc client TUI
 type Context struct {
@@ -19,8 +23,9 @@ type Context struct {
 	Share      bool // Display share message
 	Infinite   bool // Infinite flag
 
-	Area  *pterm.AreaPrinter
-	Stats []MeasurementStats
+	APIMinInterval time.Duration // Minimum interval between API calls
+	Area           *pterm.AreaPrinter
+	Stats          []MeasurementStats
 }
 
 type MeasurementStats struct {
