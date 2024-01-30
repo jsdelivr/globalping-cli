@@ -9,7 +9,7 @@ import (
 
 var (
 	measurementID1 = "nzGzfAGL7sZfUs3c"
-	// measurementID2 = "A2ZfUs3cnzGzfAGL"
+	measurementID2 = "A2ZfUs3cnzGzfAGL"
 	// measurementID3 = "7sZfUs3cnzGz1I20"
 )
 
@@ -40,7 +40,7 @@ func getPingGetMeasurement(id string) *model.GetMeasurement {
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
 
 --- jsdelivr.map.fastly.net ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 0ms
+1 packets transmitted, 1 received, 0% packet loss, time 1000ms
 rtt min/avg/max/mdev = 17.639/17.639/17.639/0.000 ms`,
 					ResolvedAddress:  "151.101.1.229",
 					ResolvedHostname: "151.101.1.229",
@@ -78,8 +78,8 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=0.770 ms
 
 --  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 0ms
-rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms`,
+1 packets transmitted, 1 received, 0% packet loss, time 1ms
+rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 					ResolvedAddress:  "146.75.73.229",
 					ResolvedHostname: "146.75.73.229",
 					StatsRaw:         json.RawMessage(`{"min":0.77,"avg":0.77,"max":0.77,"total":1,"rcv":1,"drop":0,"loss":0}`),
@@ -102,8 +102,8 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms`,
 64 bytes from 104.16.85.20 (104.16.85.20): icmp_seq=1 ttl=55 time=5.46 ms
 
 ---  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 0ms
-rtt min/avg/max/mdev = 5.457/5.457/5.457/0.000 ms`,
+1 packets transmitted, 1 received, 0% packet loss, time 2ms
+rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 					ResolvedAddress:  "104.16.85.20",
 					ResolvedHostname: "104.16.85.20",
 					StatsRaw:         json.RawMessage(`{"min":5.457,"avg":5.457,"max":5.457,"total":1,"rcv":1,"drop":0,"loss":0}`),
@@ -126,8 +126,8 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.000 ms`,
 64 bytes from 104.16.88.20 (104.16.88.20): icmp_seq=1 ttl=58 time=4.07 ms
 
 ---  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 0ms
-rtt min/avg/max/mdev = 4.069/4.069/4.069/0.000 ms`,
+1 packets transmitted, 1 received, 0% packet loss, time 3ms
+rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
 					ResolvedAddress:  "104.16.88.20",
 					ResolvedHostname: "104.16.88.20",
 					StatsRaw:         json.RawMessage(`{"min":4.069,"avg":4.069,"max":4.069,"total":1,"rcv":1,"drop":0,"loss":0}`),
@@ -140,13 +140,15 @@ rtt min/avg/max/mdev = 4.069/4.069/4.069/0.000 ms`,
 
 func getDefaultPingCtx(size int) *model.Context {
 	ctx := &model.Context{
-		Stats: make([]model.MeasurementStats, size),
+		Cmd:            "ping",
+		APIMinInterval: 0,
+		CompletedStats: make([]model.MeasurementStats, size),
 	}
-	for i := range ctx.Stats {
-		ctx.Stats[i].Last = -1
-		ctx.Stats[i].Min = math.MaxFloat64
-		ctx.Stats[i].Avg = -1
-		ctx.Stats[i].Max = -1
+	for i := range ctx.CompletedStats {
+		ctx.CompletedStats[i].Last = -1
+		ctx.CompletedStats[i].Min = math.MaxFloat64
+		ctx.CompletedStats[i].Avg = -1
+		ctx.CompletedStats[i].Max = -1
 	}
 	return ctx
 }

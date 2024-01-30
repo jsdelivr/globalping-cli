@@ -43,6 +43,7 @@ type PingStats struct {
 	Rcv   int     `json:"rcv"`   // The number of received packets.
 	Drop  int     `json:"drop"`  // The number of dropped packets (total - rcv).
 	Loss  float64 `json:"loss"`  // The percentage of dropped packets.
+	Mdev  float64 `json:"mdev"`  // The mean deviation of the rtt values.
 }
 
 type PingTiming struct {

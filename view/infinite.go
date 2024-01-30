@@ -21,6 +21,11 @@ var (
 )
 
 func OutputInfinite(id string, ctx *model.Context) error {
+	if ctx.History == nil {
+		ctx.History = model.NewRbuffer(ctx.MaxHistory)
+	}
+	ctx.History.Push(id)
+
 	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
 	res, err := fetcher.GetMeasurement(id)
 	if err != nil {
@@ -57,13 +62,59 @@ func OutputInfinite(id string, ctx *model.Context) error {
 	return outputMultipleLocations(fetcher, res, ctx)
 }
 
+func OutputSummary(ctx *model.Context) {
+	if len(ctx.InProgressStats) == 0 {
+		return
+	}
+
+	if len(ctx.InProgressStats) == 1 {
+		stats := ctx.InProgressStats[0]
+
+		fmt.Printf("\n--- %s ping statistics ---\n", ctx.Hostname)
+		fmt.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",
+			stats.Sent,
+			stats.Rcv,
+			stats.Loss,
+			stats.Time,
+		)
+		// TODO: Add mdev
+		min := "-"
+		avg := "-"
+		max := "-"
+		if stats.Min != math.MaxFloat64 {
+			min = fmt.Sprintf("%.3f", stats.Min)
+		}
+		if stats.Avg != -1 {
+			avg = fmt.Sprintf("%.3f", stats.Avg)
+		}
+		if stats.Max != -1 {
+			max = fmt.Sprintf("%.3f", stats.Max)
+		}
+		fmt.Printf("rtt min/avg/max = %s/%s/%s ms\n", min, avg, max)
+	}
+
+	if ctx.Share && ctx.History != nil {
+		if len(ctx.InProgressStats) > 1 {
+			fmt.Println()
+		}
+		ids := ctx.History.ToString("+")
+		if ids != "" {
+			fmt.Println(formatWithLeadingArrow(shareMessage(ids), !ctx.CI))
+		}
+		if ctx.CallCount > ctx.MaxHistory {
+			fmt.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n", ctx.Packets*ctx.MaxHistory)
+		}
+	}
+}
+
 func outputSingleLocation(
 	fetcher client.MeasurementsFetcher,
 	res *model.GetMeasurement,
 	ctx *model.Context,
 ) error {
-	if len(ctx.Stats) == 0 {
-		ctx.Stats = make([]model.MeasurementStats, 1)
+	if len(ctx.CompletedStats) == 0 {
+		ctx.CompletedStats = []model.MeasurementStats{model.NewMeasurementStats()}
+		ctx.InProgressStats = []model.MeasurementStats{model.NewMeasurementStats()}
 	}
 	printHeader := true
 	linesPrinted := 0
@@ -71,15 +122,14 @@ func outputSingleLocation(
 	for {
 		measurement := &res.Results[0]
 		if measurement.Result.RawOutput != "" {
-			parsedOutput, err := parsePingRawOutput(measurement, ctx.Stats[0].Sent)
-			if err != nil {
-				return err
-			}
-			if printHeader && ctx.Stats[0].Sent == 0 {
+			parsedOutput := parsePingRawOutput(measurement, ctx.CompletedStats[0].Sent)
+			if printHeader && ctx.CompletedStats[0].Sent == 0 {
+				ctx.Hostname = parsedOutput.Hostname
 				fmt.Println(generateProbeInfo(measurement, !ctx.CI))
-				fmt.Printf("PING %s (%s) 56(84) bytes of data.\n",
-					measurement.Result.ResolvedHostname,
-					measurement.Result.ResolvedAddress,
+				fmt.Printf("PING %s (%s) %s bytes of data.\n",
+					parsedOutput.Hostname,
+					parsedOutput.Address,
+					parsedOutput.BytesOfData,
 				)
 				printHeader = false
 			}
@@ -87,8 +137,9 @@ func outputSingleLocation(
 				fmt.Println(parsedOutput.RawPacketLines[linesPrinted])
 				linesPrinted++
 			}
+			ctx.InProgressStats[0] = mergeMeasurementStats(ctx.CompletedStats[0], measurement)
 			if res.Status != model.StatusInProgress {
-				ctx.Stats[0].Sent += parsedOutput.Stats.Total
+				ctx.CompletedStats[0] = ctx.InProgressStats[0]
 			}
 		}
 		if res.Status != model.StatusInProgress {
@@ -108,14 +159,14 @@ func outputMultipleLocations(
 	res *model.GetMeasurement,
 	ctx *model.Context) error {
 	var err error
-	if len(ctx.Stats) == 0 {
+	if len(ctx.CompletedStats) == 0 {
 		// Initialize state
-		ctx.Stats = make([]model.MeasurementStats, len(res.Results))
-		for i := range ctx.Stats {
-			ctx.Stats[i].Last = -1
-			ctx.Stats[i].Min = math.MaxFloat64
-			ctx.Stats[i].Avg = -1
-			ctx.Stats[i].Max = -1
+		ctx.CompletedStats = make([]model.MeasurementStats, len(res.Results))
+		for i := range ctx.CompletedStats {
+			ctx.CompletedStats[i].Last = -1
+			ctx.CompletedStats[i].Min = math.MaxFloat64
+			ctx.CompletedStats[i].Avg = -1
+			ctx.CompletedStats[i].Max = -1
 		}
 		// Create new writer
 		ctx.Area, err = pterm.DefaultArea.Start()
@@ -124,11 +175,17 @@ func outputMultipleLocations(
 		}
 	}
 	for {
-		o := generateTable(res, ctx, pterm.GetTerminalWidth()-4)
+		o, stats := generateTable(res, ctx, pterm.GetTerminalWidth()-4)
 		if o != nil {
 			ctx.Area.Update(*o)
 		}
+		if stats != nil {
+			ctx.InProgressStats = stats
+		}
 		if res.Status != model.StatusInProgress {
+			if stats != nil {
+				ctx.CompletedStats = stats
+			}
 			break
 		}
 		time.Sleep(ctx.APIMinInterval)
@@ -150,7 +207,7 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int) *string {
+func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int) (*string, []model.MeasurementStats) {
 	table := [][7]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	// Calculate max column width and max line width
 	// We handle multi-line values only for the first column
@@ -160,17 +217,15 @@ func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int)
 		maxLineWidth += len(table[i]) + len(colSeparator)
 	}
 	skip := false
+	newStats := make([]model.MeasurementStats, len(res.Results))
 	for i := range res.Results {
 		measurement := &res.Results[i]
 		if measurement.Result.RawOutput == "" {
 			skip = true
 			break
 		}
-		stats, _ := mergeMeasurementStats(ctx.Stats[i], measurement)
-		if measurement.Result.Status != model.StatusInProgress {
-			ctx.Stats[i] = *stats
-		}
-		row := getRowValues(stats)
+		newStats[i] = mergeMeasurementStats(ctx.CompletedStats[i], measurement)
+		row := getRowValues(&newStats[i])
 		rowWidth := 0
 		for j := 1; j < len(row); j++ {
 			rowWidth += len(row[j]) + len(colSeparator)
@@ -182,7 +237,7 @@ func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int)
 		table = append(table, row)
 	}
 	if skip {
-		return nil
+		return nil, nil
 	}
 	remainingWidth := max(areaWidth-maxLineWidth, 6) // Remaining width for first column
 	colMax[0] = min(colMax[0], remainingWidth)       // Truncate first column if necessary
@@ -219,46 +274,30 @@ func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int)
 			output += lines[j] + "\n"
 		}
 	}
-	return &output
+	return &output, newStats
 }
 
-func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.MeasurementResponse) (*model.MeasurementStats, error) {
-	var pStats *model.PingStats
-	var timings []model.PingTiming
-	var err error
-	if measurement.Result.Status == model.StatusInProgress {
-		o, err := parsePingRawOutput(measurement, mStats.Sent)
-		if err != nil {
-			return nil, err
+func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.MeasurementResponse) model.MeasurementStats {
+	o := parsePingRawOutput(measurement, mStats.Sent)
+	if o.Stats.Rcv > 0 {
+		if o.Stats.Min < mStats.Min && o.Stats.Min != 0 {
+			mStats.Min = o.Stats.Min
 		}
-		pStats = o.Stats
-		timings = o.Timings
-	} else {
-		pStats, err = client.DecodePingStats(measurement.Result.StatsRaw)
-		if err != nil {
-			return nil, err
+		if o.Stats.Max > mStats.Max {
+			mStats.Max = o.Stats.Max
 		}
-		timings, err = client.DecodePingTimings(measurement.Result.TimingsRaw)
-		if err != nil {
-			return nil, err
-		}
+		mStats.Avg = (mStats.Avg*float64(mStats.Sent) + o.Stats.Avg*float64(o.Stats.Total)) / float64(mStats.Sent+o.Stats.Total)
+		mStats.Last = o.Timings[len(o.Timings)-1].RTT
 	}
-	if pStats.Rcv > 0 {
-		if pStats.Min < mStats.Min && pStats.Min != 0 {
-			mStats.Min = pStats.Min
-		}
-		if pStats.Max > mStats.Max {
-			mStats.Max = pStats.Max
-		}
-		mStats.Avg = (mStats.Avg*float64(mStats.Sent) + pStats.Avg*float64(pStats.Total)) / float64(mStats.Sent+pStats.Total)
-		mStats.Last = timings[len(timings)-1].RTT
-	}
-	mStats.Sent += pStats.Total
-	mStats.Lost += pStats.Drop
+	mStats.Sent += o.Stats.Total
+	mStats.Lost += o.Stats.Drop
+	mStats.Time += o.Time
+	mStats.Rcv += o.Stats.Rcv
 	if mStats.Sent > 0 {
 		mStats.Loss = float64(mStats.Lost) / float64(mStats.Sent) * 100
 	}
-	return &mStats, nil
+	// TODO: Add mdev
+	return mStats
 }
 
 func getRowValues(stats *model.MeasurementStats) [7]string {
@@ -304,27 +343,17 @@ func formatValue(v string, color pterm.Color, width int, toRight bool) string {
 }
 
 type ParsedPingOutput struct {
+	Hostname       string
+	Address        string
+	BytesOfData    string
 	RawPacketLines []string
 	Timings        []model.PingTiming
 	Stats          *model.PingStats
+	Time           float64
 }
 
 // If startIncmpSeq is -1, RawPacketLines will be empty
-func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) (*ParsedPingOutput, error) {
-	scanner := bufio.NewScanner(strings.NewReader(m.Result.RawOutput))
-	scanner.Scan()
-	header := scanner.Text()
-	words := strings.Split(header, " ")
-	if len(words) > 2 {
-		m.Result.ResolvedHostname = words[1]
-		if len(words[2]) < 2 {
-			return nil, errors.New("could not parse ping header")
-		}
-		m.Result.ResolvedAddress = words[2][1 : len(words[2])-1]
-	} else {
-		return nil, errors.New("could not parse ping header")
-	}
-
+func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]model.PingTiming, 0),
 		Stats: &model.PingStats{
@@ -333,6 +362,20 @@ func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) (*Parse
 			Avg: -1,
 		},
 	}
+	scanner := bufio.NewScanner(strings.NewReader(m.Result.RawOutput))
+	scanner.Scan()
+	header := scanner.Text()
+	words := strings.Split(header, " ")
+	if len(words) > 2 {
+		res.Hostname = words[1]
+		if len(words[2]) > 1 && words[2][0] == '(' {
+			res.Address = words[2][1 : len(words[2])-1]
+		} else {
+			res.Address = words[2]
+		}
+		res.BytesOfData = words[3]
+	}
+
 	sentMap := make([]bool, 0)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -342,14 +385,13 @@ func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) (*Parse
 		// Find icmp_seq
 		icmp_seq := -1
 		icmp_seq_index := 0
-		var err error
 		words := strings.Split(line, " ")
 		for icmp_seq_index < len(words) {
 			if strings.HasPrefix(words[icmp_seq_index], "icmp_seq=") {
-				icmp_seq, err = strconv.Atoi(words[icmp_seq_index][9:])
-				icmp_seq-- // icmp_seq starts at 1
+				n, err := strconv.Atoi(words[icmp_seq_index][9:])
 				if err != nil {
-					return nil, errors.New("could not parse ping header: " + err.Error())
+				} else {
+					icmp_seq = n - 1 // icmp_seq starts at 1
 				}
 				break
 			}
@@ -398,34 +440,36 @@ func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) (*Parse
 	if !hasSummary {
 		res.Stats.Drop = res.Stats.Total - res.Stats.Rcv
 		res.Stats.Loss = float64(res.Stats.Drop) / float64(res.Stats.Total) * 100
-		return res, nil
+		return res
 	}
 	scanner.Scan() // skip ---  ping statistics ---
 	line := scanner.Text()
 	words = strings.Split(line, " ")
 	if len(words) < 3 {
-		return res, nil
+		return res
 	}
 	if words[1] == "packets" && words[2] == "transmitted," {
 		res.Stats.Total, _ = strconv.Atoi(words[0])
 		res.Stats.Rcv, _ = strconv.Atoi(words[3])
 		res.Stats.Loss, _ = strconv.ParseFloat(words[5][:len(words[5])-1], 64)
 		res.Stats.Drop = res.Stats.Total - res.Stats.Rcv
+		res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
 	}
 	hasSummary = scanner.Scan()
 	if !hasSummary {
-		return res, nil
+		return res
 	}
 	line = scanner.Text()
 	words = strings.Split(line, " ")
 	if len(words) < 2 {
-		return res, nil
+		return res
 	}
 	if words[0] == "rtt" && words[1] == "min/avg/max/mdev" {
 		words = strings.Split(words[3], "/")
 		res.Stats.Min, _ = strconv.ParseFloat(words[0], 64)
 		res.Stats.Avg, _ = strconv.ParseFloat(words[1], 64)
 		res.Stats.Max, _ = strconv.ParseFloat(words[2], 64)
+		res.Stats.Mdev, _ = strconv.ParseFloat(words[3], 64)
 	}
-	return res, nil
+	return res
 }

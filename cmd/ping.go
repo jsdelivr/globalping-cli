@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jsdelivr/globalping-cli/client"
 	"github.com/jsdelivr/globalping-cli/model"
@@ -49,18 +52,39 @@ Examples:
 			return err
 		}
 		if ctx.Infinite {
-			ctx.Limit = min(ctx.Limit, 5) // Limit to 5 probes
-			ctx.Packets = 16              // Default to 16 packets
-			for {
-				ctx.From, err = ping(cmd)
-				if err != nil {
-					return err
-				}
-			}
+			return infinitePing(cmd)
 		}
 		_, err = ping(cmd)
 		return err
 	},
+}
+
+func infinitePing(cmd *cobra.Command) error {
+	var err error
+	if ctx.Limit > 5 {
+		return fmt.Errorf("continous mode is currently limited to 5 probes")
+	}
+	ctx.Packets = 16 // Default to 16 packets
+
+	// Trap sigterm or interupt to display info on exit
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		for {
+			ctx.From, err = ping(cmd)
+			if err != nil {
+				sig <- syscall.SIGINT
+				return
+			}
+		}
+	}()
+
+	<-sig
+	if err == nil {
+		view.OutputSummary(&ctx)
+	}
+	return err
 }
 
 func ping(cmd *cobra.Command) (string, error) {
@@ -87,6 +111,8 @@ func ping(cmd *cobra.Command) (string, error) {
 		}
 		return "", err
 	}
+
+	ctx.CallCount++
 
 	// Save measurement ID to history
 	if !isPreviousMeasurementId {

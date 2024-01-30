@@ -26,6 +26,7 @@ var (
 	opts = model.PostMeasurement{}
 	ctx  = model.Context{
 		APIMinInterval: 500 * time.Millisecond,
+		MaxHistory:     10,
 	}
 )
 
