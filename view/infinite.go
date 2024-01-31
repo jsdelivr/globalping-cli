@@ -40,7 +40,7 @@ func OutputInfinite(id string, ctx *model.Context) error {
 		}
 	}
 
-	if ctx.Latency || ctx.JsonOutput {
+	if ctx.JsonOutput {
 		for res.Status == model.StatusInProgress {
 			time.Sleep(ctx.APIMinInterval)
 			res, err = fetcher.GetMeasurement(res.ID)
@@ -48,18 +48,16 @@ func OutputInfinite(id string, ctx *model.Context) error {
 				return err
 			}
 		}
-		if ctx.Latency {
-			return OutputLatency(id, res, *ctx)
-		}
-		if ctx.JsonOutput {
-			return OutputJson(id, fetcher, *ctx)
-		}
+		return OutputJson(id, fetcher, *ctx)
 	}
 
 	if len(res.Results) == 1 {
-		return outputSingleLocation(fetcher, res, ctx)
+		if ctx.Latency {
+			return outputTableView(fetcher, res, ctx)
+		}
+		return outputStreamingPackets(fetcher, res, ctx)
 	}
-	return outputMultipleLocations(fetcher, res, ctx)
+	return outputTableView(fetcher, res, ctx)
 }
 
 func OutputSummary(ctx *model.Context) {
@@ -77,10 +75,10 @@ func OutputSummary(ctx *model.Context) {
 			stats.Loss,
 			stats.Time,
 		)
-		// TODO: Add mdev
 		min := "-"
 		avg := "-"
 		max := "-"
+		mdev := "-"
 		if stats.Min != math.MaxFloat64 {
 			min = fmt.Sprintf("%.3f", stats.Min)
 		}
@@ -90,7 +88,10 @@ func OutputSummary(ctx *model.Context) {
 		if stats.Max != -1 {
 			max = fmt.Sprintf("%.3f", stats.Max)
 		}
-		fmt.Printf("rtt min/avg/max = %s/%s/%s ms\n", min, avg, max)
+		if stats.Mdev != 0 {
+			mdev = fmt.Sprintf("%.3f", stats.Mdev)
+		}
+		fmt.Printf("rtt min/avg/max/mdev = %s/%s/%s/%s ms\n", min, avg, max, mdev)
 	}
 
 	if ctx.Share && ctx.History != nil {
@@ -107,7 +108,7 @@ func OutputSummary(ctx *model.Context) {
 	}
 }
 
-func outputSingleLocation(
+func outputStreamingPackets(
 	fetcher client.MeasurementsFetcher,
 	res *model.GetMeasurement,
 	ctx *model.Context,
@@ -154,7 +155,7 @@ func outputSingleLocation(
 	return nil
 }
 
-func outputMultipleLocations(
+func outputTableView(
 	fetcher client.MeasurementsFetcher,
 	res *model.GetMeasurement,
 	ctx *model.Context) error {
@@ -286,7 +287,20 @@ func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.Mea
 		if o.Stats.Max > mStats.Max {
 			mStats.Max = o.Stats.Max
 		}
-		mStats.Avg = (mStats.Avg*float64(mStats.Sent) + o.Stats.Avg*float64(o.Stats.Total)) / float64(mStats.Sent+o.Stats.Total)
+		combinedRcv := mStats.Rcv + o.Stats.Rcv
+		combinedMean := (mStats.Avg*float64(mStats.Rcv) + o.Stats.Avg*float64(o.Stats.Rcv)) / float64(combinedRcv)
+		d1 := mStats.Avg - combinedMean
+		d2 := o.Stats.Avg - combinedMean
+		if mStats.Mdev == 0 {
+			mStats.Mdev = o.Stats.Mdev
+		} else if o.Stats.Mdev != 0 {
+			mStats.Mdev = math.Sqrt(
+				(float64(mStats.Rcv)*(mStats.Mdev*mStats.Mdev) +
+					float64(o.Stats.Rcv)*(o.Stats.Mdev*o.Stats.Mdev) +
+					float64(mStats.Rcv)*(d1*d1) +
+					float64(o.Stats.Rcv)*(d2*d2)) / float64(combinedRcv))
+		}
+		mStats.Avg = combinedMean
 		mStats.Last = o.Timings[len(o.Timings)-1].RTT
 	}
 	mStats.Sent += o.Stats.Total
@@ -296,7 +310,6 @@ func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.Mea
 	if mStats.Sent > 0 {
 		mStats.Loss = float64(mStats.Lost) / float64(mStats.Sent) * 100
 	}
-	// TODO: Add mdev
 	return mStats
 }
 

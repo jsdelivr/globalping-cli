@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOutputSingleLocationInProgress(t *testing.T) {
+func TestStreamingPacketsInProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -73,7 +73,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	}()
 	os.Stdout = w
 
-	err = outputSingleLocation(fetcher, measurement, ctx)
+	err = outputStreamingPackets(fetcher, measurement, ctx)
 	w.Close()
 	os.Stdout = osStdOut
 
@@ -92,12 +92,12 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	)
 
 	assert.Equal(t,
-		[]model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 2002}},
+		[]model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 2002, Mdev: 0.321}},
 		ctx.CompletedStats,
 	)
 }
 
-func TestOutputSingleLocationMultipleCalls(t *testing.T) {
+func TestStreamingPacketsMultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -123,11 +123,11 @@ func TestOutputSingleLocationMultipleCalls(t *testing.T) {
 	}()
 	os.Stdout = w
 
-	err = outputSingleLocation(fetcher, measurement, ctx)
+	err = outputStreamingPackets(fetcher, measurement, ctx)
 	assert.NoError(t, err)
-	err = outputSingleLocation(fetcher, measurement, ctx)
+	err = outputStreamingPackets(fetcher, measurement, ctx)
 	assert.NoError(t, err)
-	err = outputSingleLocation(fetcher, measurement, ctx)
+	err = outputStreamingPackets(fetcher, measurement, ctx)
 	assert.NoError(t, err)
 	w.Close()
 	os.Stdout = osStdOut
@@ -149,7 +149,7 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.Equal(t, expectedStats, ctx.CompletedStats)
 }
 
-func TestOutputMultipleLocationsInProgress(t *testing.T) {
+func TestOutputTableViewMultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -211,13 +211,13 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	}()
 	os.Stdout = w
 
-	err = outputMultipleLocations(fetcher, res, ctx)
+	err = outputTableView(fetcher, res, ctx)
 	assert.NoError(t, err)
 
 	firstCallStats := []model.MeasurementStats{
-		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 2002},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 2002, Mdev: 0.321},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 	}
 	assert.Equal(t, firstCallStats, ctx.InProgressStats)
 	assert.Equal(t, firstCallStats, ctx.CompletedStats)
@@ -230,7 +230,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	callCount++
 	expectedTables[3], _ = generateTable(res, expectedCtx, 76)
-	err = outputMultipleLocations(fetcher, res, ctx)
+	err = outputTableView(fetcher, res, ctx)
 	assert.NoError(t, err)
 	w.Close()
 
@@ -239,9 +239,9 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.NoError(t, err)
 
 	secondCallStats := []model.MeasurementStats{
-		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 4004},
-		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 4},
-		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 6},
+		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Time: 4004, Mdev: 0.321},
+		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 4, Mdev: 0.002},
+		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 6, Mdev: 0.003},
 	}
 	assert.Equal(t, secondCallStats, ctx.InProgressStats)
 	assert.Equal(t, secondCallStats, ctx.CompletedStats)
@@ -269,7 +269,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.Equal(t, string(expectedOutput), string(output))
 }
 
-func TestOutputMultipleLocations(t *testing.T) {
+func TestOutputTableView(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -293,7 +293,7 @@ func TestOutputMultipleLocations(t *testing.T) {
 	}()
 	os.Stdout = w
 
-	err = outputMultipleLocations(fetcher, measurement, ctx)
+	err = outputTableView(fetcher, measurement, ctx)
 	assert.NoError(t, err)
 	w.Close()
 
@@ -326,9 +326,9 @@ func TestOutputMultipleLocations(t *testing.T) {
 	assert.Equal(t, string(expectedOutput), string(output))
 	assert.Equal(t,
 		[]model.MeasurementStats{
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1},
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1, Mdev: 0.001},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 		},
 		ctx.CompletedStats,
 	)
@@ -376,7 +376,7 @@ func TestOutputSummary(t *testing.T) {
 
 		ctx := &model.Context{
 			InProgressStats: []model.MeasurementStats{
-				{Sent: 10, Rcv: 9, Lost: 1, Loss: 10, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1000},
+				{Sent: 10, Rcv: 9, Lost: 1, Loss: 10, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1000, Mdev: 0.001},
 			},
 		}
 		os.Stdout = w
@@ -390,7 +390,7 @@ func TestOutputSummary(t *testing.T) {
 		assert.Equal(t, `
 ---  ping statistics ---
 10 packets transmitted, 9 received, 10.00% packet loss, time 1000ms
-rtt min/avg/max = 0.770/0.770/0.770 ms
+rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms
 `,
 			string(output))
 	})
@@ -424,7 +424,7 @@ rtt min/avg/max = 0.770/0.770/0.770 ms
 		assert.Equal(t, `
 ---  ping statistics ---
 1 packets transmitted, 0 received, 100.00% packet loss, time 0ms
-rtt min/avg/max = -/-/- ms
+rtt min/avg/max/mdev = -/-/-/- ms
 `,
 			string(output))
 	})
@@ -494,7 +494,7 @@ rtt min/avg/max = -/-/- ms
 		expectedOutput := `
 ---  ping statistics ---
 1 packets transmitted, 0 received, 100.00% packet loss, time 0ms
-rtt min/avg/max = -/-/- ms
+rtt min/avg/max/mdev = -/-/-/- ms
 ` + formatWithLeadingArrow(shareMessage(measurementID1), true) + "\n"
 
 		assert.Equal(t, expectedOutput, string(output))
@@ -600,9 +600,9 @@ func TestGenerateTableFull(t *testing.T) {
 	table, stats := generateTable(measurement, ctx, 500)
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, []model.MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1, Mdev: 0.001},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 	}, stats)
 }
 
@@ -617,9 +617,9 @@ func TestGenerateTableOneRowTruncated(t *testing.T) {
 	table, stats := generateTable(measurement, ctx, 106)
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, []model.MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1, Mdev: 0.001},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 	}, stats)
 }
 
@@ -636,9 +636,9 @@ func TestGenerateTableMultiLineTruncated(t *testing.T) {
 	table, stats := generateTable(measurement, ctx, 106)
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, []model.MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1, Mdev: 0.001},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 	}, stats)
 }
 
@@ -652,9 +652,9 @@ func TestGenerateTableMaxTruncated(t *testing.T) {
 	table, stats := generateTable(measurement, ctx, 0)
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, []model.MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1, Mdev: 0.001},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Time: 2, Mdev: 0.002},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Time: 3, Mdev: 0.003},
 	}, stats)
 }
 
@@ -709,7 +709,24 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 		model.MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
 		&result)
 	assert.Equal(t,
-		model.MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 1.11, Min: 1.061, Avg: 1.09, Max: 1.108, Time: 1002},
+		model.MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 1.11, Min: 1.061, Avg: 1.09, Max: 1.108, Time: 1002, Mdev: 0.020},
+		newStats,
+	)
+	result = model.MeasurementResponse{
+		Result: model.ResultData{
+			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
+64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=1 ms
+
+---  ping statistics ---
+20 packets transmitted, 20 received, 0% packet loss, time 1000ms
+rtt min/avg/max/mdev = 10/30/40/5 ms`,
+		},
+	}
+	newStats = mergeMeasurementStats(
+		model.MeasurementStats{Sent: 30, Rcv: 30, Lost: 0, Loss: 0, Last: 10, Min: 10, Avg: 20, Max: 30, Mdev: 4},
+		&result)
+	assert.Equal(t,
+		model.MeasurementStats{Sent: 50, Rcv: 50, Lost: 0, Loss: 0, Last: 1, Min: 10, Avg: 24, Max: 40, Time: 1000, Mdev: 6.603029607687671},
 		newStats,
 	)
 }
