@@ -135,5 +135,5 @@ func init() {
 
 	// ping specific flags
 	pingCmd.Flags().IntVar(&ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	pingCmd.Flags().BoolVar(&ctx.Infinite, "infinite", false, "Continuously send ping request to a target (default false)")
+	pingCmd.Flags().BoolVar(&ctx.Infinite, "infinite", false, "Keep pinging the target continuously until stopped (default false)")
 }
