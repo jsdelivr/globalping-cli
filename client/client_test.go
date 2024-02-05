@@ -154,9 +154,6 @@ func testGetValid(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-
-	t.Logf("%+v", res)
-
 	assert.Equal(t, "abcd", res.ID)
 }
 

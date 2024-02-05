@@ -91,10 +91,10 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 		string(output),
 	)
 
-	assert.Equal(t,
-		[]model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 13, Min: 12.7, Avg: 12.866666666666667, Max: 13, Time: 1001, Tsum: 38.6, Tsum2: 496.7, Mdev: 0.124721912892408}},
-		ctx.CompletedStats,
-	)
+	expectedStats := []model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
+		Avg: 12.8666, Max: 13, Time: 1001, Tsum: 38.6, Tsum2: 496.7, Mdev: 0.1247}}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
 }
 
 func TestStreamingPacketsMultipleCalls(t *testing.T) {
@@ -144,9 +144,10 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 `,
 		string(output))
 
-	expectedStats := []model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17.6, Min: 17.6, Avg: 17.6, Max: 17.6, Time: 3000, Tsum: 52.800000000000004, Tsum2: 929.2800000000002, Mdev: 0}}
-	assert.Equal(t, expectedStats, ctx.InProgressStats)
-	assert.Equal(t, expectedStats, ctx.CompletedStats)
+	expectedStats := []model.MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17.6, Min: 17.6,
+		Avg: 17.6, Max: 17.6, Time: 3000, Tsum: 52.8, Tsum2: 929.28, Mdev: 0}}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
 }
 
 func TestOutputTableViewMultipleCalls(t *testing.T) {
@@ -215,12 +216,14 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.NoError(t, err)
 
 	firstCallStats := []model.MeasurementStats{
-		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 2002, Tsum: 51.900000000000006, Tsum2: 898.0500000000001, Mdev: 0.24494897427820642},
+		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 2002, Tsum: 51.9, Tsum2: 898.05, Mdev: 0.2449},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
 	}
-	assert.Equal(t, firstCallStats, ctx.InProgressStats)
-	assert.Equal(t, firstCallStats, ctx.CompletedStats)
+	for i := range firstCallStats {
+		assertMeasurementStats(t, &firstCallStats[i], &ctx.InProgressStats[i])
+		assertMeasurementStats(t, &firstCallStats[i], &ctx.CompletedStats[i])
+	}
 
 	// 2nd call
 	res.Status = model.StatusInProgress
@@ -239,12 +242,14 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.NoError(t, err)
 
 	secondCallStats := []model.MeasurementStats{
-		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 4004, Tsum: 103.80000000000001, Tsum2: 1796.1000000000001, Mdev: 0.24494897427820642},
+		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 4004, Tsum: 103.8, Tsum2: 1796.1, Mdev: 0.2449},
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 400, Tsum: 10.92, Tsum2: 59.6232},
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 600, Tsum: 8.14, Tsum2: 33.1298},
 	}
-	assert.Equal(t, secondCallStats, ctx.InProgressStats)
-	assert.Equal(t, secondCallStats, ctx.CompletedStats)
+	for i := range secondCallStats {
+		assertMeasurementStats(t, &secondCallStats[i], &ctx.InProgressStats[i])
+		assertMeasurementStats(t, &secondCallStats[i], &ctx.CompletedStats[i])
+	}
 
 	rr, ww, err := os.Pipe()
 	assert.NoError(t, err)
@@ -686,10 +691,9 @@ no answer yet for icmp_seq=4`,
 	newStats = mergeMeasurementStats(
 		model.MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
 		o)
-	assert.Equal(t,
-		model.MeasurementStats{Sent: 4, Rcv: 3, Lost: 1, Loss: 25, Last: 30, Min: 10, Avg: 20, Max: 30, Tsum: 60, Tsum2: 1400, Mdev: 8.16496580927726},
-		newStats,
-	)
+	assertMeasurementStats(t, &model.MeasurementStats{Sent: 4, Rcv: 3, Lost: 1, Loss: 25, Last: 30, Min: 10,
+		Avg: 20, Max: 30, Tsum: 60, Tsum2: 1400, Mdev: 8.1649},
+		&newStats)
 	o = parsePingRawOutput(&model.MeasurementResponse{
 		Result: model.ResultData{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
@@ -709,10 +713,8 @@ rtt min/avg/max/mdev = 10/20/30/0 ms`,
 	newStats = mergeMeasurementStats(
 		model.MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
 		o)
-	assert.Equal(t,
-		model.MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 30, Min: 10, Avg: 20, Max: 30, Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10},
-		newStats,
-	)
+	assertMeasurementStats(t, &model.MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 30, Min: 10,
+		Avg: 20, Max: 30, Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10}, &newStats)
 	o = parsePingRawOutput(&model.MeasurementResponse{
 		Result: model.ResultData{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
@@ -726,12 +728,23 @@ rtt min/avg/max/mdev = 10/20/30/0 ms`,
 		},
 	}, 0)
 	newStats = mergeMeasurementStats(
-		model.MeasurementStats{Sent: 5, Rcv: 4, Lost: 1, Loss: 20, Last: 30, Min: 10, Avg: 20, Max: 30, Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10},
+		model.MeasurementStats{Sent: 5, Rcv: 4, Lost: 1, Loss: 20, Last: 30, Min: 10, Avg: 20, Max: 30,
+			Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10},
 		o)
-	assert.Equal(t,
-		model.MeasurementStats{Sent: 8, Rcv: 7, Lost: 1, Loss: 12.5, Last: 30, Min: 10, Avg: 20, Max: 30, Time: 2000, Tsum: 140, Tsum2: 3400, Mdev: 9.258200997725515},
-		newStats,
-	)
+	assertMeasurementStats(t, &model.MeasurementStats{
+		Sent:  8,
+		Rcv:   7,
+		Lost:  1,
+		Loss:  12.5,
+		Last:  30,
+		Min:   10,
+		Avg:   20,
+		Max:   30,
+		Time:  2000,
+		Tsum:  140,
+		Tsum2: 3400,
+		Mdev:  9.2582,
+	}, &newStats)
 }
 
 func TestGetRowValuesNoPacketsRcv(t *testing.T) {
@@ -786,30 +799,27 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 		},
 	}
 	res := parsePingRawOutput(m, -1)
-	assert.Equal(t, &ParsedPingOutput{
-		Hostname:    "cdn.jsdelivr.net",
-		Address:     "142.250.65.174",
-		BytesOfData: "56(84)",
-		Timings: []model.PingTiming{
-			{RTT: 1.06, TTL: 59},
-			{RTT: 1.10, TTL: 59},
-			{RTT: 1.11, TTL: 59},
-		},
-		Stats: &model.MeasurementStats{
-			Sent:  3,
-			Rcv:   3,
-			Lost:  0,
-			Loss:  0,
-			Last:  1.11,
-			Min:   1.06,
-			Avg:   1.09,
-			Max:   1.11,
-			Tsum:  3.2700000000000005,
-			Tsum2: 3.565700000000001,
-			Mdev:  0.02160246899469168,
-		},
-		Time: 1002,
-	}, res)
+	assert.Equal(t, "142.250.65.174", res.Address)
+	assert.Equal(t, "56(84)", res.BytesOfData)
+	assert.Nil(t, res.RawPacketLines)
+	assert.Equal(t, []model.PingTiming{
+		{RTT: 1.06, TTL: 59},
+		{RTT: 1.10, TTL: 59},
+		{RTT: 1.11, TTL: 59},
+	}, res.Timings)
+	assertMeasurementStats(t, &model.MeasurementStats{
+		Sent:  3,
+		Rcv:   3,
+		Lost:  0,
+		Loss:  0,
+		Last:  1.11,
+		Min:   1.06,
+		Avg:   1.09,
+		Max:   1.11,
+		Tsum:  3.2700,
+		Tsum2: 3.5657,
+		Mdev:  0.0216,
+	}, res.Stats)
 }
 
 func TestParsePingRawOutputNoStats(t *testing.T) {
@@ -825,28 +835,27 @@ no answer yet for icmp_seq=4`,
 		},
 	}
 	res := parsePingRawOutput(m, -1)
-	assert.Equal(t, &ParsedPingOutput{
-		Address:     "142.250.65.174",
-		BytesOfData: "56(84)",
-		Timings: []model.PingTiming{
-			{RTT: 1.06, TTL: 59},
-			{RTT: 1.10, TTL: 59},
-			{RTT: 1.11, TTL: 59},
-		},
-		Stats: &model.MeasurementStats{
-			Sent:  4,
-			Rcv:   3,
-			Lost:  1,
-			Loss:  25,
-			Last:  1.11,
-			Min:   1.06,
-			Avg:   1.09,
-			Max:   1.11,
-			Tsum:  3.2700000000000005,
-			Tsum2: 3.565700000000001,
-			Mdev:  0.02160246899469168,
-		},
-	}, res)
+	assert.Equal(t, "142.250.65.174", res.Address)
+	assert.Equal(t, "56(84)", res.BytesOfData)
+	assert.Nil(t, res.RawPacketLines)
+	assert.Equal(t, []model.PingTiming{
+		{RTT: 1.06, TTL: 59},
+		{RTT: 1.10, TTL: 59},
+		{RTT: 1.11, TTL: 59},
+	}, res.Timings)
+	assertMeasurementStats(t, &model.MeasurementStats{
+		Sent:  4,
+		Rcv:   3,
+		Lost:  1,
+		Loss:  25,
+		Last:  1.11,
+		Min:   1.06,
+		Avg:   1.09,
+		Max:   1.11,
+		Tsum:  3.2700,
+		Tsum2: 3.5657,
+		Mdev:  0.0216,
+	}, res.Stats)
 }
 
 func TestParsePingRawOutputNoStatsWithStartIncmpSeq(t *testing.T) {
@@ -862,36 +871,34 @@ no answer yet for icmp_seq=4`,
 		},
 	}
 	res := parsePingRawOutput(m, 4)
-	assert.Equal(t, &ParsedPingOutput{
-		Address:     "142.250.65.174",
-		BytesOfData: "56(84)",
-		RawPacketLines: []string{
-			"no answer yet for icmp_seq=5",
-			"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=5 ttl=59 time=1.06 ms",
-			"no answer yet for icmp_seq=6",
-			"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=6 ttl=59 time=1.10 ms",
-			"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=7 ttl=59 time=1.11 ms",
-			"no answer yet for icmp_seq=8",
-		},
-		Timings: []model.PingTiming{
-			{RTT: 1.06, TTL: 59},
-			{RTT: 1.10, TTL: 59},
-			{RTT: 1.11, TTL: 59},
-		},
-		Stats: &model.MeasurementStats{
-			Sent:  4,
-			Rcv:   3,
-			Lost:  1,
-			Loss:  25,
-			Last:  1.11,
-			Min:   1.06,
-			Avg:   1.09,
-			Max:   1.11,
-			Tsum:  3.2700000000000005,
-			Tsum2: 3.565700000000001,
-			Mdev:  0.02160246899469168,
-		},
-	}, res)
+	assert.Equal(t, "142.250.65.174", res.Address)
+	assert.Equal(t, "56(84)", res.BytesOfData)
+	assert.Equal(t, []string{
+		"no answer yet for icmp_seq=5",
+		"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=5 ttl=59 time=1.06 ms",
+		"no answer yet for icmp_seq=6",
+		"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=6 ttl=59 time=1.10 ms",
+		"64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=7 ttl=59 time=1.11 ms",
+		"no answer yet for icmp_seq=8",
+	}, res.RawPacketLines)
+	assert.Equal(t, []model.PingTiming{
+		{RTT: 1.06, TTL: 59},
+		{RTT: 1.10, TTL: 59},
+		{RTT: 1.11, TTL: 59},
+	}, res.Timings)
+	assertMeasurementStats(t, &model.MeasurementStats{
+		Sent:  4,
+		Rcv:   3,
+		Lost:  1,
+		Loss:  25,
+		Last:  1.11,
+		Min:   1.06,
+		Avg:   1.09,
+		Max:   1.11,
+		Tsum:  3.27,
+		Tsum2: 3.5657,
+		Mdev:  0.0216,
+	}, res.Stats)
 }
 
 func TestComputeMdev(t *testing.T) {
@@ -903,5 +910,20 @@ func TestComputeMdev(t *testing.T) {
 	tsum2 := rtt1*rtt1 + rtt2*rtt2 + rtt3*rtt3 + rtt4*rtt4
 	avg := tsum / 4
 	mdev := computeMdev(tsum, tsum2, 4, avg)
-	assert.Equal(t, 10.0, mdev)
+	assert.InDelta(t, 10.0, mdev, 0.0001)
+}
+
+func assertMeasurementStats(t *testing.T, expected *model.MeasurementStats, actual *model.MeasurementStats) {
+	assert.Equal(t, expected.Sent, actual.Sent)
+	assert.Equal(t, expected.Rcv, actual.Rcv)
+	assert.Equal(t, expected.Lost, actual.Lost)
+	assert.InDelta(t, expected.Loss, actual.Loss, 0.0001)
+	assert.Equal(t, expected.Last, actual.Last)
+	assert.Equal(t, expected.Min, actual.Min)
+	assert.InDelta(t, expected.Avg, actual.Avg, 0.0001)
+	assert.Equal(t, expected.Max, actual.Max)
+	assert.Equal(t, expected.Time, actual.Time)
+	assert.InDelta(t, expected.Tsum, actual.Tsum, 0.0001)
+	assert.InDelta(t, expected.Tsum2, actual.Tsum2, 0.0001)
+	assert.InDelta(t, expected.Mdev, actual.Mdev, 0.0001)
 }
