@@ -97,12 +97,17 @@ func ping(cmd *cobra.Command) (string, error) {
 			Packets: ctx.Packets,
 		},
 	}
-	locations, isPreviousMeasurementId, err := createLocations(ctx.From)
-	if err != nil {
-		cmd.SilenceUsage = true
-		return "", err
+	var err error
+	isPreviousMeasurementId := true
+	if ctx.CallCount == 0 {
+		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
+		if err != nil {
+			cmd.SilenceUsage = true
+			return "", err
+		}
+	} else {
+		opts.Locations = []model.Locations{{Magic: ctx.From}}
 	}
-	opts.Locations = locations
 
 	res, showHelp, err := client.PostAPI(opts)
 	if err != nil {

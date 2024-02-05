@@ -138,7 +138,7 @@ func outputStreamingPackets(
 				fmt.Println(parsedOutput.RawPacketLines[linesPrinted])
 				linesPrinted++
 			}
-			ctx.InProgressStats[0] = mergeMeasurementStats(ctx.CompletedStats[0], measurement)
+			ctx.InProgressStats[0] = mergeMeasurementStats(ctx.CompletedStats[0], parsedOutput)
 			if res.Status != model.StatusInProgress {
 				ctx.CompletedStats[0] = ctx.InProgressStats[0]
 			}
@@ -176,7 +176,7 @@ func outputTableView(
 		}
 	}
 	for {
-		o, stats := generateTable(res, ctx, pterm.GetTerminalWidth()-4)
+		o, stats := generateTable(res, ctx, pterm.GetTerminalWidth()-2)
 		if o != nil {
 			ctx.Area.Update(*o)
 		}
@@ -225,7 +225,8 @@ func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int)
 			skip = true
 			break
 		}
-		newStats[i] = mergeMeasurementStats(ctx.CompletedStats[i], measurement)
+		parsedOutput := parsePingRawOutput(measurement, ctx.CompletedStats[i].Sent)
+		newStats[i] = mergeMeasurementStats(ctx.CompletedStats[i], parsedOutput)
 		row := getRowValues(&newStats[i])
 		rowWidth := 0
 		for j := 1; j < len(row); j++ {
@@ -278,39 +279,28 @@ func generateTable(res *model.GetMeasurement, ctx *model.Context, areaWidth int)
 	return &output, newStats
 }
 
-func mergeMeasurementStats(mStats model.MeasurementStats, measurement *model.MeasurementResponse) model.MeasurementStats {
-	o := parsePingRawOutput(measurement, mStats.Sent)
+func mergeMeasurementStats(stats model.MeasurementStats, o *ParsedPingOutput) model.MeasurementStats {
 	if o.Stats.Rcv > 0 {
-		if o.Stats.Min < mStats.Min && o.Stats.Min != 0 {
-			mStats.Min = o.Stats.Min
+		if o.Stats.Min < stats.Min && o.Stats.Min != 0 {
+			stats.Min = o.Stats.Min
 		}
-		if o.Stats.Max > mStats.Max {
-			mStats.Max = o.Stats.Max
+		if o.Stats.Max > stats.Max {
+			stats.Max = o.Stats.Max
 		}
-		combinedRcv := mStats.Rcv + o.Stats.Rcv
-		combinedMean := (mStats.Avg*float64(mStats.Rcv) + o.Stats.Avg*float64(o.Stats.Rcv)) / float64(combinedRcv)
-		d1 := mStats.Avg - combinedMean
-		d2 := o.Stats.Avg - combinedMean
-		if mStats.Mdev == 0 {
-			mStats.Mdev = o.Stats.Mdev
-		} else if o.Stats.Mdev != 0 {
-			mStats.Mdev = math.Sqrt(
-				(float64(mStats.Rcv)*(mStats.Mdev*mStats.Mdev) +
-					float64(o.Stats.Rcv)*(o.Stats.Mdev*o.Stats.Mdev) +
-					float64(mStats.Rcv)*(d1*d1) +
-					float64(o.Stats.Rcv)*(d2*d2)) / float64(combinedRcv))
-		}
-		mStats.Avg = combinedMean
-		mStats.Last = o.Timings[len(o.Timings)-1].RTT
+		stats.Tsum += o.Stats.Tsum
+		stats.Tsum2 += o.Stats.Tsum2
+		stats.Rcv += o.Stats.Rcv
+		stats.Avg = stats.Tsum / float64(stats.Rcv)
+		stats.Mdev = computeMdev(stats.Tsum, stats.Tsum2, stats.Rcv, stats.Avg)
+		stats.Last = o.Timings[len(o.Timings)-1].RTT
 	}
-	mStats.Sent += o.Stats.Total
-	mStats.Lost += o.Stats.Drop
-	mStats.Time += o.Time
-	mStats.Rcv += o.Stats.Rcv
-	if mStats.Sent > 0 {
-		mStats.Loss = float64(mStats.Lost) / float64(mStats.Sent) * 100
+	stats.Sent += o.Stats.Sent
+	stats.Lost += o.Stats.Lost
+	stats.Time += o.Time
+	if stats.Sent > 0 {
+		stats.Loss = float64(stats.Lost) / float64(stats.Sent) * 100
 	}
-	return mStats
+	return stats
 }
 
 func getRowValues(stats *model.MeasurementStats) [7]string {
@@ -361,15 +351,19 @@ type ParsedPingOutput struct {
 	BytesOfData    string
 	RawPacketLines []string
 	Timings        []model.PingTiming
-	Stats          *model.PingStats
+	Stats          *model.MeasurementStats
 	Time           float64
 }
 
-// If startIncmpSeq is -1, RawPacketLines will be empty
+// Parse ping's raw output. Adapted from iputils ping: https://github.com/iputils/iputils/tree/1c08152/ping
+//
+// - If startIncmpSeq is -1, RawPacketLines will be empty
+//
+// - Stats.Time will be 0 if no summary is found
 func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]model.PingTiming, 0),
-		Stats: &model.PingStats{
+		Stats: &model.MeasurementStats{
 			Min: math.MaxFloat64,
 			Max: -1,
 			Avg: -1,
@@ -417,25 +411,22 @@ func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) *Parsed
 		if icmp_seq != -1 {
 			if words[1] == "bytes" && words[2] == "from" {
 				if !sentMap[icmp_seq] {
-					res.Stats.Total++
+					res.Stats.Sent++
 				}
 				res.Stats.Rcv++
 				ttl, _ := strconv.Atoi(words[icmp_seq_index+1][4:])
 				rtt, _ := strconv.ParseFloat(words[icmp_seq_index+2][5:], 64)
 				res.Stats.Min = math.Min(res.Stats.Min, rtt)
 				res.Stats.Max = math.Max(res.Stats.Max, rtt)
-				if res.Stats.Rcv == 1 {
-					res.Stats.Avg = rtt
-				} else {
-					res.Stats.Avg = (res.Stats.Avg*float64(res.Stats.Rcv-1) + rtt) / float64(res.Stats.Rcv)
-				}
+				res.Stats.Tsum += rtt
+				res.Stats.Tsum2 += rtt * rtt
 				res.Timings = append(res.Timings, model.PingTiming{
 					TTL: ttl,
 					RTT: rtt,
 				})
 			} else {
 				if !sentMap[icmp_seq] {
-					res.Stats.Total++
+					res.Stats.Sent++
 				}
 				sentMap[icmp_seq] = true
 			}
@@ -448,41 +439,37 @@ func parsePingRawOutput(m *model.MeasurementResponse, startIncmpSeq int) *Parsed
 			res.RawPacketLines = append(res.RawPacketLines, line)
 		}
 	}
-	// Parse summary
 	hasSummary := scanner.Scan()
-	if !hasSummary {
-		res.Stats.Drop = res.Stats.Total - res.Stats.Rcv
-		res.Stats.Loss = float64(res.Stats.Drop) / float64(res.Stats.Total) * 100
-		return res
+	if hasSummary {
+		// Parse summary
+		scanner.Scan() // skip ---  ping statistics ---
+		line := scanner.Text()
+		words = strings.Split(line, " ")
+		if len(words) < 3 {
+			return res
+		}
+		if words[1] == "packets" && words[2] == "transmitted," {
+			res.Stats.Sent, _ = strconv.Atoi(words[0])
+			res.Stats.Rcv, _ = strconv.Atoi(words[3])
+			res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
+		}
 	}
-	scanner.Scan() // skip ---  ping statistics ---
-	line := scanner.Text()
-	words = strings.Split(line, " ")
-	if len(words) < 3 {
-		return res
-	}
-	if words[1] == "packets" && words[2] == "transmitted," {
-		res.Stats.Total, _ = strconv.Atoi(words[0])
-		res.Stats.Rcv, _ = strconv.Atoi(words[3])
-		res.Stats.Loss, _ = strconv.ParseFloat(words[5][:len(words[5])-1], 64)
-		res.Stats.Drop = res.Stats.Total - res.Stats.Rcv
-		res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
-	}
-	hasSummary = scanner.Scan()
-	if !hasSummary {
-		return res
-	}
-	line = scanner.Text()
-	words = strings.Split(line, " ")
-	if len(words) < 2 {
-		return res
-	}
-	if words[0] == "rtt" && words[1] == "min/avg/max/mdev" {
-		words = strings.Split(words[3], "/")
-		res.Stats.Min, _ = strconv.ParseFloat(words[0], 64)
-		res.Stats.Avg, _ = strconv.ParseFloat(words[1], 64)
-		res.Stats.Max, _ = strconv.ParseFloat(words[2], 64)
-		res.Stats.Mdev, _ = strconv.ParseFloat(words[3], 64)
+	if res.Stats.Sent > 0 {
+		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv
+		res.Stats.Loss = float64(res.Stats.Lost) / float64(res.Stats.Sent) * 100
+		if res.Stats.Rcv > 0 {
+			res.Stats.Avg = res.Stats.Tsum / float64(res.Stats.Rcv)
+			res.Stats.Mdev = computeMdev(res.Stats.Tsum, res.Stats.Tsum2, res.Stats.Rcv, res.Stats.Avg)
+			res.Stats.Last = res.Timings[len(res.Timings)-1].RTT
+		}
 	}
 	return res
+}
+
+// https://github.com/iputils/iputils/tree/1c08152/ping/ping_common.c#L917
+func computeMdev(tsum float64, tsum2 float64, rcv int, avg float64) float64 {
+	if tsum < math.MaxInt32 {
+		return math.Sqrt((tsum2 - ((tsum * tsum) / float64(rcv))) / float64(rcv))
+	}
+	return math.Sqrt(tsum2/float64(rcv) - avg*avg)
 }

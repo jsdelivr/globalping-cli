@@ -78,7 +78,7 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=0.770 ms
 
 --  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 1ms
+1 packets transmitted, 1 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 					ResolvedAddress:  "146.75.73.229",
 					ResolvedHostname: "146.75.73.229",
@@ -102,7 +102,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 64 bytes from 104.16.85.20 (104.16.85.20): icmp_seq=1 ttl=55 time=5.46 ms
 
 ---  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 2ms
+1 packets transmitted, 1 received, 0% packet loss, time 200ms
 rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 					ResolvedAddress:  "104.16.85.20",
 					ResolvedHostname: "104.16.85.20",
@@ -126,7 +126,7 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 64 bytes from 104.16.88.20 (104.16.88.20): icmp_seq=1 ttl=58 time=4.07 ms
 
 ---  ping statistics ---
-1 packets transmitted, 1 received, 0% packet loss, time 3ms
+1 packets transmitted, 1 received, 0% packet loss, time 300ms
 rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
 					ResolvedAddress:  "104.16.88.20",
 					ResolvedHostname: "104.16.88.20",
