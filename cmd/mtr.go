@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
-	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/spf13/cobra"
 )
 
@@ -47,17 +45,17 @@ Examples:
 			return err
 		}
 
-		if ctx.Latency {
+		if ctx.ToLatency {
 			return fmt.Errorf("the latency flag is not supported by the mtr command")
 		}
 
 		// Make post struct
-		opts = model.PostMeasurement{
+		opts = globalping.MeasurementCreate{
 			Type:              "mtr",
 			Target:            ctx.Target,
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
-			Options: &model.MeasurementOptions{
+			Options: &globalping.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
 				Packets:  ctx.Packets,
@@ -70,7 +68,7 @@ Examples:
 			return err
 		}
 
-		res, showHelp, err := client.PostAPI(opts)
+		res, showHelp, err := gp.CreateMeasurement(&opts)
 		if err != nil {
 			if !showHelp {
 				cmd.SilenceUsage = true
@@ -86,7 +84,7 @@ Examples:
 			}
 		}
 
-		view.OutputResults(res.ID, ctx, opts)
+		viewer.Output(res.ID, &opts)
 		return nil
 	},
 }

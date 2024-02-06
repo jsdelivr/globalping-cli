@@ -1,4 +1,4 @@
-package model
+package view
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRBuffer(t *testing.T) {
+func Test_RBuffer(t *testing.T) {
 	t.Run("Push", func(t *testing.T) {
 		b := NewRbuffer(3)
 		assert.Equal(t, 0, b.Index)

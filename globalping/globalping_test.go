@@ -1,43 +1,18 @@
-package client_test
+package globalping
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/andybalholm/brotli"
+	"github.com/jsdelivr/globalping-cli/version"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// Generate server for testing
-func generateServer(json string) *httptest.Server {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusAccepted)
-		_, err := w.Write([]byte(json))
-		if err != nil {
-			panic(err)
-		}
-	}))
-	return server
-}
-
-func generateServerError(json string, statusCode int) *httptest.Server {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(statusCode)
-		_, err := w.Write([]byte(json))
-		if err != nil {
-			panic(err)
-		}
-	}))
-	return server
-}
-
-// Dummy interface since we have mock responses
-var opts = model.PostMeasurement{}
 
 // PostAPI tests
 func TestPostAPI(t *testing.T) {
@@ -59,9 +34,10 @@ func TestPostAPI(t *testing.T) {
 func testPostValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	res, showHelp, err := client.PostAPI(opts)
+	opts := &MeasurementCreate{}
+	res, showHelp, err := client.CreateMeasurement(opts)
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -76,9 +52,11 @@ func testPostNoProbes(t *testing.T) {
       "type": "no_probes_found"
     }}`, 422)
 	defer server.Close()
-	client.ApiUrl = server.URL
 
-	_, showHelp, err := client.PostAPI(opts)
+	client := NewClient(server.URL)
+	opts := &MeasurementCreate{}
+	_, showHelp, err := client.CreateMeasurement(opts)
+
 	assert.EqualError(t, err, "no suitable probes found - please choose a different location")
 	assert.True(t, showHelp)
 }
@@ -94,9 +72,10 @@ func testPostValidation(t *testing.T) {
         }
     }}`, 400)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	_, showHelp, err := client.PostAPI(opts)
+	opts := &MeasurementCreate{}
+	_, showHelp, err := client.CreateMeasurement(opts)
 
 	// Key order is not guaranteed
 	expectedErrV1 := `invalid parameters
@@ -119,9 +98,10 @@ func testPostInternalError(t *testing.T) {
       "type": "api_error"
     }}`, 500)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	_, showHelp, err := client.PostAPI(opts)
+	opts := &MeasurementCreate{}
+	_, showHelp, err := client.CreateMeasurement(opts)
 	assert.EqualError(t, err, "internal server error - please try again later")
 	assert.False(t, showHelp)
 }
@@ -146,11 +126,8 @@ func TestGetAPI(t *testing.T) {
 func testGetValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
-
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetMeasurement("abcd")
+	client := NewClient(server.URL)
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -160,11 +137,8 @@ func testGetValid(t *testing.T) {
 func testGetJson(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
-
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetRawMeasurement("abcd")
+	client := NewClient(server.URL)
+	res, err := client.GetRawMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
@@ -216,18 +190,16 @@ func testGetPing(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetMeasurement("abcd")
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "ping", res.Type)
-	assert.Equal(t, model.StatusFinished, res.Status)
+	assert.Equal(t, StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-17T18:11:52.825Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-17T18:11:53.969Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -244,7 +216,7 @@ func testGetPing(t *testing.T) {
 
 	assert.Equal(t, "PING", res.Results[0].Result.RawOutput)
 	assert.Equal(t, "1.1.1.1", res.Results[0].Result.ResolvedAddress)
-	stats, err := client.DecodePingStats(res.Results[0].Result.StatsRaw)
+	stats, err := DecodePingStats(res.Results[0].Result.StatsRaw)
 	assert.NoError(t, err)
 	assert.Equal(t, float64(27.088), stats.Avg)
 	assert.Equal(t, float64(28.193), stats.Max)
@@ -313,18 +285,17 @@ func testGetTraceroute(t *testing.T) {
 			]
 	}}]}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
 
-	fetcher := client.NewMeasurementsFetcher(server.URL)
+	client := NewClient(server.URL)
 
-	res, err := fetcher.GetMeasurement("abcd")
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "traceroute", res.Type)
-	assert.Equal(t, model.StatusFinished, res.Status)
+	assert.Equal(t, StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T07:55:23.414Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T07:55:25.496Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -391,18 +362,16 @@ func testGetDns(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetMeasurement("abcd")
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "dns", res.Type)
-	assert.Equal(t, model.StatusFinished, res.Status)
+	assert.Equal(t, StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:00:37.431Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:00:37.640Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -418,11 +387,11 @@ func testGetDns(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "DNS", res.Results[0].Result.RawOutput)
-	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
+	assert.Equal(t, StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings
-	timings, _ := client.DecodeDNSTimings(res.Results[0].Result.TimingsRaw)
+	timings, _ := DecodeDNSTimings(res.Results[0].Result.TimingsRaw)
 	assert.Equal(t, float64(15), timings.Total)
 }
 
@@ -515,18 +484,16 @@ func testGetMtr(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetMeasurement("abcd")
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "mtr", res.Type)
-	assert.Equal(t, model.StatusFinished, res.Status)
+	assert.Equal(t, StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:08:25.187Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:08:29.829Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -542,7 +509,7 @@ func testGetMtr(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "MTR", res.Results[0].Result.RawOutput)
-	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
+	assert.Equal(t, StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 }
 
@@ -622,18 +589,16 @@ func testGetHttp(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client.ApiUrl = server.URL
+	client := NewClient(server.URL)
 
-	fetcher := client.NewMeasurementsFetcher(server.URL)
-
-	res, err := fetcher.GetMeasurement("abcd")
+	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
 	}
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, "http", res.Type)
-	assert.Equal(t, model.StatusFinished, res.Status)
+	assert.Equal(t, StatusFinished, res.Status)
 	assert.Equal(t, "2023-02-23T08:16:11.335Z", res.CreatedAt)
 	assert.Equal(t, "2023-02-23T08:16:12.548Z", res.UpdatedAt)
 	assert.Equal(t, 1, res.ProbesCount)
@@ -649,15 +614,133 @@ func testGetHttp(t *testing.T) {
 	assert.Equal(t, 0, len(res.Results[0].Probe.Tags))
 
 	assert.Equal(t, "HTTP", res.Results[0].Result.RawOutput)
-	assert.Equal(t, model.StatusFinished, res.Results[0].Result.Status)
+	assert.Equal(t, StatusFinished, res.Results[0].Result.Status)
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 
 	// Test timings
-	timings, _ := client.DecodeHTTPTimings(res.Results[0].Result.TimingsRaw)
+	timings, _ := DecodeHTTPTimings(res.Results[0].Result.TimingsRaw)
 	assert.Equal(t, 583, timings.Total)
 	assert.Equal(t, 18, timings.Download)
 	assert.Equal(t, 450, timings.FirstByte)
 	assert.Equal(t, 24, timings.DNS)
 	assert.Equal(t, 70, timings.TLS)
 	assert.Equal(t, 19, timings.TCP)
+}
+
+func TestFetchWithEtag(t *testing.T) {
+	id1 := "123abc"
+	id2 := "567xyz"
+
+	cacheMissCount := 0
+	cacheHitCount := 0
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(r.URL.Path, "/")
+		id := parts[len(parts)-1]
+
+		etag := func(id string) string {
+			return "etag-" + id
+		}
+
+		if r.Header.Get("If-None-Match") == etag(id) {
+			// cache hit
+			cacheHitCount++
+			w.Header().Set("ETag", etag(id))
+			w.WriteHeader(http.StatusNotModified)
+
+			return
+		}
+
+		// cache miss, return full response
+		cacheMissCount++
+		m := &Measurement{
+			ID: id,
+		}
+
+		w.Header().Set("ETag", etag(id))
+
+		err := json.NewEncoder(w).Encode(m)
+		assert.NoError(t, err)
+	}))
+
+	client := NewClient(s.URL)
+
+	// first request for id1
+	m, err := client.GetMeasurement(id1)
+	assert.NoError(t, err)
+
+	assert.Equal(t, id1, m.ID)
+
+	// first request for id1
+	m, err = client.GetMeasurement(id2)
+	assert.NoError(t, err)
+
+	assert.Equal(t, id2, m.ID)
+
+	// second request for id1
+	m, err = client.GetMeasurement(id2)
+	assert.NoError(t, err)
+
+	assert.Equal(t, id2, m.ID)
+
+	assert.Equal(t, 1, cacheHitCount)
+	assert.Equal(t, 2, cacheMissCount)
+}
+
+func TestFetchWithBrotli(t *testing.T) {
+	id := "123abc"
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parts := strings.Split(r.URL.Path, "/")
+		id := parts[len(parts)-1]
+
+		assert.Equal(t, "br", r.Header.Get("Accept-Encoding"))
+
+		m := &Measurement{
+			ID: id,
+		}
+
+		w.Header().Set("Content-Encoding", "br")
+
+		rW := brotli.NewWriter(w)
+		defer rW.Close()
+
+		err := json.NewEncoder(rW).Encode(m)
+		assert.NoError(t, err)
+	}))
+
+	client := NewClient(s.URL)
+
+	m, err := client.GetMeasurement(id)
+	assert.NoError(t, err)
+
+	assert.Equal(t, id, m.ID)
+}
+
+func TestUserAgent(t *testing.T) {
+	version.Version = "x.y.z"
+	assert.Equal(t, "globalping-cli/vx.y.z (https://github.com/jsdelivr/globalping-cli)", userAgent())
+}
+
+// Generate server for testing
+func generateServer(json string) *httptest.Server {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+		_, err := w.Write([]byte(json))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	return server
+}
+
+func generateServerError(json string, statusCode int) *httptest.Server {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(statusCode)
+		_, err := w.Write([]byte(json))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	return server
 }

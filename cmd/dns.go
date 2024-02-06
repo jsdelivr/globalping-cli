@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
-	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/spf13/cobra"
 )
 
@@ -61,16 +59,16 @@ Using the dig format @resolver. For example:
 		}
 
 		// Make post struct
-		opts = model.PostMeasurement{
+		opts = globalping.MeasurementCreate{
 			Type:              "dns",
 			Target:            ctx.Target,
 			Limit:             ctx.Limit,
 			InProgressUpdates: inProgressUpdates(ctx.CI),
-			Options: &model.MeasurementOptions{
+			Options: &globalping.MeasurementOptions{
 				Protocol: protocol,
 				Port:     port,
 				Resolver: overrideOpt(ctx.Resolver, resolver),
-				Query: &model.QueryOptions{
+				Query: &globalping.QueryOptions{
 					Type: queryType,
 				},
 				Trace: trace,
@@ -83,7 +81,7 @@ Using the dig format @resolver. For example:
 			return err
 		}
 
-		res, showHelp, err := client.PostAPI(opts)
+		res, showHelp, err := gp.CreateMeasurement(&opts)
 		if err != nil {
 			if !showHelp {
 				cmd.SilenceUsage = true
@@ -99,7 +97,7 @@ Using the dig format @resolver. For example:
 			}
 		}
 
-		view.OutputResults(res.ID, ctx, opts)
+		viewer.Output(res.ID, &opts)
 		return nil
 	},
 }

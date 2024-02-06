@@ -1,3 +1,3 @@
 rm -rf mocks/mock_*.go
 
-bin/mockgen -source client/measurements_fetcher.go -destination mocks/mock_measurements_fetcher.go -package mocks
+bin/mockgen -source globalping/globalping.go -destination mocks/mock_globalping.go -package mocks

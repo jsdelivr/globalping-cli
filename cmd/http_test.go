@@ -3,7 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,7 +80,7 @@ func TestParseHttpHeaders_Invalid(t *testing.T) {
 }
 
 func TestBuildHttpMeasurementRequest_FULL(t *testing.T) {
-	ctx = model.Context{
+	ctx = &view.Context{
 		Target: "https://example.com/my/path?x=123&yz=abc",
 		From:   "london",
 		Full:   true,
@@ -92,14 +93,14 @@ func TestBuildHttpMeasurementRequest_FULL(t *testing.T) {
 	m, err := buildHttpMeasurementRequest()
 	assert.NoError(t, err)
 
-	expectedM := &model.PostMeasurement{
+	expectedM := &globalping.MeasurementCreate{
 		Limit:             0,
 		Type:              "http",
 		Target:            "example.com",
 		InProgressUpdates: true,
-		Options: &model.MeasurementOptions{
+		Options: &globalping.MeasurementOptions{
 			Protocol: "https",
-			Request: &model.RequestOptions{
+			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
 				Host:    "example.com",
@@ -113,11 +114,11 @@ func TestBuildHttpMeasurementRequest_FULL(t *testing.T) {
 
 	// restore
 	httpCmdOpts = &HttpCmdOpts{}
-	ctx = model.Context{}
+	ctx = &view.Context{}
 }
 
 func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
-	ctx = model.Context{
+	ctx = &view.Context{
 		Target: "https://example.com/my/path?x=123&yz=abc",
 		From:   "london",
 	}
@@ -129,14 +130,14 @@ func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	m, err := buildHttpMeasurementRequest()
 	assert.NoError(t, err)
 
-	expectedM := &model.PostMeasurement{
+	expectedM := &globalping.MeasurementCreate{
 		Limit:             0,
 		Type:              "http",
 		Target:            "example.com",
 		InProgressUpdates: true,
-		Options: &model.MeasurementOptions{
+		Options: &globalping.MeasurementOptions{
 			Protocol: "https",
-			Request: &model.RequestOptions{
+			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
 				Host:    "example.com",
@@ -150,5 +151,5 @@ func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
 
 	// restore
 	httpCmdOpts = &HttpCmdOpts{}
-	ctx = model.Context{}
+	ctx = &view.Context{}
 }

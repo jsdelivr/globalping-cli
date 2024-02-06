@@ -1,4 +1,4 @@
-package model
+package view
 
 import (
 	"math"
@@ -7,22 +7,26 @@ import (
 	"github.com/pterm/pterm"
 )
 
-// Used in thc client TUI
 type Context struct {
-	Cmd      string
-	Target   string
-	From     string
-	Resolver string
+	Cmd    string
+	Target string
+	From   string
 
-	Limit   int
+	Protocol  string
+	Port      int
+	Resolver  string
+	Trace     bool
+	QueryType string
+
+	Limit   int // Number of probes to use
 	Packets int // Number of packets to send
 
-	JsonOutput bool // JsonOutput is a flag that determines whether the output should be in JSON format.
-	Latency    bool // Latency is a flag that outputs only stats of a measurement
-	CI         bool // CI flag is used to determine whether the output should be in a format that is easy to parse by a CI tool
-	Full       bool // Full output
-	Share      bool // Display share message
-	Infinite   bool // Infinite flag
+	ToJSON    bool // Determines whether the output should be in JSON format.
+	ToLatency bool // Determines whether the output should be only the stats of a measurement
+	CI        bool // Determine whether the output should be in a format that is easy to parse by a CI tool
+	Full      bool // Full output
+	Share     bool // Display share message
+	Infinite  bool // Infinite flag
 
 	APIMinInterval time.Duration // Minimum interval between API calls
 
@@ -33,6 +37,17 @@ type Context struct {
 	CallCount       int      // Number of measurements created
 	MaxHistory      int      // Maximum number of measurements to keep in history
 	History         *Rbuffer // History of measurements
+}
+
+type HTTPOpts struct {
+	Path     string
+	Query    string
+	Host     string
+	Method   string
+	Protocol string
+	Port     int
+	Resolver string
+	Headers  []string
 }
 
 type MeasurementStats struct {

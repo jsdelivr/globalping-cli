@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"os"
-	"time"
 
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/lib"
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -23,11 +23,13 @@ var (
 
 	httpCmdOpts *HttpCmdOpts
 
-	opts = model.PostMeasurement{}
-	ctx  = model.Context{
-		APIMinInterval: 500 * time.Millisecond,
+	opts = globalping.MeasurementCreate{}
+	ctx  = &view.Context{
+		APIMinInterval: globalping.API_MIN_INTERVAL,
 		MaxHistory:     10,
 	}
+	gp     = globalping.NewClient(globalping.API_URL)
+	viewer = view.NewViewer(ctx, gp)
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -54,9 +56,9 @@ func init() {
 For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
 Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
 	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
-	rootCmd.PersistentFlags().BoolVarP(&ctx.JsonOutput, "json", "J", false, "Output results in JSON format (default false)")
+	rootCmd.PersistentFlags().BoolVarP(&ctx.ToJSON, "json", "J", false, "Output results in JSON format (default false)")
 	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
-	rootCmd.PersistentFlags().BoolVar(&ctx.Latency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
+	rootCmd.PersistentFlags().BoolVar(&ctx.ToLatency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
 	rootCmd.PersistentFlags().BoolVar(&ctx.Share, "share", false, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
 }
 

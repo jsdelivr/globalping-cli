@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"math"
 
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
 )
 
 var (
@@ -13,18 +13,18 @@ var (
 	// measurementID3 = "7sZfUs3cnzGz1I20"
 )
 
-func getPingGetMeasurement(id string) *model.GetMeasurement {
-	return &model.GetMeasurement{
+func getPingGetMeasurement(id string) *globalping.Measurement {
+	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      model.StatusFinished,
+		Status:      globalping.StatusFinished,
 		CreatedAt:   "2024-01-18T14:09:41.250Z",
 		UpdatedAt:   "2024-01-18T14:09:41.488Z",
 		Target:      "cdn.jsdelivr.net",
 		ProbesCount: 1,
-		Results: []model.MeasurementResponse{
+		Results: []globalping.ProbeMeasurement{
 			{
-				Probe: model.ProbeData{
+				Probe: globalping.ProbeDetails{
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
@@ -34,8 +34,8 @@ func getPingGetMeasurement(id string) *model.GetMeasurement {
 					Network:   "Deutsche Telekom AG",
 					Tags:      []string{"eyeball-network"},
 				},
-				Result: model.ResultData{
-					Status: model.StatusFinished,
+				Result: globalping.ProbeResult{
+					Status: globalping.StatusFinished,
 					RawOutput: `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
 
@@ -52,18 +52,18 @@ rtt min/avg/max/mdev = 17.639/17.639/17.639/0.000 ms`,
 	}
 }
 
-func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
-	return &model.GetMeasurement{
+func getPingGetMeasurementMultipleLocations(id string) *globalping.Measurement {
+	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      model.StatusFinished,
+		Status:      globalping.StatusFinished,
 		CreatedAt:   "2024-01-18T14:17:41.471Z",
 		UpdatedAt:   "2024-01-18T14:17:41.571Z",
 		Target:      "cdn.jsdelivr.net",
 		ProbesCount: 3,
-		Results: []model.MeasurementResponse{
+		Results: []globalping.ProbeMeasurement{
 			{
-				Probe: model.ProbeData{
+				Probe: globalping.ProbeDetails{
 					Continent: "EU",
 					Region:    "Northern Europe",
 					Country:   "GB",
@@ -72,8 +72,8 @@ func getPingGetMeasurementMultipleLocations(id string) *model.GetMeasurement {
 					Network:   "OVH SAS",
 					Tags:      []string{"datacenter-network"},
 				},
-				Result: model.ResultData{
-					Status: model.StatusFinished,
+				Result: globalping.ProbeResult{
+					Status: globalping.StatusFinished,
 					RawOutput: `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=0.770 ms
 
@@ -87,7 +87,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 				},
 			},
 			{
-				Probe: model.ProbeData{
+				Probe: globalping.ProbeDetails{
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
@@ -96,8 +96,8 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 					Network:   "Hetzner Online GmbH",
 					Tags:      []string{"datacenter-network"},
 				},
-				Result: model.ResultData{
-					Status: model.StatusFinished,
+				Result: globalping.ProbeResult{
+					Status: globalping.StatusFinished,
 					RawOutput: `PING  (104.16.85.20) 56(84) bytes of data.
 64 bytes from 104.16.85.20 (104.16.85.20): icmp_seq=1 ttl=55 time=5.46 ms
 
@@ -111,7 +111,7 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 				},
 			},
 			{
-				Probe: model.ProbeData{
+				Probe: globalping.ProbeDetails{
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
@@ -120,8 +120,8 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 					Network:   "Hetzner Online GmbH",
 					Tags:      []string{"datacenter-network"},
 				},
-				Result: model.ResultData{
-					Status: model.StatusFinished,
+				Result: globalping.ProbeResult{
+					Status: globalping.StatusFinished,
 					RawOutput: `PING  (104.16.88.20) 56(84) bytes of data.
 64 bytes from 104.16.88.20 (104.16.88.20): icmp_seq=1 ttl=58 time=4.07 ms
 
@@ -138,11 +138,11 @@ rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
 	}
 }
 
-func getDefaultPingCtx(size int) *model.Context {
-	ctx := &model.Context{
+func getDefaultPingCtx(size int) *Context {
+	ctx := &Context{
 		Cmd:            "ping",
 		APIMinInterval: 0,
-		CompletedStats: make([]model.MeasurementStats, size),
+		CompletedStats: make([]MeasurementStats, size),
 	}
 	for i := range ctx.CompletedStats {
 		ctx.CompletedStats[i].Last = -1

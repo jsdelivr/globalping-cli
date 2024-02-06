@@ -6,9 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
-	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/spf13/cobra"
 )
 
@@ -82,18 +80,18 @@ func infinitePing(cmd *cobra.Command) error {
 
 	<-sig
 	if err == nil {
-		view.OutputSummary(&ctx)
+		viewer.OutputSummary()
 	}
 	return err
 }
 
 func ping(cmd *cobra.Command) (string, error) {
-	opts = model.PostMeasurement{
+	opts = globalping.MeasurementCreate{
 		Type:              "ping",
 		Target:            ctx.Target,
 		Limit:             ctx.Limit,
 		InProgressUpdates: inProgressUpdates(ctx.CI),
-		Options: &model.MeasurementOptions{
+		Options: &globalping.MeasurementOptions{
 			Packets: ctx.Packets,
 		},
 	}
@@ -106,10 +104,10 @@ func ping(cmd *cobra.Command) (string, error) {
 			return "", err
 		}
 	} else {
-		opts.Locations = []model.Locations{{Magic: ctx.From}}
+		opts.Locations = []globalping.Locations{{Magic: ctx.From}}
 	}
 
-	res, showHelp, err := client.PostAPI(opts)
+	res, showHelp, err := gp.CreateMeasurement(&opts)
 	if err != nil {
 		if !showHelp {
 			cmd.SilenceUsage = true
@@ -128,9 +126,9 @@ func ping(cmd *cobra.Command) (string, error) {
 	}
 
 	if ctx.Infinite {
-		err = view.OutputInfinite(res.ID, &ctx)
+		err = viewer.OutputInfinite(res.ID)
 	} else {
-		view.OutputResults(res.ID, ctx, opts)
+		viewer.Output(res.ID, &opts)
 	}
 	return res.ID, err
 }

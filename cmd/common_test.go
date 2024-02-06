@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -53,14 +53,14 @@ func TestCreateLocations(t *testing.T) {
 
 func testLocationsSingle(t *testing.T) {
 	locations, isPreviousMeasurementId, err := createLocations("New York")
-	assert.Equal(t, []model.Locations{{Magic: "New York"}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: "New York"}}, locations)
 	assert.False(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }
 
 func testLocationsMultiple(t *testing.T) {
 	locations, isPreviousMeasurementId, err := createLocations("New York,Los Angeles")
-	assert.Equal(t, []model.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
 	assert.False(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }
@@ -68,7 +68,7 @@ func testLocationsMultiple(t *testing.T) {
 // Check if multiple locations with whitespace are parsed correctly
 func testLocationsMultipleWhitespace(t *testing.T) {
 	locations, isPreviousMeasurementId, err := createLocations("New York, Los Angeles ")
-	assert.Equal(t, []model.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: "New York"}, {Magic: "Los Angeles"}}, locations)
 	assert.False(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }
@@ -76,17 +76,17 @@ func testLocationsMultipleWhitespace(t *testing.T) {
 func testCreateLocationsSessionLastMeasurement(t *testing.T) {
 	_ = saveMeasurementID(measurementID1)
 	locations, isPreviousMeasurementId, err := createLocations("@1")
-	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 
 	locations, isPreviousMeasurementId, err = createLocations("last")
-	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 
 	locations, isPreviousMeasurementId, err = createLocations("previous")
-	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }
@@ -95,12 +95,12 @@ func testCreateLocationsSessionFirstMeasurement(t *testing.T) {
 	_ = saveMeasurementID(measurementID1)
 	_ = saveMeasurementID(measurementID2)
 	locations, isPreviousMeasurementId, err := createLocations("@-1")
-	assert.Equal(t, []model.Locations{{Magic: measurementID2}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID2}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 
 	locations, isPreviousMeasurementId, err = createLocations("last")
-	assert.Equal(t, []model.Locations{{Magic: measurementID2}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID2}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }
@@ -111,17 +111,17 @@ func testCreateLocationsSessionMeasurementAtIndex(t *testing.T) {
 	_ = saveMeasurementID(measurementID3)
 	_ = saveMeasurementID(measurementID4)
 	locations, isPreviousMeasurementId, err := createLocations("@2")
-	assert.Equal(t, []model.Locations{{Magic: measurementID2}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID2}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 
 	locations, isPreviousMeasurementId, err = createLocations("@-2")
-	assert.Equal(t, []model.Locations{{Magic: measurementID3}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID3}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 
 	locations, isPreviousMeasurementId, err = createLocations("@-4")
-	assert.Equal(t, []model.Locations{{Magic: measurementID1}}, locations)
+	assert.Equal(t, []globalping.Locations{{Magic: measurementID1}}, locations)
 	assert.True(t, isPreviousMeasurementId)
 	assert.Nil(t, err)
 }

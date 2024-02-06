@@ -3,8 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/model"
-
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +16,7 @@ func TestCreateContext(t *testing.T) {
 		"ci_env":             testContextCIEnv,
 	} {
 		t.Run(scenario, func(t *testing.T) {
-			ctx = model.Context{}
+			ctx = &view.Context{}
 			fn(t)
 		})
 	}

@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
 )
 
 // Outputs non-json non-latency results for a measurement
-func OutputDefault(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) {
+func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) {
 	for i := range data.Results {
 		result := &data.Results[i]
 		if i > 0 {
@@ -18,16 +18,16 @@ func OutputDefault(id string, data *model.GetMeasurement, ctx model.Context, m m
 		}
 
 		// Output slightly different format if state is available
-		fmt.Fprintln(os.Stderr, generateProbeInfo(result, !ctx.CI))
+		fmt.Fprintln(os.Stderr, generateProbeInfo(result, !v.ctx.CI))
 
-		if isBodyOnlyHttpGet(ctx, m) {
+		if v.isBodyOnlyHttpGet(m) {
 			fmt.Println(strings.TrimSpace(result.Result.RawBody))
 		} else {
 			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
 		}
 	}
 
-	if ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !ctx.CI))
+	if v.ctx.Share {
+		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !v.ctx.CI))
 	}
 }

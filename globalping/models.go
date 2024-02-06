@@ -1,10 +1,58 @@
-package model
+package globalping
 
 import "encoding/json"
 
 // Docs: https://www.jsdelivr.com/docs/api.globalping.io
 
-type ProbeData struct {
+type Locations struct {
+	Magic string `json:"magic"`
+}
+
+type QueryOptions struct {
+	Type string `json:"type,omitempty"`
+}
+
+type RequestOptions struct {
+	Headers map[string]string `json:"headers,omitempty"`
+	Path    string            `json:"path,omitempty"`
+	Host    string            `json:"host,omitempty"`
+	Query   string            `json:"query,omitempty"`
+	Method  string            `json:"method,omitempty"`
+}
+
+type MeasurementOptions struct {
+	Query    *QueryOptions   `json:"query,omitempty"`
+	Request  *RequestOptions `json:"request,omitempty"`
+	Protocol string          `json:"protocol,omitempty"`
+	Port     int             `json:"port,omitempty"`
+	Resolver string          `json:"resolver,omitempty"`
+	Trace    bool            `json:"trace,omitempty"`
+	Packets  int             `json:"packets,omitempty"`
+}
+
+type MeasurementCreate struct {
+	Limit             int                 `json:"limit"`
+	Locations         []Locations         `json:"locations"`
+	Type              string              `json:"type"`
+	Target            string              `json:"target"`
+	InProgressUpdates bool                `json:"inProgressUpdates"`
+	Options           *MeasurementOptions `json:"measurementOptions,omitempty"`
+}
+
+type MeasurementCreateResponse struct {
+	ID          string `json:"id"`
+	ProbesCount int    `json:"probesCount"`
+}
+
+type MeasurementCreateError struct {
+	Error struct {
+		Message string                 `json:"message"`
+		Type    string                 `json:"type"`
+		Params  map[string]interface{} `json:"params,omitempty"`
+	} `json:"error"`
+}
+
+type ProbeDetails struct {
 	Continent string   `json:"continent"`
 	Region    string   `json:"region"`
 	Country   string   `json:"country"`
@@ -24,7 +72,7 @@ const (
 	StatusFinished   MeasurementStatus = "finished"
 )
 
-type ResultData struct {
+type ProbeResult struct {
 	Status           MeasurementStatus `json:"status"`
 	RawOutput        string            `json:"rawOutput"`
 	RawHeaders       string            `json:"rawHeaders"`
@@ -64,20 +112,18 @@ type HTTPTimings struct {
 	Download  int `json:"download"`  // The time from the first byte to downloading the whole response.
 }
 
-// Nested structs
-type MeasurementResponse struct {
-	Probe  ProbeData  `json:"probe"`
-	Result ResultData `json:"result"`
+type ProbeMeasurement struct {
+	Probe  ProbeDetails `json:"probe"`
+	Result ProbeResult  `json:"result"`
 }
 
-// Main struct
-type GetMeasurement struct {
-	ID          string                `json:"id"`
-	Type        string                `json:"type"`
-	Status      MeasurementStatus     `json:"status"`
-	CreatedAt   string                `json:"createdAt"`
-	UpdatedAt   string                `json:"updatedAt"`
-	Target      string                `json:"target"`
-	ProbesCount int                   `json:"probesCount"`
-	Results     []MeasurementResponse `json:"results"`
+type Measurement struct {
+	ID          string             `json:"id"`
+	Type        string             `json:"type"`
+	Status      MeasurementStatus  `json:"status"`
+	CreatedAt   string             `json:"createdAt"`
+	UpdatedAt   string             `json:"updatedAt"`
+	Target      string             `json:"target"`
+	ProbesCount int                `json:"probesCount"`
+	Results     []ProbeMeasurement `json:"results"`
 }

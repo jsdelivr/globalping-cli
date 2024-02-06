@@ -6,26 +6,27 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
-	"github.com/jsdelivr/globalping-cli/model"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOutputJson(t *testing.T) {
+func Test_Output_Json(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	id := "my-id"
-
 	b := []byte(`{"fake": "results"}`)
 
-	fetcher := mocks.NewMockMeasurementsFetcher(ctrl)
-	fetcher.EXPECT().GetRawMeasurement(id).Times(1).Return(b, nil)
+	gbMock := mocks.NewMockClient(ctrl)
+	measurement := getPingGetMeasurement(measurementID1)
+	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
+	gbMock.EXPECT().GetRawMeasurement(measurementID1).Times(1).Return(b, nil)
 
-	ctx := model.Context{
-		JsonOutput: true,
-		Share:      true,
-	}
+	viewer := NewViewer(&Context{
+		ToJSON: true,
+		Share:  true,
+	}, gbMock)
+
 	osStdErr := os.Stderr
 	osStdOut := os.Stdout
 
@@ -45,14 +46,15 @@ func TestOutputJson(t *testing.T) {
 		os.Stdout = osStdOut
 	}()
 
-	err = OutputJson(id, fetcher, ctx)
+	m := &globalping.MeasurementCreate{}
+	err = viewer.Output(measurementID1, m)
 	assert.NoError(t, err)
 	myStdOut.Close()
 	myStdErr.Close()
 
 	errContent, err := io.ReadAll(rStdErr)
 	assert.NoError(t, err)
-	assert.Equal(t, "> View the results online: https://www.jsdelivr.com/globalping?measurement=my-id\n", string(errContent))
+	assert.Equal(t, "> View the results online: https://www.jsdelivr.com/globalping?measurement=nzGzfAGL7sZfUs3c\n", string(errContent))
 
 	outContent, err := io.ReadAll(rStdOut)
 	assert.NoError(t, err)

@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/mattn/go-runewidth"
 	"github.com/pterm/pterm"
 )
@@ -23,51 +22,70 @@ var (
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
-func OutputResults(id string, ctx model.Context, m model.PostMeasurement) error {
-	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
+type Viewer interface {
+	Output(id string, m *globalping.MeasurementCreate) error
+	OutputInfinite(id string) error
+	OutputSummary()
+}
 
+type viewer struct {
+	ctx *Context
+	gp  globalping.Client
+}
+
+func NewViewer(
+	ctx *Context,
+	gp globalping.Client,
+) Viewer {
+	return &viewer{
+		ctx: ctx,
+		gp:  gp,
+	}
+}
+
+func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := fetcher.GetMeasurement(id)
+	data, err := v.gp.GetMeasurement(id)
 	if err != nil {
 		return err
 	}
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
-		time.Sleep(ctx.APIMinInterval)
-		data, err = fetcher.GetMeasurement(id)
+		time.Sleep(v.ctx.APIMinInterval)
+		data, err = v.gp.GetMeasurement(id)
 		if err != nil {
 			return err
 		}
 	}
 
-	if ctx.CI || ctx.JsonOutput || ctx.Latency {
+	if v.ctx.CI || v.ctx.ToJSON || v.ctx.ToLatency {
 		// Poll API until the measurement is complete
-		for data.Status == model.StatusInProgress {
-			time.Sleep(ctx.APIMinInterval)
-			data, err = fetcher.GetMeasurement(id)
+		for data.Status == globalping.StatusInProgress {
+			time.Sleep(v.ctx.APIMinInterval)
+			data, err = v.gp.GetMeasurement(id)
 			if err != nil {
 				return err
 			}
 		}
 
-		if ctx.Latency {
-			return OutputLatency(id, data, ctx)
+		if v.ctx.ToLatency {
+			return v.OutputLatency(id, data)
 		}
 
-		if ctx.JsonOutput {
-			return OutputJson(id, fetcher, ctx)
+		if v.ctx.ToJSON {
+			return v.OutputJson(id)
 		}
 
-		if ctx.CI {
-			OutputDefault(id, data, ctx, m)
+		if v.ctx.CI {
+			v.outputDefault(id, data, m)
 			return nil
 		}
 	}
 
-	return liveView(id, data, ctx, m)
+	return v.liveView(id, data, m)
 }
 
-func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.PostMeasurement) error {
+func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) error {
 	var err error
 
 	// Create new writer
@@ -93,12 +111,10 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 	// String builder for output
 	var output strings.Builder
 
-	fetcher := client.NewMeasurementsFetcher(client.ApiUrl)
-
 	// Poll API until the measurement is complete
-	for data.Status == model.StatusInProgress {
-		time.Sleep(ctx.APIMinInterval)
-		data, err = fetcher.GetMeasurement(id)
+	for data.Status == globalping.StatusInProgress {
+		time.Sleep(v.ctx.APIMinInterval)
+		data, err = v.gp.GetMeasurement(id)
 		if err != nil {
 			return fmt.Errorf("failed to get data: %v", err)
 		}
@@ -110,9 +126,9 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 		for i := range data.Results {
 			result := &data.Results[i]
 			// Output slightly different format if state is available
-			output.WriteString(generateProbeInfo(result, !ctx.CI) + "\n")
+			output.WriteString(generateProbeInfo(result, !v.ctx.CI) + "\n")
 
-			if isBodyOnlyHttpGet(ctx, m) {
+			if v.isBodyOnlyHttpGet(m) {
 				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
 			} else {
 				output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
@@ -128,7 +144,7 @@ func liveView(id string, data *model.GetMeasurement, ctx model.Context, m model.
 		return fmt.Errorf("failed to stop writer: %v", err)
 	}
 
-	OutputDefault(id, data, ctx, m)
+	v.outputDefault(id, data, m)
 	return nil
 }
 
@@ -167,7 +183,7 @@ func trimOutput(output string, terminalW, terminalH int) string {
 }
 
 // Also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
-func generateProbeInfo(result *model.MeasurementResponse, useStyling bool) string {
+func generateProbeInfo(result *globalping.ProbeMeasurement, useStyling bool) string {
 	var output strings.Builder
 
 	// Continent + Country + (State) + City + ASN + Network + (Region Tag)
@@ -195,15 +211,15 @@ func formatWithLeadingArrow(text string, useStyling bool) string {
 	return "> " + text
 }
 
-func isBodyOnlyHttpGet(ctx model.Context, m model.PostMeasurement) bool {
-	return ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !ctx.Full
+func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
+	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !v.ctx.Full
 }
 
 func shareMessage(id string) string {
 	return fmt.Sprintf("View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
 }
 
-func getLocationText(m *model.MeasurementResponse) string {
+func getLocationText(m *globalping.ProbeMeasurement) string {
 	state := ""
 	if m.Probe.State != "" {
 		state = "(" + m.Probe.State + "), "
