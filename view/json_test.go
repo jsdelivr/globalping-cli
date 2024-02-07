@@ -20,7 +20,7 @@ func Test_Output_Json(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	measurement := getPingGetMeasurement(measurementID1)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-	gbMock.EXPECT().GetRawMeasurement(measurementID1).Times(1).Return(b, nil)
+	gbMock.EXPECT().GetMeasurementRaw(measurementID1).Times(1).Return(b, nil)
 
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"io"
 	"os"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -9,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
+
+// TODO: Remove global variables
 
 var (
 	// Global flags
@@ -29,7 +32,9 @@ var (
 		MaxHistory:     10,
 	}
 	gp      = globalping.NewClient(globalping.API_URL)
-	printer = view.NewPrinter(os.Stdout)
+	outW    = os.Stdout
+	errW    = os.Stderr
+	printer = view.NewPrinter(outW)
 	viewer  = view.NewViewer(ctx, printer, gp)
 )
 
@@ -41,28 +46,109 @@ var rootCmd = &cobra.Command{
 The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
 }
 
+var root = NewRoot(outW, errW, printer, ctx, viewer, gp, rootCmd)
+
+type Root struct {
+	outW    io.Writer
+	printer *view.Printer
+	ctx     *view.Context
+	viewer  view.Viewer
+	gp      globalping.Client
+	Cmd     *cobra.Command
+}
+
+func NewRoot(
+	outW io.Writer,
+	errW io.Writer,
+	printer *view.Printer,
+	ctx *view.Context,
+	viewer view.Viewer,
+	gp globalping.Client,
+	cmd *cobra.Command,
+) *Root {
+	root := &Root{
+		Cmd:     cmd,
+		outW:    outW,
+		printer: printer,
+		ctx:     ctx,
+		viewer:  viewer,
+		gp:      gp,
+	}
+
+	root.Cmd.SetOut(outW)
+	root.Cmd.SetErr(errW)
+
+	// Global flags
+	flags := root.Cmd.PersistentFlags()
+	flags.StringVarP(&ctx.From, "from", "F", "world", `Comma-separated list of location values to match against or a measurement ID
+	For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
+	Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
+	flags.IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
+	flags.BoolVarP(&ctx.ToJSON, "json", "J", false, "Output results in JSON format (default false)")
+	flags.BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
+	flags.BoolVar(&ctx.ToLatency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
+	flags.BoolVar(&ctx.Share, "share", false, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
+
+	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
+
+	root.initPing()
+
+	return root
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	rootCmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
-	err := rootCmd.Execute()
+	err := root.Cmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
-func init() {
-	// Global flags
-	rootCmd.PersistentFlags().StringVarP(&ctx.From, "from", "F", "world", `Comma-separated list of location values to match against or a measurement ID
-For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
-	rootCmd.PersistentFlags().IntVarP(&ctx.Limit, "limit", "L", 1, "Limit the number of probes to use")
-	rootCmd.PersistentFlags().BoolVarP(&ctx.ToJSON, "json", "J", false, "Output results in JSON format (default false)")
-	rootCmd.PersistentFlags().BoolVarP(&ctx.CI, "ci", "C", false, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
-	rootCmd.PersistentFlags().BoolVar(&ctx.ToLatency, "latency", false, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
-	rootCmd.PersistentFlags().BoolVar(&ctx.Share, "share", false, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
+func (c *Root) updateContext(cmd string, args []string) error {
+	c.ctx.Cmd = cmd // Get the command name
+
+	// parse target query
+	targetQuery, err := lib.ParseTargetQuery(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	c.ctx.Target = targetQuery.Target
+
+	if targetQuery.From != "" {
+		c.ctx.From = targetQuery.From
+	}
+
+	if targetQuery.Resolver != "" {
+		c.ctx.Resolver = targetQuery.Resolver
+	}
+
+	// Check env for CI
+	if os.Getenv("CI") != "" {
+		c.ctx.CI = true
+	}
+
+	// Check if it is a terminal or being piped/redirected
+	// We want to disable realtime updates if that is the case
+	f, ok := c.outW.(*os.File)
+	if ok {
+		stdoutFileInfo, err := f.Stat()
+		if err != nil {
+			return errors.Wrapf(err, "stdout stat failed")
+		}
+		if (stdoutFileInfo.Mode() & os.ModeCharDevice) == 0 {
+			// stdout is piped, run in ci mode
+			c.ctx.CI = true
+		}
+	} else {
+		c.ctx.CI = true
+	}
+
+	return nil
 }
 
+// Todo: Remove this function
 func createContext(cmd string, args []string) error {
 	ctx.Cmd = cmd // Get the command name
 
@@ -89,7 +175,7 @@ func createContext(cmd string, args []string) error {
 
 	// Check if it is a terminal or being piped/redirected
 	// We want to disable realtime updates if that is the case
-	stdoutFileInfo, err := os.Stdout.Stat()
+	stdoutFileInfo, err := outW.Stat()
 	if err != nil {
 		return errors.Wrapf(err, "stdout stat failed")
 	}

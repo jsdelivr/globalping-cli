@@ -138,7 +138,7 @@ func testGetJson(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`)
 	defer server.Close()
 	client := NewClient(server.URL)
-	res, err := client.GetRawMeasurement("abcd")
+	res, err := client.GetMeasurementRaw("abcd")
 	if err != nil {
 		t.Error(err)
 	}

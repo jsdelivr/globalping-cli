@@ -18,33 +18,6 @@ var (
 	API_MIN_INTERVAL = 500 * time.Millisecond
 )
 
-type Client interface {
-	CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, bool, error)
-	GetMeasurement(id string) (*Measurement, error)
-	GetRawMeasurement(id string) ([]byte, error)
-}
-
-type client struct {
-	http       *http.Client
-	apiUrl     string // The api url endpoint
-	PacketsMax int    // Maximum number of packets to send
-
-	etags        map[string]string // caches Etags by measurement id
-	measurements map[string][]byte // caches Measurements by ETag
-}
-
-func NewClient(url string) Client {
-	return &client{
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		apiUrl:       url,
-		PacketsMax:   16,
-		etags:        map[string]string{},
-		measurements: map[string][]byte{},
-	}
-}
-
 // boolean indicates whether to print CLI help on error
 func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, bool, error) {
 	postData, err := json.Marshal(measurement)
@@ -119,7 +92,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 
 // GetRawMeasurement returns API response as a GetMeasurement object
 func (c *client) GetMeasurement(id string) (*Measurement, error) {
-	respBytes, err := c.GetRawMeasurement(id)
+	respBytes, err := c.GetMeasurementRaw(id)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +104,8 @@ func (c *client) GetMeasurement(id string) (*Measurement, error) {
 	return m, nil
 }
 
-// GetRawMeasurement returns the API response's raw json response
-func (c *client) GetRawMeasurement(id string) ([]byte, error) {
+// GetMeasurementRaw returns the API response's raw json response
+func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	// Create a new request
 	req, err := http.NewRequest("GET", c.apiUrl+"/"+id, nil)
 	if err != nil {

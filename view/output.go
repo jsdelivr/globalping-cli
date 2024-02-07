@@ -22,30 +22,6 @@ var (
 	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
-type Viewer interface {
-	Output(id string, m *globalping.MeasurementCreate) error
-	OutputInfinite(id string) error
-	OutputSummary()
-}
-
-type viewer struct {
-	ctx     *Context
-	printer *Printer
-	gp      globalping.Client
-}
-
-func NewViewer(
-	ctx *Context,
-	printer *Printer,
-	gp globalping.Client,
-) Viewer {
-	return &viewer{
-		ctx:     ctx,
-		printer: printer,
-		gp:      gp,
-	}
-}
-
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
 	data, err := v.gp.GetMeasurement(id)

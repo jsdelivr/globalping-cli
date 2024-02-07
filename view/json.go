@@ -2,7 +2,7 @@ package view
 
 // Outputs the raw JSON for a measurement
 func (v *viewer) OutputJson(id string) error {
-	output, err := v.gp.GetRawMeasurement(id)
+	output, err := v.gp.GetMeasurementRaw(id)
 	if err != nil {
 		return err
 	}

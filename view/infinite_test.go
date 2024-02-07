@@ -138,6 +138,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	osStdout := os.Stdout
+
 	gbMock := mocks.NewMockClient(ctrl)
 	res := getPingGetMeasurementMultipleLocations(measurementID1)
 
@@ -194,6 +196,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 		MaxHistory: 3,
 	}
 	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	os.Stdout = w
 	err = viewer.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
 
@@ -235,12 +238,15 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.NoError(t, err)
 	defer rr.Close()
 	defer ww.Close()
-	pterm.DefaultArea.SetWriter(ww)
+	os.Stdout = ww
+	// TODO: fix writer for AreaPrinter
+	// pterm.DefaultArea.SetWriter(ww)
 	area, _ := pterm.DefaultArea.Start()
 	for i := range expectedTables {
 		area.Update(*expectedTables[i])
 	}
 	area.Stop()
+	os.Stdout = osStdout
 	ww.Close()
 
 	expectedOutput, err := io.ReadAll(rr)
@@ -251,6 +257,8 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+
+	osStdout := os.Stdout
 
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
 	gbMock := mocks.NewMockClient(ctrl)
@@ -266,8 +274,10 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 		MaxHistory: 3,
 	}
 	v := NewViewer(ctx, NewPrinter(w), gbMock)
+	os.Stdout = w
 	err = v.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
+	os.Stdout = osStdout
 	w.Close()
 
 	output, err := io.ReadAll(r)
@@ -276,12 +286,22 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	expectedViewer := &viewer{
 		ctx: getDefaultPingCtx(len(measurement.Results)),
 	}
-	expectedTable, _ := expectedViewer.generateTable(measurement, 78)
+
+	rr, ww, err := os.Pipe()
+	assert.NoError(t, err)
+	defer rr.Close()
+	defer ww.Close()
+	os.Stdout = ww
+	// TODO: fix writer for AreaPrinter
+	// pterm.DefaultArea.SetWriter(ww)
 	area, _ := pterm.DefaultArea.Start()
+	expectedTable, _ := expectedViewer.generateTable(measurement, 78)
 	area.Update(*expectedTable)
 	area.Stop()
+	os.Stdout = osStdout
+	ww.Close()
 
-	expectedOutput, err := io.ReadAll(r)
+	expectedOutput, err := io.ReadAll(rr)
 	assert.NoError(t, err)
 	assert.Equal(t, string(expectedOutput), string(output))
 	assert.Equal(t,

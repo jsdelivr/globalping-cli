@@ -12,7 +12,7 @@ type Printer struct {
 }
 
 func NewPrinter(writer io.Writer) *Printer {
-	pterm.SetDefaultOutput(writer)
+	pterm.SetDefaultOutput(writer) // TODO: Set writer for AreaPrinter
 	return &Printer{
 		w: writer,
 	}

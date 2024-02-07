@@ -10,12 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// pingCmd represents the ping command
-var pingCmd = &cobra.Command{
-	Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
-	GroupID: "Measurements",
-	Short:   "Run a ping test",
-	Long: `The ping command allows sending ping requests to a target. Often used to test the network latency and stability.
+func (r *Root) initPing() {
+	pingCmd := &cobra.Command{
+		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		GroupID: "Measurements",
+		Short:   "Run a ping test",
+		Long: `The ping command allows sending ping requests to a target. Often used to test the network latency and stability.
 
 Examples:
   # Ping google.com from 2 probes in New York
@@ -41,28 +41,85 @@ Examples:
 
   # Ping jsdelivr.com from a probe in ASN 123 with json output
   ping jsdelivr.com from 123 --json
-  
+
   # Continuously ping google.com from New York
   ping google.com from New York --infinite`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		err := createContext(cmd.CalledAs(), args)
-		if err != nil {
-			return err
-		}
-		if ctx.Infinite {
-			return infinitePing(cmd)
-		}
-		_, err = ping(cmd)
-		return err
-	},
+		RunE: r.RunPing,
+	}
+
+	// ping specific flags
+	flags := pingCmd.Flags()
+	flags.IntVar(&r.ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+	flags.BoolVar(&r.ctx.Infinite, "infinite", false, "Keep pinging the target continuously until stopped (default false)")
+
+	r.Cmd.AddCommand(pingCmd)
 }
 
-func infinitePing(cmd *cobra.Command) error {
+func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
+	err := r.updateContext(cmd.CalledAs(), args)
+	if err != nil {
+		return err
+	}
+	if r.ctx.Infinite {
+		return r.pingInfinite()
+	}
+	_, err = r.ping()
+	return err
+}
+
+func (r *Root) ping() (string, error) {
+	opts := &globalping.MeasurementCreate{
+		Type:              "ping",
+		Target:            r.ctx.Target,
+		Limit:             r.ctx.Limit,
+		InProgressUpdates: inProgressUpdates(r.ctx.CI),
+		Options: &globalping.MeasurementOptions{
+			Packets: r.ctx.Packets,
+		},
+	}
 	var err error
-	if ctx.Limit > 5 {
+	isPreviousMeasurementId := true
+	if r.ctx.CallCount == 0 {
+		opts.Locations, isPreviousMeasurementId, err = createLocations(r.ctx.From)
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+			return "", err
+		}
+	} else {
+		opts.Locations = []globalping.Locations{{Magic: r.ctx.From}}
+	}
+
+	res, showHelp, err := r.gp.CreateMeasurement(opts)
+	if err != nil {
+		if !showHelp {
+			r.Cmd.SilenceUsage = true
+		}
+		return "", err
+	}
+
+	r.ctx.CallCount++
+
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveMeasurementID(res.ID)
+		if err != nil {
+			r.printer.Printf("Warning: %s\n", err)
+		}
+	}
+	if r.ctx.Infinite {
+		err = r.viewer.OutputInfinite(res.ID)
+	} else {
+		r.viewer.Output(res.ID, opts)
+	}
+	return res.ID, err
+}
+
+func (r *Root) pingInfinite() error {
+	var err error
+	if r.ctx.Limit > 5 {
 		return fmt.Errorf("continous mode is currently limited to 5 probes")
 	}
-	ctx.Packets = 16 // Default to 16 packets
+	r.ctx.Packets = 16 // Default to 16 packets
 
 	// Trap sigterm or interupt to display info on exit
 	sig := make(chan os.Signal, 1)
@@ -70,7 +127,7 @@ func infinitePing(cmd *cobra.Command) error {
 
 	go func() {
 		for {
-			ctx.From, err = ping(cmd)
+			r.ctx.From, err = r.ping()
 			if err != nil {
 				sig <- syscall.SIGINT
 				return
@@ -80,63 +137,7 @@ func infinitePing(cmd *cobra.Command) error {
 
 	<-sig
 	if err == nil {
-		viewer.OutputSummary()
+		r.viewer.OutputSummary()
 	}
 	return err
-}
-
-func ping(cmd *cobra.Command) (string, error) {
-	opts = globalping.MeasurementCreate{
-		Type:              "ping",
-		Target:            ctx.Target,
-		Limit:             ctx.Limit,
-		InProgressUpdates: inProgressUpdates(ctx.CI),
-		Options: &globalping.MeasurementOptions{
-			Packets: ctx.Packets,
-		},
-	}
-	var err error
-	isPreviousMeasurementId := true
-	if ctx.CallCount == 0 {
-		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
-		if err != nil {
-			cmd.SilenceUsage = true
-			return "", err
-		}
-	} else {
-		opts.Locations = []globalping.Locations{{Magic: ctx.From}}
-	}
-
-	res, showHelp, err := gp.CreateMeasurement(&opts)
-	if err != nil {
-		if !showHelp {
-			cmd.SilenceUsage = true
-		}
-		return "", err
-	}
-
-	ctx.CallCount++
-
-	// Save measurement ID to history
-	if !isPreviousMeasurementId {
-		err := saveMeasurementID(res.ID)
-		if err != nil {
-			fmt.Printf("Warning: %s\n", err)
-		}
-	}
-
-	if ctx.Infinite {
-		err = viewer.OutputInfinite(res.ID)
-	} else {
-		viewer.Output(res.ID, &opts)
-	}
-	return res.ID, err
-}
-
-func init() {
-	rootCmd.AddCommand(pingCmd)
-
-	// ping specific flags
-	pingCmd.Flags().IntVar(&ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	pingCmd.Flags().BoolVar(&ctx.Infinite, "infinite", false, "Keep pinging the target continuously until stopped (default false)")
 }
