@@ -17,11 +17,6 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdOut := os.Stdout
-	defer func() {
-		os.Stdout = osStdOut
-	}()
-
 	rawOutput1 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
 	rawOutput2 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms`
@@ -58,31 +53,26 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 		return measurement, nil
 	}).Times(4)
 
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
 
 	measurement.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.RawOutput = rawOutput1
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer func() {
-		w.Close()
-		r.Close()
-	}()
-	os.Stdout = w
-
 	err = viewer.OutputInfinite(measurement.ID)
-	w.Close()
-	os.Stdout = osStdOut
-
 	assert.NoError(t, err)
+	w.Close()
+
 	output, err := io.ReadAll(r)
-	r.Close()
 	assert.NoError(t, err)
 	assert.Equal(t,
 		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
@@ -104,28 +94,20 @@ func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdOut := os.Stdout
-	defer func() {
-		os.Stdout = osStdOut
-	}()
-
 	gbMock := mocks.NewMockClient(ctrl)
 	measurement := getPingGetMeasurement(measurementID1)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(3).Return(measurement, nil)
+
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
 
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, gbMock)
-
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer func() {
-		w.Close()
-		r.Close()
-	}()
-	os.Stdout = w
+	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
 
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.NoError(t, err)
@@ -134,10 +116,8 @@ func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.NoError(t, err)
 	w.Close()
-	os.Stdout = osStdOut
 
 	output, err := io.ReadAll(r)
-	r.Close()
 	assert.NoError(t, err)
 	assert.Equal(t,
 		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
@@ -157,11 +137,6 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
-	osStdOut := os.Stdout
-	defer func() {
-		os.Stdout = osStdOut
-	}()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	res := getPingGetMeasurementMultipleLocations(measurementID1)
@@ -211,17 +186,14 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer func() {
-		w.Close()
-		r.Close()
-	}()
-	os.Stdout = w
+	defer r.Close()
+	defer w.Close()
 
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
 	err = viewer.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
 
@@ -246,7 +218,6 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assert.NoError(t, err)
 	w.Close()
 
-	os.Stdout = osStdOut
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
@@ -262,24 +233,18 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	rr, ww, err := os.Pipe()
 	assert.NoError(t, err)
-	defer func() {
-		ww.Close()
-		rr.Close()
-	}()
-
-	os.Stdout = ww
+	defer rr.Close()
+	defer ww.Close()
+	pterm.DefaultArea.SetWriter(ww)
 	area, _ := pterm.DefaultArea.Start()
 	for i := range expectedTables {
 		area.Update(*expectedTables[i])
 	}
 	area.Stop()
 	ww.Close()
-	os.Stdout = osStdOut
 
 	expectedOutput, err := io.ReadAll(rr)
 	assert.NoError(t, err)
-	rr.Close()
-
 	assert.Equal(t, string(expectedOutput), string(output))
 }
 
@@ -287,45 +252,26 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdOut := os.Stdout
-	defer func() {
-		os.Stdout = osStdOut
-	}()
-
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer func() {
-		w.Close()
-		r.Close()
-	}()
-	os.Stdout = w
+	defer r.Close()
+	defer w.Close()
 
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	v := NewViewer(ctx, gbMock)
+	v := NewViewer(ctx, NewPrinter(w), gbMock)
 	err = v.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
 	w.Close()
 
-	os.Stdout = osStdOut
-
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	r.Close()
-
-	rr, ww, err := os.Pipe()
-	assert.NoError(t, err)
-	defer func() {
-		ww.Close()
-		rr.Close()
-	}()
-	os.Stdout = ww
 
 	expectedViewer := &viewer{
 		ctx: getDefaultPingCtx(len(measurement.Results)),
@@ -334,13 +280,9 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	area, _ := pterm.DefaultArea.Start()
 	area.Update(*expectedTable)
 	area.Stop()
-	ww.Close()
-	os.Stdout = osStdOut
 
-	expectedOutput, err := io.ReadAll(rr)
+	expectedOutput, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	rr.Close()
-
 	assert.Equal(t, string(expectedOutput), string(output))
 	assert.Equal(t,
 		[]MeasurementStats{

@@ -72,8 +72,8 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 			parsedOutput := parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
 			if printHeader && v.ctx.CompletedStats[0].Sent == 0 {
 				v.ctx.Hostname = parsedOutput.Hostname
-				fmt.Println(generateProbeInfo(measurement, !v.ctx.CI))
-				fmt.Printf("PING %s (%s) %s bytes of data.\n",
+				v.printer.Println(generateProbeInfo(measurement, !v.ctx.CI))
+				v.printer.Printf("PING %s (%s) %s bytes of data.\n",
 					parsedOutput.Hostname,
 					parsedOutput.Address,
 					parsedOutput.BytesOfData,
@@ -81,7 +81,7 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 				printHeader = false
 			}
 			for linesPrinted < len(parsedOutput.RawPacketLines) {
-				fmt.Println(parsedOutput.RawPacketLines[linesPrinted])
+				v.printer.Println(parsedOutput.RawPacketLines[linesPrinted])
 				linesPrinted++
 			}
 			v.ctx.InProgressStats[0] = mergeMeasurementStats(v.ctx.CompletedStats[0], parsedOutput)

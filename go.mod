@@ -11,7 +11,7 @@ require (
 	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/pkg/errors v0.9.1
-	github.com/pterm/pterm v0.12.75
+	github.com/pterm/pterm v0.12.78
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4

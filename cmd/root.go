@@ -28,8 +28,9 @@ var (
 		APIMinInterval: globalping.API_MIN_INTERVAL,
 		MaxHistory:     10,
 	}
-	gp     = globalping.NewClient(globalping.API_URL)
-	viewer = view.NewViewer(ctx, gp)
+	gp      = globalping.NewClient(globalping.API_URL)
+	printer = view.NewPrinter(os.Stdout)
+	viewer  = view.NewViewer(ctx, printer, gp)
 )
 
 // rootCmd represents the base command when called without any subcommands

@@ -22,41 +22,29 @@ func Test_Output_Json(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 	gbMock.EXPECT().GetRawMeasurement(measurementID1).Times(1).Return(b, nil)
 
-	viewer := NewViewer(&Context{
-		ToJSON: true,
-		Share:  true,
-	}, gbMock)
-
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	viewer := NewViewer(
+		&Context{
+			ToJSON: true,
+			Share:  true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	m := &globalping.MeasurementCreate{}
 	err = viewer.Output(measurementID1, m)
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> View the results online: https://www.jsdelivr.com/globalping?measurement=nzGzfAGL7sZfUs3c\n", string(errContent))
+	assert.Equal(t, `{"fake": "results"}
+> View the results online: https://www.jsdelivr.com/globalping?measurement=nzGzfAGL7sZfUs3c
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "{\"fake\": \"results\"}\n\n", string(outContent))
+`, string(outContent))
 }

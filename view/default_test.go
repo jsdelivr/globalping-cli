@@ -53,24 +53,10 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	defer r.Close()
+	defer w.Close()
 
 	m := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
@@ -83,19 +69,19 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd: "http",
 		CI:  true,
-	}, gbMock)
+	}, NewPrinter(w), gbMock)
 
 	viewer.Output(measurementID1, m)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+Body 1
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Body 1\n\nBody 2\n", string(outContent))
+> NA, US, (NY), New York, ASN:567, Network 2
+Body 2
+`, string(outContent))
 }
 
 func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
@@ -140,24 +126,10 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	defer r.Close()
+	defer w.Close()
 
 	m := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
@@ -171,19 +143,20 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		Cmd:   "http",
 		CI:    true,
 		Share: true,
-	}, gbMock)
+	}, NewPrinter(w), gbMock)
 
 	viewer.Output(measurementID1, m)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n> View the results online: https://www.jsdelivr.com/globalping?measurement=nzGzfAGL7sZfUs3c\n", string(errContent))
+	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+Body 1
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Body 1\n\nBody 2\n", string(outContent))
+> NA, US, (NY), New York, ASN:567, Network 2
+Body 2
+> View the results online: https://www.jsdelivr.com/globalping?measurement=nzGzfAGL7sZfUs3c
+`, string(outContent))
 }
 
 func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
@@ -228,24 +201,10 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	defer r.Close()
+	defer w.Close()
 
 	m := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
@@ -259,20 +218,21 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		Cmd:  "http",
 		CI:   true,
 		Full: true,
-	}, gbMock)
+	}, NewPrinter(w), gbMock)
 
 	viewer.Output(measurementID1, m)
+	w.Close()
 
-	myStdOut.Close()
-	myStdErr.Close()
-
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+Headers 1
+Body 1
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Headers 1\nBody 1\n\nHeaders 2\nBody 2\n", string(outContent))
+> NA, US, (NY), New York, ASN:567, Network 2
+Headers 2
+Body 2
+`, string(outContent))
 }
 
 func Test_Output_Default_HTTP_Head(t *testing.T) {
@@ -315,24 +275,10 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	defer r.Close()
+	defer w.Close()
 
 	m := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
@@ -345,20 +291,19 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd: "http",
 		CI:  true,
-	}, gbMock)
+	}, NewPrinter(w), gbMock)
 
 	viewer.Output(measurementID1, m)
+	w.Close()
 
-	myStdOut.Close()
-	myStdErr.Close()
-
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+Headers 1
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Headers 1\n\nHeaders 2\n", string(outContent))
+> NA, US, (NY), New York, ASN:567, Network 2
+Headers 2
+`, string(outContent))
 }
 
 func Test_Output_Default_Ping(t *testing.T) {
@@ -399,41 +344,27 @@ func Test_Output_Default_Ping(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
-
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
+	defer r.Close()
+	defer w.Close()
 
 	m := &globalping.MeasurementCreate{}
 
 	viewer := NewViewer(&Context{
 		Cmd: "ping",
 		CI:  true,
-	}, gbMock)
+	}, NewPrinter(w), gbMock)
 
 	viewer.Output(measurementID1, m)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> EU, DE, Berlin, ASN:123, Network 1\n> NA, US, (NY), New York, ASN:567, Network 2\n", string(errContent))
+	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+Ping Results 1
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Ping Results 1\n\nPing Results 2\n", string(outContent))
+> NA, US, (NY), New York, ASN:567, Network 2
+Ping Results 2
+`, string(outContent))
 }

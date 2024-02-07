@@ -29,17 +29,20 @@ type Viewer interface {
 }
 
 type viewer struct {
-	ctx *Context
-	gp  globalping.Client
+	ctx     *Context
+	printer *Printer
+	gp      globalping.Client
 }
 
 func NewViewer(
 	ctx *Context,
+	printer *Printer,
 	gp globalping.Client,
 ) Viewer {
 	return &viewer{
-		ctx: ctx,
-		gp:  gp,
+		ctx:     ctx,
+		printer: printer,
+		gp:      gp,
 	}
 }
 

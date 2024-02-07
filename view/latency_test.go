@@ -52,42 +52,37 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "ping",
-		ToLatency: true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "ping",
+			ToLatency: true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag-1)\n> Continent B, Country B, (State B), City B, ASN:12349, Network B\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network (tag-1)
+Min: 8.00 ms
+Max: 20.00 ms
+Avg: 12.00 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8.00 ms\nMax: 20.00 ms\nAvg: 12.00 ms\n\nMin: 9.00 ms\nMax: 22.00 ms\nAvg: 15.00 ms\n\n", string(outContent))
+> Continent B, Country B, (State B), City B, ASN:12349, Network B
+Min: 9.00 ms
+Max: 22.00 ms
+Avg: 15.00 ms
+
+`, string(outContent))
 }
 
 func Test_Output_Latency_Ping_CI(t *testing.T) {
@@ -116,43 +111,33 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "ping",
-		ToLatency: true,
-		CI:        true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "ping",
+			ToLatency: true,
+			CI:        true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+Min: 8.00 ms
+Max: 20.00 ms
+Avg: 12.00 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Min: 8.00 ms\nMax: 20.00 ms\nAvg: 12.00 ms\n\n", string(outContent))
+`, string(outContent))
 }
 
 func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
@@ -181,42 +166,30 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "dns",
-		ToLatency: true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "dns",
+			ToLatency: true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+Total: 44 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\n\n", string(outContent))
+`, string(outContent))
 }
 
 func Test_Output_Latency_DNS_CI(t *testing.T) {
@@ -245,43 +218,31 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "dns",
-		ToLatency: true,
-		CI:        true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "dns",
+			ToLatency: true,
+			CI:        true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+Total: 44 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\n\n", string(outContent))
+`, string(outContent))
 }
 
 func Test_Output_Latency_Http_Not_CI(t *testing.T) {
@@ -310,42 +271,35 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "http",
-		ToLatency: true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "http",
+			ToLatency: true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+Total: 44 ms
+Download: 11 ms
+First byte: 20 ms
+DNS: 5 ms
+TLS: 2 ms
+TCP: 4 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n\n", string(outContent))
+`, string(outContent))
 }
 
 func Test_Output_Latency_Http_CI(t *testing.T) {
@@ -374,41 +328,34 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	osStdErr := os.Stderr
-	osStdOut := os.Stdout
-
-	rStdErr, myStdErr, err := os.Pipe()
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	defer rStdErr.Close()
+	defer r.Close()
+	defer w.Close()
 
-	rStdOut, myStdOut, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rStdOut.Close()
-
-	os.Stderr = myStdErr
-	os.Stdout = myStdOut
-
-	defer func() {
-		os.Stderr = osStdErr
-		os.Stdout = osStdOut
-	}()
-
-	viewer := NewViewer(&Context{
-		Cmd:       "http",
-		ToLatency: true,
-		CI:        true,
-	}, gbMock)
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "http",
+			ToLatency: true,
+			CI:        true,
+		},
+		NewPrinter(w),
+		gbMock,
+	)
 
 	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	myStdOut.Close()
-	myStdErr.Close()
+	w.Close()
 
-	errContent, err := io.ReadAll(rStdErr)
+	outContent, err := io.ReadAll(r)
 	assert.NoError(t, err)
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network\n", string(errContent))
+	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+Total: 44 ms
+Download: 11 ms
+First byte: 20 ms
+DNS: 5 ms
+TLS: 2 ms
+TCP: 4 ms
 
-	outContent, err := io.ReadAll(rStdOut)
-	assert.NoError(t, err)
-	assert.Equal(t, "Total: 44 ms\nDownload: 11 ms\nFirst byte: 20 ms\nDNS: 5 ms\nTLS: 2 ms\nTCP: 4 ms\n\n", string(outContent))
+`, string(outContent))
 }

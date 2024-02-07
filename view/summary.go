@@ -13,8 +13,8 @@ func (v *viewer) OutputSummary() {
 	if len(v.ctx.InProgressStats) == 1 {
 		stats := v.ctx.InProgressStats[0]
 
-		fmt.Printf("\n--- %s ping statistics ---\n", v.ctx.Hostname)
-		fmt.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",
+		v.printer.Printf("\n--- %s ping statistics ---\n", v.ctx.Hostname)
+		v.printer.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",
 			stats.Sent,
 			stats.Rcv,
 			stats.Loss,
@@ -36,19 +36,19 @@ func (v *viewer) OutputSummary() {
 		if stats.Mdev != 0 {
 			mdev = fmt.Sprintf("%.3f", stats.Mdev)
 		}
-		fmt.Printf("rtt min/avg/max/mdev = %s/%s/%s/%s ms\n", min, avg, max, mdev)
+		v.printer.Printf("rtt min/avg/max/mdev = %s/%s/%s/%s ms\n", min, avg, max, mdev)
 	}
 
 	if v.ctx.Share && v.ctx.History != nil {
 		if len(v.ctx.InProgressStats) > 1 {
-			fmt.Println()
+			v.printer.Println()
 		}
 		ids := v.ctx.History.ToString("+")
 		if ids != "" {
-			fmt.Println(formatWithLeadingArrow(shareMessage(ids), !v.ctx.CI))
+			v.printer.Println(formatWithLeadingArrow(shareMessage(ids), !v.ctx.CI))
 		}
 		if v.ctx.CallCount > v.ctx.MaxHistory {
-			fmt.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n",
+			v.printer.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n",
 				v.ctx.Packets*v.ctx.MaxHistory)
 		}
 	}

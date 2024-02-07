@@ -1,8 +1,6 @@
 package view
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -14,20 +12,20 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 		result := &data.Results[i]
 		if i > 0 {
 			// new line as separator if more than 1 result
-			fmt.Println()
+			v.printer.Println()
 		}
 
 		// Output slightly different format if state is available
-		fmt.Fprintln(os.Stderr, generateProbeInfo(result, !v.ctx.CI))
+		v.printer.Println(generateProbeInfo(result, !v.ctx.CI))
 
 		if v.isBodyOnlyHttpGet(m) {
-			fmt.Println(strings.TrimSpace(result.Result.RawBody))
+			v.printer.Println(strings.TrimSpace(result.Result.RawBody))
 		} else {
-			fmt.Println(strings.TrimSpace(result.Result.RawOutput))
+			v.printer.Println(strings.TrimSpace(result.Result.RawOutput))
 		}
 	}
 
 	if v.ctx.Share {
-		fmt.Fprintln(os.Stderr, formatWithLeadingArrow(shareMessage(id), !v.ctx.CI))
+		v.printer.Println(formatWithLeadingArrow(shareMessage(id), !v.ctx.CI))
 	}
 }
