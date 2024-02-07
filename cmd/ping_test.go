@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -61,6 +62,9 @@ func Test_Execute_Ping_Default(t *testing.T) {
 }
 
 func Test_Execute_Ping_Infinite(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test on windows") // Signal(syscall.SIGINT) is not supported on Windows
+	}
 	t.Cleanup(sessionCleanup)
 
 	ctrl := gomock.NewController(t)
@@ -115,7 +119,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	go func() {
 		time.Sleep(14 * time.Millisecond)
 		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(os.Interrupt)
+		p.Signal(syscall.SIGINT)
 	}()
 	err = root.Cmd.ExecuteContext(context.TODO())
 	<-sig
