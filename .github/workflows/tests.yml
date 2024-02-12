@@ -16,9 +16,9 @@ jobs:
         os: [ubuntu-latest, macOS-latest, windows-latest]
     name: ${{ matrix.os }} Go ${{ matrix.go }} Tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
           cache: true
