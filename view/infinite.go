@@ -68,6 +68,9 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 	var err error
 	for {
 		measurement := &res.Results[0]
+		if isFailedMeasurement(res) {
+			return v.outputFailSummary(res)
+		}
 		if measurement.Result.RawOutput != "" {
 			parsedOutput := parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
 			if printHeader && v.ctx.CompletedStats[0].Sent == 0 {
@@ -119,6 +122,9 @@ func (v *viewer) outputTableView(res *globalping.Measurement) error {
 		}
 	}
 	for {
+		if isFailedMeasurement(res) {
+			return v.outputFailSummary(res)
+		}
 		o, stats := v.generateTable(res, pterm.GetTerminalWidth()-2)
 		if o != nil {
 			v.ctx.Area.Update(*o)
@@ -139,6 +145,23 @@ func (v *viewer) outputTableView(res *globalping.Measurement) error {
 		}
 	}
 	return nil
+}
+
+func (v *viewer) outputFailSummary(res *globalping.Measurement) error {
+	for i := range res.Results {
+		v.printer.Println(generateProbeInfo(&res.Results[i], !v.ctx.CI))
+		v.printer.Println(res.Results[i].Result.RawOutput)
+	}
+	return errors.New("all probes failed")
+}
+
+func isFailedMeasurement(res *globalping.Measurement) bool {
+	for i := range res.Results {
+		if res.Results[i].Result.Status != globalping.StatusFailed {
+			return false
+		}
+	}
+	return true
 }
 
 func formatDuration(ms float64) string {

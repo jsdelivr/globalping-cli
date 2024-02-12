@@ -90,6 +90,45 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
 }
 
+func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gbMock := mocks.NewMockClient(ctrl)
+	measurement := getPingGetMeasurement(measurementID1)
+	measurement.Status = globalping.StatusFailed
+	measurement.Results[0].Result.Status = globalping.StatusFailed
+	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
+	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
+
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
+	ctx := &Context{
+		Cmd:        "ping",
+		MaxHistory: 3,
+	}
+	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	err = viewer.OutputInfinite(measurement.ID)
+	assert.Equal(t, "all probes failed", err.Error())
+	w.Close()
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Equal(t,
+		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+ping: cdn.jsdelivr.net.xc: Name or service not known
+`,
+		string(output),
+	)
+
+	expectedStats := []MeasurementStats{NewMeasurementStats()}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+}
+
 func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -310,6 +349,58 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
 		},
+		ctx.CompletedStats,
+	)
+}
+
+func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	osStdout := os.Stdout
+
+	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement.Status = globalping.StatusFinished
+	for i := range measurement.Results {
+		measurement.Results[i].Result.Status = globalping.StatusFailed
+		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
+	}
+	gbMock := mocks.NewMockClient(ctrl)
+	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
+
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
+	ctx := &Context{
+		Cmd:        "ping",
+		MaxHistory: 3,
+	}
+	v := NewViewer(ctx, NewPrinter(w), gbMock)
+	os.Stdout = w
+	err = v.OutputInfinite(measurementID1)
+	os.Stdout = osStdout
+	assert.Equal(t, "all probes failed", err.Error())
+	w.Close()
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+
+	assert.Equal(t, `> EU, GB, London, ASN:0, OVH SAS
+ping: cdn.jsdelivr.net.xc: Name or service not known
+> EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH
+ping: cdn.jsdelivr.net.xc: Name or service not known
+> EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH
+ping: cdn.jsdelivr.net.xc: Name or service not known
+`, string(output))
+	expectedStats := []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	assert.Equal(t,
+		expectedStats,
 		ctx.CompletedStats,
 	)
 }

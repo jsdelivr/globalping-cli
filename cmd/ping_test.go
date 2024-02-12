@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/signal"
@@ -139,6 +140,59 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Infinite:  true,
 		CallCount: 3,
 		From:      measurementID2,
+		Packets:   16,
+	}
+	assert.Equal(t, expectedCtx, ctx)
+
+	b, err := os.ReadFile(getMeasurementsPath())
+	assert.NoError(t, err)
+	expectedHistory := []byte(measurementID1 + "\n")
+	assert.Equal(t, expectedHistory, b)
+}
+
+func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts1 := getMeasurementCreate()
+	expectedOpts1.Options.Packets = 16
+
+	expectedResponse1 := getMeasurementCreateResponse(measurementID1)
+
+	gbMock := mocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, false, nil)
+
+	viewerMock := mocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputInfinite(measurementID1).Return(errors.New("error message"))
+	viewerMock.EXPECT().OutputSummary().Times(0)
+
+	ctx = &view.Context{}
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
+	printer := view.NewPrinter(w)
+	root := NewRoot(w, w, printer, ctx, viewerMock, gbMock, &cobra.Command{})
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite"}
+	err = root.Cmd.ExecuteContext(context.TODO())
+	assert.Equal(t, "error message", err.Error())
+	w.Close()
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: error message\n", string(output))
+
+	expectedCtx := &view.Context{
+		Cmd:       "ping",
+		Target:    "jsdelivr.com",
+		Limit:     1,
+		CI:        true,
+		Infinite:  true,
+		CallCount: 1,
+		From:      measurementID1,
 		Packets:   16,
 	}
 	assert.Equal(t, expectedCtx, ctx)

@@ -108,6 +108,7 @@ func (r *Root) ping() (string, error) {
 	}
 	if r.ctx.Infinite {
 		err = r.viewer.OutputInfinite(res.ID)
+		r.Cmd.SilenceUsage = true
 	} else {
 		r.viewer.Output(res.ID, opts)
 	}
