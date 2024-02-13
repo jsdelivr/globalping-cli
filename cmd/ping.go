@@ -97,6 +97,7 @@ func (r *Root) ping() (string, error) {
 		return "", err
 	}
 
+	r.ctx.MStartedAt = r.time.Now()
 	r.ctx.CallCount++
 
 	// Save measurement ID to history

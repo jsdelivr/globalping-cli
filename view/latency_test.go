@@ -63,6 +63,7 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 
@@ -123,6 +124,7 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 			CI:        true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 
@@ -177,6 +179,7 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 
@@ -230,6 +233,7 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 			CI:        true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 
@@ -282,6 +286,7 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 
@@ -340,6 +345,7 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 			CI:        true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 

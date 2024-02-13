@@ -69,7 +69,7 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd: "http",
 		CI:  true,
-	}, NewPrinter(w), gbMock)
+	}, NewPrinter(w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -143,7 +143,7 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		Cmd:   "http",
 		CI:    true,
 		Share: true,
-	}, NewPrinter(w), gbMock)
+	}, NewPrinter(w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -218,7 +218,7 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		Cmd:  "http",
 		CI:   true,
 		Full: true,
-	}, NewPrinter(w), gbMock)
+	}, NewPrinter(w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -291,7 +291,7 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd: "http",
 		CI:  true,
-	}, NewPrinter(w), gbMock)
+	}, NewPrinter(w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -354,7 +354,7 @@ func Test_Output_Default_Ping(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd: "ping",
 		CI:  true,
-	}, NewPrinter(w), gbMock)
+	}, NewPrinter(w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()

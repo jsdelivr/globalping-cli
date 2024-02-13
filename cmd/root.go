@@ -6,6 +6,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/lib"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -31,11 +32,12 @@ var (
 		APIMinInterval: globalping.API_MIN_INTERVAL,
 		MaxHistory:     10,
 	}
+	utime   = utils.NewTime()
 	gp      = globalping.NewClient(globalping.API_URL)
 	outW    = os.Stdout
 	errW    = os.Stderr
 	printer = view.NewPrinter(outW)
-	viewer  = view.NewViewer(ctx, printer, gp)
+	viewer  = view.NewViewer(ctx, printer, utime, gp)
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -46,7 +48,7 @@ var rootCmd = &cobra.Command{
 The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
 }
 
-var root = NewRoot(outW, errW, printer, ctx, viewer, gp, rootCmd)
+var root = NewRoot(outW, errW, printer, ctx, viewer, utime, gp, rootCmd)
 
 type Root struct {
 	outW    io.Writer
@@ -54,6 +56,7 @@ type Root struct {
 	ctx     *view.Context
 	viewer  view.Viewer
 	gp      globalping.Client
+	time    utils.Time
 	Cmd     *cobra.Command
 }
 
@@ -63,6 +66,7 @@ func NewRoot(
 	printer *view.Printer,
 	ctx *view.Context,
 	viewer view.Viewer,
+	time utils.Time,
 	gp globalping.Client,
 	cmd *cobra.Command,
 ) *Root {
@@ -72,6 +76,7 @@ func NewRoot(
 		printer: printer,
 		ctx:     ctx,
 		viewer:  viewer,
+		time:    time,
 		gp:      gp,
 	}
 

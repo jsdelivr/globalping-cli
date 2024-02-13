@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -53,6 +54,9 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 		return measurement, nil
 	}).Times(4)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).Times(3)
+
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
 	defer r.Close()
@@ -61,8 +65,9 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
+		MStartedAt: defaultCurrentTime,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), timeMock, gbMock)
 
 	measurement.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.Status = globalping.StatusInProgress
@@ -110,7 +115,7 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), nil, gbMock)
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.Equal(t, "all probes failed", err.Error())
 	w.Close()
@@ -146,7 +151,7 @@ func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), nil, gbMock)
 
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.NoError(t, err)
@@ -182,6 +187,9 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	res := getPingGetMeasurementMultipleLocations(measurementID1)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
+
 	rawOutput1 := `PING  (146.75.73.229) 56(84) bytes of data.`
 	rawOutput2 := `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
@@ -197,8 +205,10 @@ no answer yet for icmp_seq=2
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(res.Results)),
+		ctx:  getDefaultPingCtx(len(res.Results)),
+		time: timeMock,
 	}
+	expectedViewer.ctx.MStartedAt = defaultCurrentTime
 	expectedTables := [6]*string{}
 
 	callCount := 0 // 1st call is done in the caller.
@@ -233,8 +243,9 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	ctx := &Context{
 		Cmd:        "ping",
 		MaxHistory: 3,
+		MStartedAt: defaultCurrentTime,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), gbMock)
+	viewer := NewViewer(ctx, NewPrinter(w), timeMock, gbMock)
 	os.Stdout = w
 	err = viewer.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
@@ -312,7 +323,7 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	v := NewViewer(ctx, NewPrinter(w), gbMock)
+	v := NewViewer(ctx, NewPrinter(w), nil, gbMock)
 	os.Stdout = w
 	err = v.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
@@ -377,7 +388,7 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	v := NewViewer(ctx, NewPrinter(w), gbMock)
+	v := NewViewer(ctx, NewPrinter(w), nil, gbMock)
 	os.Stdout = w
 	err = v.OutputInfinite(measurementID1)
 	os.Stdout = osStdout
@@ -492,7 +503,20 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 }
 
 func Test_MergeMeasurementStats(t *testing.T) {
-	o := parsePingRawOutput(&globalping.ProbeMeasurement{
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).Times(2)
+
+	v := viewer{
+		ctx: &Context{
+			MStartedAt: defaultCurrentTime,
+		},
+		time: timeMock,
+	}
+
+	o := v.parsePingRawOutput(&globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.`,
 		},
@@ -502,10 +526,10 @@ func Test_MergeMeasurementStats(t *testing.T) {
 		o,
 	)
 	assert.Equal(t,
-		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
+		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 1},
 		newStats,
 	)
-	o = parsePingRawOutput(&globalping.ProbeMeasurement{
+	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
 no answer yet for icmp_seq=1
@@ -520,9 +544,9 @@ no answer yet for icmp_seq=4`,
 		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
 		o)
 	assertMeasurementStats(t, &MeasurementStats{Sent: 4, Rcv: 3, Lost: 1, Loss: 25, Last: 30, Min: 10,
-		Avg: 20, Max: 30, Tsum: 60, Tsum2: 1400, Mdev: 8.1649},
+		Avg: 20, Max: 30, Time: 1, Tsum: 60, Tsum2: 1400, Mdev: 8.1649},
 		&newStats)
-	o = parsePingRawOutput(&globalping.ProbeMeasurement{
+	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
 no answer yet for icmp_seq=1
@@ -543,7 +567,7 @@ rtt min/avg/max/mdev = 10/20/30/0 ms`,
 		o)
 	assertMeasurementStats(t, &MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 30, Min: 10,
 		Avg: 20, Max: 30, Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10}, &newStats)
-	o = parsePingRawOutput(&globalping.ProbeMeasurement{
+	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
 64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=10 ms
@@ -614,6 +638,10 @@ func Test_GetRowValues(t *testing.T) {
 }
 
 func Test_ParsePingRawOutput_Full(t *testing.T) {
+	v := viewer{
+		ctx: &Context{},
+	}
+
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING cdn.jsdelivr.net (142.250.65.174) 56(84) bytes of data.
@@ -626,7 +654,8 @@ func Test_ParsePingRawOutput_Full(t *testing.T) {
 rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 		},
 	}
-	res := parsePingRawOutput(m, -1)
+
+	res := v.parsePingRawOutput(m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -651,6 +680,19 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 }
 
 func Test_ParsePingRawOutput_NoStats(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond))
+
+	v := viewer{
+		ctx: &Context{
+			MStartedAt: defaultCurrentTime,
+		},
+		time: timeMock,
+	}
+
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
@@ -662,7 +704,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := parsePingRawOutput(m, -1)
+	res := v.parsePingRawOutput(m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -687,6 +729,19 @@ no answer yet for icmp_seq=4`,
 }
 
 func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond))
+
+	v := viewer{
+		ctx: &Context{
+			MStartedAt: defaultCurrentTime,
+		},
+		time: timeMock,
+	}
+
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
@@ -698,7 +753,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := parsePingRawOutput(m, 4)
+	res := v.parsePingRawOutput(m, 4)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Equal(t, []string{

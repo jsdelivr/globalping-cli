@@ -32,6 +32,7 @@ type Context struct {
 
 	Area            *pterm.AreaPrinter
 	Hostname        string
+	MStartedAt      time.Time // Time when the measurement started
 	CompletedStats  []MeasurementStats
 	InProgressStats []MeasurementStats
 	CallCount       int      // Number of measurements created
@@ -60,7 +61,7 @@ type MeasurementStats struct {
 	Avg   float64 // Average RTT
 	Max   float64 // Maximum RTT
 	Mdev  float64 // Mean deviation of RTT
-	Time  float64 // Total time
+	Time  float64 // Total time of measurement, in milliseconds
 	Tsum  float64 // Total sum of RTT
 	Tsum2 float64 // Total sum of RTT squared
 }

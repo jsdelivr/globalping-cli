@@ -3,6 +3,7 @@ package view
 import (
 	"encoding/json"
 	"math"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 )
@@ -11,6 +12,8 @@ var (
 	measurementID1 = "nzGzfAGL7sZfUs3c"
 	measurementID2 = "A2ZfUs3cnzGzfAGL"
 	// measurementID3 = "7sZfUs3cnzGz1I20"
+
+	defaultCurrentTime = time.Unix(0, 0)
 )
 
 func getPingGetMeasurement(id string) *globalping.Measurement {

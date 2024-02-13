@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/stretchr/testify/assert"
@@ -15,6 +16,8 @@ var (
 	measurementID2 = "hhUicONd75250Z1b"
 	measurementID3 = "YPDXL29YeGctf6iJ"
 	measurementID4 = "hH3tBVPZEj5k6AcW"
+
+	defaultCurrentTime = time.Unix(0, 0)
 )
 
 func Test_InProgressUpdates_CI(t *testing.T) {

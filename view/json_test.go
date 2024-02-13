@@ -33,6 +33,7 @@ func Test_Output_Json(t *testing.T) {
 			Share:  true,
 		},
 		NewPrinter(w),
+		nil,
 		gbMock,
 	)
 

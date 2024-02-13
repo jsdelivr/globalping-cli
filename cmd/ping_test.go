@@ -34,6 +34,9 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime)
+
 	ctx = &view.Context{
 		MaxHistory: 1,
 	}
@@ -43,7 +46,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	defer w.Close()
 
 	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, gbMock, &cobra.Command{})
+	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
@@ -102,8 +105,10 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		time.Sleep(5 * time.Millisecond)
 		return nil
 	}).After(outputCall2)
-
 	viewerMock.EXPECT().OutputSummary().Times(1)
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).Times(3)
 
 	ctx = &view.Context{}
 	r, w, err := os.Pipe()
@@ -112,7 +117,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	defer w.Close()
 
 	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, gbMock, &cobra.Command{})
+	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite"}
 
 	sig := make(chan os.Signal, 1)
@@ -133,14 +138,15 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	assert.Equal(t, "", string(output))
 
 	expectedCtx := &view.Context{
-		Cmd:       "ping",
-		Target:    "jsdelivr.com",
-		Limit:     1,
-		CI:        true,
-		Infinite:  true,
-		CallCount: 3,
-		From:      measurementID2,
-		Packets:   16,
+		Cmd:        "ping",
+		Target:     "jsdelivr.com",
+		Limit:      1,
+		CI:         true,
+		Infinite:   true,
+		CallCount:  3,
+		From:       measurementID2,
+		Packets:    16,
+		MStartedAt: defaultCurrentTime,
 	}
 	assert.Equal(t, expectedCtx, ctx)
 
@@ -168,6 +174,9 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(measurementID1).Return(errors.New("error message"))
 	viewerMock.EXPECT().OutputSummary().Times(0)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime)
+
 	ctx = &view.Context{}
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
@@ -175,7 +184,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	defer w.Close()
 
 	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, gbMock, &cobra.Command{})
+	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.Equal(t, "error message", err.Error())
@@ -186,14 +195,15 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	assert.Equal(t, "Error: error message\n", string(output))
 
 	expectedCtx := &view.Context{
-		Cmd:       "ping",
-		Target:    "jsdelivr.com",
-		Limit:     1,
-		CI:        true,
-		Infinite:  true,
-		CallCount: 1,
-		From:      measurementID1,
-		Packets:   16,
+		Cmd:        "ping",
+		Target:     "jsdelivr.com",
+		Limit:      1,
+		CI:         true,
+		Infinite:   true,
+		CallCount:  1,
+		From:       measurementID1,
+		Packets:    16,
+		MStartedAt: defaultCurrentTime,
 	}
 	assert.Equal(t, expectedCtx, ctx)
 
@@ -212,6 +222,7 @@ func getExpectedViewContext() *view.Context {
 		CallCount:  1,
 		From:       "world",
 		MaxHistory: 1,
+		MStartedAt: defaultCurrentTime,
 	}
 }
 

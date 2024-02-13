@@ -72,7 +72,7 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 			return v.outputFailSummary(res)
 		}
 		if measurement.Result.RawOutput != "" {
-			parsedOutput := parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
+			parsedOutput := v.parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
 			if printHeader && v.ctx.CompletedStats[0].Sent == 0 {
 				v.ctx.Hostname = parsedOutput.Hostname
 				v.printer.Println(generateProbeInfo(measurement, !v.ctx.CI))
@@ -191,7 +191,7 @@ func (v *viewer) generateTable(res *globalping.Measurement, areaWidth int) (*str
 			skip = true
 			break
 		}
-		parsedOutput := parsePingRawOutput(measurement, v.ctx.CompletedStats[i].Sent)
+		parsedOutput := v.parsePingRawOutput(measurement, v.ctx.CompletedStats[i].Sent)
 		newStats[i] = mergeMeasurementStats(v.ctx.CompletedStats[i], parsedOutput)
 		row := getRowValues(&newStats[i])
 		rowWidth := 0
@@ -318,15 +318,14 @@ type ParsedPingOutput struct {
 	RawPacketLines []string
 	Timings        []globalping.PingTiming
 	Stats          *MeasurementStats
-	Time           float64
+	Time           float64 // Total time, in milliseconds
 }
 
 // Parse ping's raw output. Adapted from iputils ping: https://github.com/iputils/iputils/tree/1c08152/ping
 //
 // - If startIncmpSeq is -1, RawPacketLines will be empty
-//
-// - Stats.Time will be 0 if no summary is found
-func parsePingRawOutput(m *globalping.ProbeMeasurement, startIncmpSeq int) *ParsedPingOutput {
+func (v *viewer) parsePingRawOutput(
+	m *globalping.ProbeMeasurement, startIncmpSeq int) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]globalping.PingTiming, 0),
 		Stats: &MeasurementStats{
@@ -419,6 +418,8 @@ func parsePingRawOutput(m *globalping.ProbeMeasurement, startIncmpSeq int) *Pars
 			res.Stats.Rcv, _ = strconv.Atoi(words[3])
 			res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
 		}
+	} else {
+		res.Time = float64(v.time.Now().Sub(v.ctx.MStartedAt).Milliseconds())
 	}
 	if res.Stats.Sent > 0 {
 		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv
