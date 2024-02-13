@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_Execute_Ping_Default(t *testing.T) {

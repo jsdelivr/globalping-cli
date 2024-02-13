@@ -4,9 +4,9 @@ Hi! We're really excited that you're interested in contributing! Before submitti
 
 ## General guidelines
 
--   Bug fixes and changes discussed in the existing issues are always welcome.
--   For new ideas, please open an issue to discuss them before sending a PR.
--   Make sure your PR passes `npm test` and has [appropriate commit messages](https://github.com/jsdelivr/globalping-cli/commits/master).
+- Bug fixes and changes discussed in the existing issues are always welcome.
+- For new ideas, please open an issue to discuss them before sending a PR.
+- Make sure your PR passes `go test ./...` and has [appropriate commit messages](https://github.com/jsdelivr/globalping-cli/commits/master).
 
 ## Project setup
 
@@ -19,7 +19,7 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 Install mockgen:
 
 ```shell
-GOBIN=$(pwd)/bin go install github.com/golang/mock/mockgen@v1.6.0
+GOBIN=$(pwd)/bin go install go.uber.org/mock/mockgen@latest
 ```
 
 Run golangci-lint:

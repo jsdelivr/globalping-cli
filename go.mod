@@ -7,7 +7,6 @@ toolchain go1.21.3
 require (
 	github.com/andybalholm/brotli v1.1.0
 	github.com/charmbracelet/lipgloss v0.9.1
-	github.com/golang/mock v1.6.0
 	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/pkg/errors v0.9.1
@@ -15,6 +14,7 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/mock v0.4.0
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 )
 
