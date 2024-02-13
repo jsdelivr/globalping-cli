@@ -94,15 +94,15 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	outputCall1 := viewerMock.EXPECT().OutputInfinite(measurementID1).DoAndReturn(func(id string) error {
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(2 * time.Millisecond)
 		return nil
 	})
 	outputCall2 := viewerMock.EXPECT().OutputInfinite(measurementID2).DoAndReturn(func(id string) error {
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(2 * time.Millisecond)
 		return nil
 	}).After(outputCall1)
 	viewerMock.EXPECT().OutputInfinite(measurementID3).DoAndReturn(func(id string) error {
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		return nil
 	}).After(outputCall2)
 	viewerMock.EXPECT().OutputSummary().Times(1)
@@ -123,7 +123,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT)
 	go func() {
-		time.Sleep(14 * time.Millisecond)
+		time.Sleep(7 * time.Millisecond)
 		p, _ := os.FindProcess(os.Getpid())
 		p.Signal(syscall.SIGINT)
 	}()
