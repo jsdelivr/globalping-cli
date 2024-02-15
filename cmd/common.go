@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/icza/backscanner"
-	"github.com/jsdelivr/globalping-cli/model"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -29,7 +29,7 @@ func inProgressUpdates(ci bool) bool {
 	return !(ci)
 }
 
-func createLocations(from string) ([]model.Locations, bool, error) {
+func createLocations(from string) ([]globalping.Locations, bool, error) {
 	fromArr := strings.Split(from, ",")
 	if len(fromArr) == 1 {
 		mId, err := mapToMeasurementID(fromArr[0])
@@ -42,15 +42,15 @@ func createLocations(from string) ([]model.Locations, bool, error) {
 		} else {
 			isPreviousMeasurementId = true
 		}
-		return []model.Locations{
+		return []globalping.Locations{
 			{
 				Magic: mId,
 			},
 		}, isPreviousMeasurementId, nil
 	}
-	locations := make([]model.Locations, len(fromArr))
+	locations := make([]globalping.Locations, len(fromArr))
 	for i, v := range fromArr {
-		locations[i] = model.Locations{
+		locations[i] = globalping.Locations{
 			Magic: strings.TrimSpace(v),
 		}
 	}

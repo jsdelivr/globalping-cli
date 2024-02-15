@@ -7,9 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jsdelivr/globalping-cli/client"
-	"github.com/jsdelivr/globalping-cli/model"
-	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -153,7 +151,7 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	res, showHelp, err := client.PostAPI(*opts)
+	res, showHelp, err := gp.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {
 			cmd.SilenceUsage = true
@@ -169,15 +167,15 @@ func httpCmdRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	view.OutputResults(res.ID, ctx, *opts)
+	viewer.Output(res.ID, opts)
 	return nil
 }
 
 const PostMeasurementTypeHttp = "http"
 
 // buildHttpMeasurementRequest builds the measurement request for the http type
-func buildHttpMeasurementRequest() (*model.PostMeasurement, error) {
-	opts := &model.PostMeasurement{
+func buildHttpMeasurementRequest() (*globalping.MeasurementCreate, error) {
+	opts := &globalping.MeasurementCreate{
 		Type:              PostMeasurementTypeHttp,
 		Limit:             ctx.Limit,
 		InProgressUpdates: inProgressUpdates(ctx.CI),
@@ -196,11 +194,10 @@ func buildHttpMeasurementRequest() (*model.PostMeasurement, error) {
 		method = "GET"
 	}
 	opts.Target = urlData.Host
-	opts.Options = &model.MeasurementOptions{
+	opts.Options = &globalping.MeasurementOptions{
 		Protocol: overrideOpt(urlData.Protocol, httpCmdOpts.Protocol),
 		Port:     overrideOptInt(urlData.Port, httpCmdOpts.Port),
-		Packets:  packets,
-		Request: &model.RequestOptions{
+		Request: &globalping.RequestOptions{
 			Path:    overrideOpt(urlData.Path, httpCmdOpts.Path),
 			Query:   overrideOpt(urlData.Query, httpCmdOpts.Query),
 			Host:    overrideOpt(urlData.Host, httpCmdOpts.Host),
