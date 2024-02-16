@@ -16,7 +16,7 @@ func Test_OutputSummary(t *testing.T) {
 		defer r.Close()
 		defer w.Close()
 
-		viewer := NewViewer(&Context{}, NewPrinter(w), nil, nil)
+		viewer := NewViewer(&Context{}, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -36,7 +36,7 @@ func Test_OutputSummary(t *testing.T) {
 				{Sent: 10, Rcv: 9, Lost: 1, Loss: 10, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1000, Mdev: 0.001},
 			},
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -61,7 +61,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms
 				{Sent: 1, Rcv: 0, Lost: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 0},
 			},
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -87,7 +87,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 				NewMeasurementStats(),
 			},
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -112,7 +112,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 			},
 			Share: true,
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -145,7 +145,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 			},
 			Share: true,
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 
@@ -176,7 +176,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 			MaxHistory: 1,
 			Packets:    16,
 		}
-		viewer := NewViewer(ctx, NewPrinter(w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 		w.Close()
 

@@ -2,56 +2,54 @@ package cmd
 
 import (
 	"bufio"
-	"fmt"
-	"os"
 
-	"github.com/jsdelivr/globalping-cli/lib/probe"
+	"github.com/jsdelivr/globalping-cli/globalping/probe"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	rootCmd.AddCommand(installProbeCmd)
+func (r *Root) initInstallProbe() {
+	installProbeCmd := &cobra.Command{
+		Use:   "install-probe",
+		Short: "Join the community powered Globalping platform by running a Docker container.",
+		Long:  `Pull and run the Globalping probe Docker container on this machine. It requires Docker to be installed.`,
+		Run:   r.RunInstallProbe,
+	}
+
+	r.Cmd.AddCommand(installProbeCmd)
 }
 
-var installProbeCmd = &cobra.Command{
-	Use:   "install-probe",
-	Short: "Join the community powered Globalping platform by running a Docker container.",
-	Long:  `Pull and run the Globalping probe Docker container on this machine. It requires Docker to be installed.`,
-	Run:   installProbeCmdRun,
-}
-
-func installProbeCmdRun(cmd *cobra.Command, args []string) {
-	containerEngine, err := probe.DetectContainerEngine()
+func (r *Root) RunInstallProbe(cmd *cobra.Command, args []string) {
+	containerEngine, err := r.probe.DetectContainerEngine()
 	if err != nil {
-		fmt.Printf("docker info command failed: %v\n\n", err)
-		fmt.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
+		r.printer.Printf("docker info command failed: %v\n\n", err)
+		r.printer.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
 		return
 	}
 
-	fmt.Printf("Detected container engine: %s\n\n", containerEngine)
+	r.printer.Printf("Detected container engine: %s\n\n", containerEngine)
 
-	err = probe.InspectContainer(containerEngine)
+	err = r.probe.InspectContainer(containerEngine)
 	if err != nil {
-		fmt.Println(err)
+		r.printer.Println(err)
 		return
 	}
 
-	ok := askUser(containerPullMessage(containerEngine))
+	ok := r.askUser(containerPullMessage(containerEngine))
 	if !ok {
-		fmt.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
+		r.printer.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
 		return
 	}
 
-	err = probe.RunContainer(containerEngine)
+	err = r.probe.RunContainer(containerEngine)
 	if err != nil {
-		fmt.Println(err)
+		r.printer.Println(err)
 		return
 	}
 
-	fmt.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
+	r.printer.Printf("The Globalping probe started successfully. Thank you for joining our community! \n")
 
 	if containerEngine == probe.ContainerEnginePodman {
-		fmt.Printf("When you are using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
+		r.printer.Printf("When you are using Podman, you also need to install a service to make sure the container starts on boot. Please see our instructions here: https://github.com/jsdelivr/globalping-probe/blob/master/README.md#podman-alternative\n")
 	}
 }
 
@@ -67,14 +65,14 @@ func containerPullMessage(containerEngine probe.ContainerEngine) string {
 	return pre + mid + post
 }
 
-func askUser(s string) bool {
-	fmt.Printf("%s [Y/n] ", s)
+func (r *Root) askUser(s string) bool {
+	r.printer.Printf("%s [Y/n] ", s)
 
-	r := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(r.printer.InReader)
 
-	c, _, err := r.ReadRune()
+	c, _, err := reader.ReadRune()
 	if err != nil {
-		fmt.Printf("failed to read character %v", err)
+		r.printer.Printf("failed to read character %v", err)
 		return false
 	}
 

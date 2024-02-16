@@ -12,22 +12,22 @@ type Viewer interface {
 }
 
 type viewer struct {
-	ctx     *Context
-	printer *Printer
-	time    utils.Time
-	gp      globalping.Client
+	ctx        *Context
+	printer    *Printer
+	time       utils.Time
+	globalping globalping.Client
 }
 
 func NewViewer(
 	ctx *Context,
 	printer *Printer,
 	time utils.Time,
-	gp globalping.Client,
+	globalpingClient globalping.Client,
 ) Viewer {
 	return &viewer{
-		ctx:     ctx,
-		printer: printer,
-		time:    time,
-		gp:      gp,
+		ctx:        ctx,
+		printer:    printer,
+		time:       time,
+		globalping: globalpingClient,
 	}
 }

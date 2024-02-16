@@ -67,7 +67,7 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 		MaxHistory: 3,
 		MStartedAt: defaultCurrentTime,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), timeMock, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, gbMock)
 
 	measurement.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.Status = globalping.StatusInProgress
@@ -115,7 +115,7 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), nil, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.Equal(t, "all probes failed", err.Error())
 	w.Close()
@@ -151,7 +151,7 @@ func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), nil, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
 
 	err = viewer.OutputInfinite(measurement.ID)
 	assert.NoError(t, err)
@@ -245,7 +245,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 		MaxHistory: 3,
 		MStartedAt: defaultCurrentTime,
 	}
-	viewer := NewViewer(ctx, NewPrinter(w), timeMock, gbMock)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, gbMock)
 	os.Stdout = w
 	err = viewer.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
@@ -323,7 +323,7 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	v := NewViewer(ctx, NewPrinter(w), nil, gbMock)
+	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
 	os.Stdout = w
 	err = v.OutputInfinite(measurementID1)
 	assert.NoError(t, err)
@@ -388,7 +388,7 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 		Cmd:        "ping",
 		MaxHistory: 3,
 	}
-	v := NewViewer(ctx, NewPrinter(w), nil, gbMock)
+	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
 	os.Stdout = w
 	err = v.OutputInfinite(measurementID1)
 	os.Stdout = osStdout

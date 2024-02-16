@@ -25,14 +25,14 @@ func (v *viewer) OutputInfinite(id string) error {
 	}
 	v.ctx.History.Push(id)
 
-	res, err := v.gp.GetMeasurement(id)
+	res, err := v.globalping.GetMeasurement(id)
 	if err != nil {
 		return err
 	}
 	// Probe may not have started yet
 	for len(res.Results) == 0 {
 		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.gp.GetMeasurement(id)
+		res, err = v.globalping.GetMeasurement(id)
 		if err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func (v *viewer) OutputInfinite(id string) error {
 	if v.ctx.ToJSON {
 		for res.Status == globalping.StatusInProgress {
 			time.Sleep(v.ctx.APIMinInterval)
-			res, err = v.gp.GetMeasurement(res.ID)
+			res, err = v.globalping.GetMeasurement(res.ID)
 			if err != nil {
 				return err
 			}
@@ -75,7 +75,7 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 			parsedOutput := v.parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
 			if printHeader && v.ctx.CompletedStats[0].Sent == 0 {
 				v.ctx.Hostname = parsedOutput.Hostname
-				v.printer.Println(generateProbeInfo(measurement, !v.ctx.CI))
+				v.printer.Println(generateProbeInfo(measurement, !v.ctx.CIMode))
 				v.printer.Printf("PING %s (%s) %s bytes of data.\n",
 					parsedOutput.Hostname,
 					parsedOutput.Address,
@@ -96,7 +96,7 @@ func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
 			break
 		}
 		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.gp.GetMeasurement(res.ID)
+		res, err = v.globalping.GetMeasurement(res.ID)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func (v *viewer) outputTableView(res *globalping.Measurement) error {
 			break
 		}
 		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.gp.GetMeasurement(res.ID)
+		res, err = v.globalping.GetMeasurement(res.ID)
 		if err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func (v *viewer) outputTableView(res *globalping.Measurement) error {
 
 func (v *viewer) outputFailSummary(res *globalping.Measurement) error {
 	for i := range res.Results {
-		v.printer.Println(generateProbeInfo(&res.Results[i], !v.ctx.CI))
+		v.printer.Println(generateProbeInfo(&res.Results[i], !v.ctx.CIMode))
 		v.printer.Println(res.Results[i].Result.RawOutput)
 	}
 	return errors.New("all probes failed")

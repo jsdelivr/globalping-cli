@@ -14,7 +14,6 @@ import (
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
 	"github.com/jsdelivr/globalping-cli/view"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -25,7 +24,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := getMeasurementCreate()
+	expectedOpts := getPingMeasurementCreate()
 	expectedResponse := getMeasurementCreateResponse(measurementID1)
 
 	gbMock := mocks.NewMockClient(ctrl)
@@ -37,7 +36,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime)
 
-	ctx = &view.Context{
+	ctx := &view.Context{
 		MaxHistory: 1,
 	}
 	r, w, err := os.Pipe()
@@ -45,8 +44,8 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	defer r.Close()
 	defer w.Close()
 
-	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
+	printer := view.NewPrinter(nil, w, w)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
@@ -56,7 +55,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "", string(output))
 
-	expectedCtx := getExpectedViewContext()
+	expectedCtx := getExpectedPingViewContext()
 	assert.Equal(t, expectedCtx, ctx)
 
 	b, err := os.ReadFile(getMeasurementsPath())
@@ -74,12 +73,12 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts1 := getMeasurementCreate()
+	expectedOpts1 := getPingMeasurementCreate()
 	expectedOpts1.Options.Packets = 16
-	expectedOpts2 := getMeasurementCreate()
+	expectedOpts2 := getPingMeasurementCreate()
 	expectedOpts2.Options.Packets = 16
 	expectedOpts2.Locations[0].Magic = measurementID1
-	expectedOpts3 := getMeasurementCreate()
+	expectedOpts3 := getPingMeasurementCreate()
 	expectedOpts3.Options.Packets = 16
 	expectedOpts3.Locations[0].Magic = measurementID2
 
@@ -110,14 +109,14 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).Times(3)
 
-	ctx = &view.Context{}
+	ctx := &view.Context{}
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
 	defer r.Close()
 	defer w.Close()
 
-	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
+	printer := view.NewPrinter(nil, w, w)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite"}
 
 	sig := make(chan os.Signal, 1)
@@ -141,7 +140,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Cmd:        "ping",
 		Target:     "jsdelivr.com",
 		Limit:      1,
-		CI:         true,
+		CIMode:     true,
 		Infinite:   true,
 		CallCount:  3,
 		From:       measurementID2,
@@ -162,7 +161,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts1 := getMeasurementCreate()
+	expectedOpts1 := getPingMeasurementCreate()
 	expectedOpts1.Options.Packets = 16
 
 	expectedResponse1 := getMeasurementCreateResponse(measurementID1)
@@ -177,14 +176,14 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime)
 
-	ctx = &view.Context{}
+	ctx := &view.Context{}
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
 	defer r.Close()
 	defer w.Close()
 
-	printer := view.NewPrinter(w)
-	root := NewRoot(w, w, printer, ctx, viewerMock, timeMock, gbMock, &cobra.Command{})
+	printer := view.NewPrinter(nil, w, w)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.Equal(t, "error message", err.Error())
@@ -198,7 +197,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 		Cmd:        "ping",
 		Target:     "jsdelivr.com",
 		Limit:      1,
-		CI:         true,
+		CIMode:     true,
 		Infinite:   true,
 		CallCount:  1,
 		From:       measurementID1,
@@ -213,12 +212,12 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	assert.Equal(t, expectedHistory, b)
 }
 
-func getExpectedViewContext() *view.Context {
+func getExpectedPingViewContext() *view.Context {
 	return &view.Context{
 		Cmd:        "ping",
 		Target:     "jsdelivr.com",
 		Limit:      1,
-		CI:         true,
+		CIMode:     true,
 		CallCount:  1,
 		From:       "world",
 		MaxHistory: 1,
@@ -226,7 +225,7 @@ func getExpectedViewContext() *view.Context {
 	}
 }
 
-func getMeasurementCreate() *globalping.MeasurementCreate {
+func getPingMeasurementCreate() *globalping.MeasurementCreate {
 	return &globalping.MeasurementCreate{
 		Type:    "ping",
 		Target:  "jsdelivr.com",
@@ -235,12 +234,5 @@ func getMeasurementCreate() *globalping.MeasurementCreate {
 		Locations: []globalping.Locations{
 			{Magic: "world"},
 		},
-	}
-}
-
-func getMeasurementCreateResponse(id string) *globalping.MeasurementCreateResponse {
-	return &globalping.MeasurementCreateResponse{
-		ID:          id,
-		ProbesCount: 1,
 	}
 }

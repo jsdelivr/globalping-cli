@@ -62,7 +62,7 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 			Cmd:       "ping",
 			ToLatency: true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)
@@ -121,9 +121,9 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 		&Context{
 			Cmd:       "ping",
 			ToLatency: true,
-			CI:        true,
+			CIMode:    true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)
@@ -178,7 +178,7 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 			Cmd:       "dns",
 			ToLatency: true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)
@@ -230,9 +230,9 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 		&Context{
 			Cmd:       "dns",
 			ToLatency: true,
-			CI:        true,
+			CIMode:    true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)
@@ -285,7 +285,7 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 			Cmd:       "http",
 			ToLatency: true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)
@@ -342,9 +342,9 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 		&Context{
 			Cmd:       "http",
 			ToLatency: true,
-			CI:        true,
+			CIMode:    true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)

@@ -8,24 +8,27 @@ import (
 )
 
 type Context struct {
-	Cmd    string
-	Target string
-	From   string
-
-	Protocol  string
-	Port      int
-	Resolver  string
-	Trace     bool
-	QueryType string
-
-	Limit   int // Number of probes to use
-	Packets int // Number of packets to send
-
+	Cmd       string
+	Target    string
+	From      string
+	Limit     int  // Number of probes to use
+	CIMode    bool // Determine whether the output should be in a format that is easy to parse by a CI tool
 	ToJSON    bool // Determines whether the output should be in JSON format.
 	ToLatency bool // Determines whether the output should be only the stats of a measurement
-	CI        bool // Determine whether the output should be in a format that is easy to parse by a CI tool
-	Full      bool // Full output
 	Share     bool // Display share message
+
+	Packets   int // Number of packets to send
+	Port      int
+	Protocol  string
+	Resolver  string
+	QueryType string
+	Host      string
+	Path      string
+	Query     string
+	Method    string
+	Headers   []string
+	Trace     bool
+	Full      bool // Full output
 	Infinite  bool // Infinite flag
 
 	APIMinInterval time.Duration // Minimum interval between API calls

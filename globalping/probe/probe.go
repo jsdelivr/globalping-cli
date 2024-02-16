@@ -7,7 +7,19 @@ import (
 	"os/exec"
 )
 
-func InspectContainer(containerEngine ContainerEngine) error {
+type Probe interface {
+	DetectContainerEngine() (ContainerEngine, error)
+	InspectContainer(containerEngine ContainerEngine) error
+	RunContainer(containerEngine ContainerEngine) error
+}
+
+type probe struct{}
+
+func NewProbe() Probe {
+	return &probe{}
+}
+
+func (p *probe) InspectContainer(containerEngine ContainerEngine) error {
 	switch containerEngine {
 	case ContainerEngineDocker:
 		err := inspectContainerDocker()
@@ -20,7 +32,26 @@ func InspectContainer(containerEngine ContainerEngine) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Unknown container engine %s", containerEngine)
+		return fmt.Errorf("unknown container engine %s", containerEngine)
+	}
+
+	return nil
+}
+
+func (p *probe) RunContainer(containerEngine ContainerEngine) error {
+	switch containerEngine {
+	case ContainerEngineDocker:
+		err := runContainerDocker()
+		if err != nil {
+			return err
+		}
+	case ContainerEnginePodman:
+		err := runContainerPodman()
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unknown container engine %s", containerEngine)
 	}
 
 	return nil
@@ -31,7 +62,7 @@ func inspectContainerDocker() error {
 	containerStatus, err := cmd.Output()
 	if err == nil {
 		containerStatusStr := string(bytes.TrimSpace(containerStatus))
-		return fmt.Errorf("The globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
+		return fmt.Errorf("the globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
 	}
 
 	return nil
@@ -47,26 +78,7 @@ func inspectContainerPodman() error {
 			return nil
 		}
 
-		return fmt.Errorf("The globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
-	}
-
-	return nil
-}
-
-func RunContainer(containerEngine ContainerEngine) error {
-	switch containerEngine {
-	case ContainerEngineDocker:
-		err := runContainerDocker()
-		if err != nil {
-			return err
-		}
-	case ContainerEnginePodman:
-		err := runContainerPodman()
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("Unknown container engine %s", containerEngine)
+		return fmt.Errorf("the globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
 	}
 
 	return nil
@@ -78,7 +90,7 @@ func runContainerDocker() error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Failed to run container: %v", err)
+		return fmt.Errorf("failed to run container: %v", err)
 	}
 
 	return nil
@@ -90,7 +102,7 @@ func runContainerPodman() error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Failed to run container: %v", err)
+		return fmt.Errorf("failed to run container: %v", err)
 	}
 
 	return nil
