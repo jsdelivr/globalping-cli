@@ -16,7 +16,7 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 		}
 
 		// Output slightly different format if state is available
-		v.printer.Println(generateProbeInfo(result, !v.ctx.CI))
+		v.printer.Println(generateProbeInfo(result, !v.ctx.CIMode))
 
 		if v.isBodyOnlyHttpGet(m) {
 			v.printer.Println(strings.TrimSpace(result.Result.RawBody))
@@ -26,6 +26,6 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 	}
 
 	if v.ctx.Share {
-		v.printer.Println(formatWithLeadingArrow(shareMessage(id), !v.ctx.CI))
+		v.printer.Println(formatWithLeadingArrow(shareMessage(id), !v.ctx.CIMode))
 	}
 }

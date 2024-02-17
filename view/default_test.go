@@ -67,9 +67,9 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	}
 
 	viewer := NewViewer(&Context{
-		Cmd: "http",
-		CI:  true,
-	}, NewPrinter(w), nil, gbMock)
+		Cmd:    "http",
+		CIMode: true,
+	}, NewPrinter(nil, w, w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -140,10 +140,10 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 	}
 
 	viewer := NewViewer(&Context{
-		Cmd:   "http",
-		CI:    true,
-		Share: true,
-	}, NewPrinter(w), nil, gbMock)
+		Cmd:    "http",
+		CIMode: true,
+		Share:  true,
+	}, NewPrinter(nil, w, w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -215,10 +215,10 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 	}
 
 	viewer := NewViewer(&Context{
-		Cmd:  "http",
-		CI:   true,
-		Full: true,
-	}, NewPrinter(w), nil, gbMock)
+		Cmd:    "http",
+		CIMode: true,
+		Full:   true,
+	}, NewPrinter(nil, w, w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -289,9 +289,9 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	}
 
 	viewer := NewViewer(&Context{
-		Cmd: "http",
-		CI:  true,
-	}, NewPrinter(w), nil, gbMock)
+		Cmd:    "http",
+		CIMode: true,
+	}, NewPrinter(nil, w, w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()
@@ -352,9 +352,9 @@ func Test_Output_Default_Ping(t *testing.T) {
 	m := &globalping.MeasurementCreate{}
 
 	viewer := NewViewer(&Context{
-		Cmd: "ping",
-		CI:  true,
-	}, NewPrinter(w), nil, gbMock)
+		Cmd:    "ping",
+		CIMode: true,
+	}, NewPrinter(nil, w, w), nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 	w.Close()

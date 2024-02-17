@@ -24,24 +24,24 @@ var (
 
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := v.gp.GetMeasurement(id)
+	data, err := v.globalping.GetMeasurement(id)
 	if err != nil {
 		return err
 	}
 	// Probe may not have started yet
 	for len(data.Results) == 0 {
 		time.Sleep(v.ctx.APIMinInterval)
-		data, err = v.gp.GetMeasurement(id)
+		data, err = v.globalping.GetMeasurement(id)
 		if err != nil {
 			return err
 		}
 	}
 
-	if v.ctx.CI || v.ctx.ToJSON || v.ctx.ToLatency {
+	if v.ctx.CIMode || v.ctx.ToJSON || v.ctx.ToLatency {
 		// Poll API until the measurement is complete
 		for data.Status == globalping.StatusInProgress {
 			time.Sleep(v.ctx.APIMinInterval)
-			data, err = v.gp.GetMeasurement(id)
+			data, err = v.globalping.GetMeasurement(id)
 			if err != nil {
 				return err
 			}
@@ -55,7 +55,7 @@ func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 			return v.OutputJson(id)
 		}
 
-		if v.ctx.CI {
+		if v.ctx.CIMode {
 			v.outputDefault(id, data, m)
 			return nil
 		}
@@ -78,7 +78,7 @@ func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping
 		// Stop area printer and clear area if not already done
 		err := areaPrinter.Stop()
 		if err != nil {
-			fmt.Printf("failed to stop writer: %v", err)
+			v.printer.Printf("failed to stop writer: %v", err)
 		}
 	}()
 
@@ -93,7 +93,7 @@ func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping
 	// Poll API until the measurement is complete
 	for data.Status == globalping.StatusInProgress {
 		time.Sleep(v.ctx.APIMinInterval)
-		data, err = v.gp.GetMeasurement(id)
+		data, err = v.globalping.GetMeasurement(id)
 		if err != nil {
 			return fmt.Errorf("failed to get data: %v", err)
 		}
@@ -105,7 +105,7 @@ func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping
 		for i := range data.Results {
 			result := &data.Results[i]
 			// Output slightly different format if state is available
-			output.WriteString(generateProbeInfo(result, !v.ctx.CI) + "\n")
+			output.WriteString(generateProbeInfo(result, !v.ctx.CIMode) + "\n")
 
 			if v.isBodyOnlyHttpGet(m) {
 				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")

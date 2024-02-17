@@ -14,7 +14,7 @@ const (
 	ContainerEnginePodman  ContainerEngine = "Podman"
 )
 
-func DetectContainerEngine() (ContainerEngine, error) {
+func (p *probe) DetectContainerEngine() (ContainerEngine, error) {
 	// check if docker is installed
 	dockerInfoCmd := exec.Command("docker", "info")
 	dockerInfoCmd.Stderr = os.Stderr

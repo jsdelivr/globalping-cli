@@ -32,7 +32,7 @@ func Test_Output_Json(t *testing.T) {
 			ToJSON: true,
 			Share:  true,
 		},
-		NewPrinter(w),
+		NewPrinter(nil, w, w),
 		nil,
 		gbMock,
 	)

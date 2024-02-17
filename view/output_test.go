@@ -11,7 +11,7 @@ var (
 	testContext = Context{
 		From:   "New York",
 		Target: "1.1.1.1",
-		CI:     true,
+		CIMode: true,
 	}
 	testResult = globalping.ProbeMeasurement{
 		Probe: globalping.ProbeDetails{
@@ -27,17 +27,17 @@ var (
 )
 
 func Test_HeadersBase(t *testing.T) {
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateProbeInfo(&testResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateProbeInfo(&testResult, !testContext.CIMode))
 }
 
 func Test_HeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
 
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateProbeInfo(&newResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateProbeInfo(&newResult, !testContext.CIMode))
 
 	newResult.Probe.Tags = []string{"tag", "tag2"}
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateProbeInfo(&newResult, !testContext.CI))
+	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateProbeInfo(&newResult, !testContext.CIMode))
 }
 
 func Test_TrimOutput(t *testing.T) {

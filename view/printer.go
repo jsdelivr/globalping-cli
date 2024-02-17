@@ -8,24 +8,32 @@ import (
 )
 
 type Printer struct {
-	w io.Writer
+	InReader  io.Reader
+	OutWriter io.Writer
+	ErrWriter io.Writer
 }
 
-func NewPrinter(writer io.Writer) *Printer {
-	pterm.SetDefaultOutput(writer) // TODO: Set writer for AreaPrinter
+func NewPrinter(
+	inReader io.Reader,
+	outWriter io.Writer,
+	errWriter io.Writer,
+) *Printer {
+	pterm.SetDefaultOutput(outWriter) // TODO: Set writer for AreaPrinter
 	return &Printer{
-		w: writer,
+		InReader:  inReader,
+		OutWriter: outWriter,
+		ErrWriter: errWriter,
 	}
 }
 
 func (p *Printer) Print(a ...any) {
-	fmt.Fprint(p.w, a...)
+	fmt.Fprint(p.OutWriter, a...)
 }
 
 func (p *Printer) Println(a ...any) {
-	fmt.Fprintln(p.w, a...)
+	fmt.Fprintln(p.OutWriter, a...)
 }
 
 func (p *Printer) Printf(format string, a ...any) {
-	fmt.Fprintf(p.w, format, a...)
+	fmt.Fprintf(p.OutWriter, format, a...)
 }

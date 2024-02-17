@@ -12,6 +12,7 @@ import (
 
 func (r *Root) initPing() {
 	pingCmd := &cobra.Command{
+		RunE:    r.RunPing,
 		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Run a ping test",
@@ -44,7 +45,6 @@ Examples:
 
   # Continuously ping google.com from New York
   ping google.com from New York --infinite`,
-		RunE: r.RunPing,
 	}
 
 	// ping specific flags
@@ -72,7 +72,7 @@ func (r *Root) ping() (string, error) {
 		Type:              "ping",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
-		InProgressUpdates: inProgressUpdates(r.ctx.CI),
+		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
 			Packets: r.ctx.Packets,
 		},
@@ -89,7 +89,7 @@ func (r *Root) ping() (string, error) {
 		opts.Locations = []globalping.Locations{{Magic: r.ctx.From}}
 	}
 
-	res, showHelp, err := r.gp.CreateMeasurement(opts)
+	res, showHelp, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {
 			r.Cmd.SilenceUsage = true
@@ -102,7 +102,7 @@ func (r *Root) ping() (string, error) {
 
 	// Save measurement ID to history
 	if !isPreviousMeasurementId {
-		err := saveMeasurementID(res.ID)
+		err := saveIdToHistory(res.ID)
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}

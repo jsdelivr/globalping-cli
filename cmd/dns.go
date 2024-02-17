@@ -1,18 +1,17 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/spf13/cobra"
 )
 
-// dnsCmd represents the dns command
-var dnsCmd = &cobra.Command{
-	Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
-	GroupID: "Measurements",
-	Short:   "Resolve a DNS record similarly to dig",
-	Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
+func (r *Root) initDNS() {
+	dnsCmd := &cobra.Command{
+		RunE:    r.RunDNS,
+		Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		GroupID: "Measurements",
+		Short:   "Resolve a DNS record similarly to dig",
+		Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
 The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
 This command provides 2 different ways to provide the dns resolver:
 Using the --resolver argument. For example:
@@ -50,65 +49,63 @@ Using the dig format @resolver. For example:
 
   # Resolve jsdelivr.com from a probe in ASN 123 with json output
   dns jsdelivr.com from 123 --json`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		// Create context
-
-		err := createContext(cmd.CalledAs(), args)
-		if err != nil {
-			return err
-		}
-
-		// Make post struct
-		opts = globalping.MeasurementCreate{
-			Type:              "dns",
-			Target:            ctx.Target,
-			Limit:             ctx.Limit,
-			InProgressUpdates: inProgressUpdates(ctx.CI),
-			Options: &globalping.MeasurementOptions{
-				Protocol: protocol,
-				Port:     port,
-				Resolver: overrideOpt(ctx.Resolver, resolver),
-				Query: &globalping.QueryOptions{
-					Type: queryType,
-				},
-				Trace: trace,
-			},
-		}
-		isPreviousMeasurementId := false
-		opts.Locations, isPreviousMeasurementId, err = createLocations(ctx.From)
-		if err != nil {
-			cmd.SilenceUsage = true
-			return err
-		}
-
-		res, showHelp, err := gp.CreateMeasurement(&opts)
-		if err != nil {
-			if !showHelp {
-				cmd.SilenceUsage = true
-			}
-			return err
-		}
-
-		// Save measurement ID to history
-		if !isPreviousMeasurementId {
-			err := saveMeasurementID(res.ID)
-			if err != nil {
-				fmt.Printf("Warning: %s\n", err)
-			}
-		}
-
-		viewer.Output(res.ID, &opts)
-		return nil
-	},
-}
-
-func init() {
-	rootCmd.AddCommand(dnsCmd)
+	}
 
 	// dns specific flags
-	dnsCmd.Flags().StringVar(&protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
-	dnsCmd.Flags().IntVar(&port, "port", 0, "Send the query to a non-standard port on the server (default 53)")
-	dnsCmd.Flags().StringVar(&resolver, "resolver", "", "Resolver is the hostname or IP address of the name server to use (default empty)")
-	dnsCmd.Flags().StringVar(&queryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
-	dnsCmd.Flags().BoolVar(&trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
+	flags := dnsCmd.Flags()
+	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
+	flags.IntVar(&r.ctx.Port, "port", 0, "Send the query to a non-standard port on the server (default 53)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", "", "Resolver is the hostname or IP address of the name server to use (default empty)")
+	flags.StringVar(&r.ctx.QueryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
+	flags.BoolVar(&r.ctx.Trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
+
+	r.Cmd.AddCommand(dnsCmd)
+}
+
+func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
+	err := r.updateContext(cmd.CalledAs(), args)
+	if err != nil {
+		return err
+	}
+
+	opts := &globalping.MeasurementCreate{
+		Type:              "dns",
+		Target:            r.ctx.Target,
+		Limit:             r.ctx.Limit,
+		InProgressUpdates: !r.ctx.CIMode,
+		Options: &globalping.MeasurementOptions{
+			Protocol: r.ctx.Protocol,
+			Port:     r.ctx.Port,
+			Resolver: r.ctx.Resolver,
+			Query: &globalping.QueryOptions{
+				Type: r.ctx.QueryType,
+			},
+			Trace: r.ctx.Trace,
+		},
+	}
+	isPreviousMeasurementId := false
+	opts.Locations, isPreviousMeasurementId, err = createLocations(r.ctx.From)
+	if err != nil {
+		cmd.SilenceUsage = true
+		return err
+	}
+
+	res, showHelp, err := r.client.CreateMeasurement(opts)
+	if err != nil {
+		if !showHelp {
+			cmd.SilenceUsage = true
+		}
+		return err
+	}
+
+	// Save measurement ID to history
+	if !isPreviousMeasurementId {
+		err := saveIdToHistory(res.ID)
+		if err != nil {
+			r.printer.Printf("Warning: %s\n", err)
+		}
+	}
+
+	r.viewer.Output(res.ID, opts)
+	return nil
 }
