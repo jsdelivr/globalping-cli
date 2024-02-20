@@ -7,7 +7,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/mattn/go-runewidth"
@@ -19,101 +18,65 @@ var (
 	colSeparator = " | "
 )
 
-func (v *viewer) OutputInfinite(id string) error {
-	if v.ctx.History == nil {
-		v.ctx.History = NewRbuffer(v.ctx.MaxHistory)
-	}
-	v.ctx.History.Push(id)
-
-	res, err := v.globalping.GetMeasurement(id)
-	if err != nil {
-		return err
-	}
-	// Probe may not have started yet
-	for len(res.Results) == 0 {
-		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.globalping.GetMeasurement(id)
-		if err != nil {
-			return err
-		}
-	}
-
+func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
 	if v.ctx.ToJSON {
-		for res.Status == globalping.StatusInProgress {
-			time.Sleep(v.ctx.APIMinInterval)
-			res, err = v.globalping.GetMeasurement(res.ID)
-			if err != nil {
-				return err
-			}
+		if m.Status == globalping.StatusInProgress {
+			return nil
 		}
-		return v.OutputJson(id)
+		return v.OutputJson(m.ID)
 	}
 
-	if len(res.Results) == 1 {
-		if v.ctx.ToLatency {
-			return v.outputTableView(res)
-		}
-		return v.outputStreamingPackets(res)
+	if isFailedMeasurement(m) {
+		return v.outputFailSummary(m)
 	}
-	return v.outputTableView(res)
+
+	if len(m.Results) == 1 {
+		if v.ctx.ToLatency {
+			return v.outputTableView(m)
+		}
+		return v.outputStreamingPackets(m)
+	}
+	return v.outputTableView(m)
 }
 
-func (v *viewer) outputStreamingPackets(res *globalping.Measurement) error {
+func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	if len(v.ctx.CompletedStats) == 0 {
 		v.ctx.CompletedStats = []MeasurementStats{NewMeasurementStats()}
 		v.ctx.InProgressStats = []MeasurementStats{NewMeasurementStats()}
 	}
-	printHeader := true
-	linesPrinted := 0
-	var err error
-	for {
-		measurement := &res.Results[0]
-		if isFailedMeasurement(res) {
-			return v.outputFailSummary(res)
+	probeMeasurement := &m.Results[0]
+	historyMeasurement := v.ctx.History.Find(m.ID)
+	if probeMeasurement.Result.RawOutput != "" {
+		parsedOutput := v.parsePingRawOutput(historyMeasurement, probeMeasurement, v.ctx.CompletedStats[0].Sent)
+		if !v.ctx.IsHeaderPrinted {
+			v.ctx.Hostname = parsedOutput.Hostname
+			v.printer.Println(generateProbeInfo(probeMeasurement, !v.ctx.CIMode))
+			v.printer.Printf("PING %s (%s) %s bytes of data.\n",
+				parsedOutput.Hostname,
+				parsedOutput.Address,
+				parsedOutput.BytesOfData,
+			)
+			v.ctx.IsHeaderPrinted = true
 		}
-		if measurement.Result.RawOutput != "" {
-			parsedOutput := v.parsePingRawOutput(measurement, v.ctx.CompletedStats[0].Sent)
-			if printHeader && v.ctx.CompletedStats[0].Sent == 0 {
-				v.ctx.Hostname = parsedOutput.Hostname
-				v.printer.Println(generateProbeInfo(measurement, !v.ctx.CIMode))
-				v.printer.Printf("PING %s (%s) %s bytes of data.\n",
-					parsedOutput.Hostname,
-					parsedOutput.Address,
-					parsedOutput.BytesOfData,
-				)
-				printHeader = false
-			}
-			for linesPrinted < len(parsedOutput.RawPacketLines) {
-				v.printer.Println(parsedOutput.RawPacketLines[linesPrinted])
-				linesPrinted++
-			}
-			v.ctx.InProgressStats[0] = mergeMeasurementStats(v.ctx.CompletedStats[0], parsedOutput)
-			if res.Status != globalping.StatusInProgress {
-				v.ctx.CompletedStats[0] = v.ctx.InProgressStats[0]
-			}
+		for historyMeasurement.LinesPrinted < len(parsedOutput.RawPacketLines) {
+			v.printer.Println(parsedOutput.RawPacketLines[historyMeasurement.LinesPrinted])
+			historyMeasurement.LinesPrinted++
 		}
-		if res.Status != globalping.StatusInProgress {
-			break
-		}
-		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.globalping.GetMeasurement(res.ID)
-		if err != nil {
-			return err
+		v.ctx.InProgressStats[0] = mergeMeasurementStats(v.ctx.CompletedStats[0], parsedOutput)
+		if m.Status != globalping.StatusInProgress {
+			v.ctx.CompletedStats[0] = v.ctx.InProgressStats[0]
 		}
 	}
 	return nil
 }
 
-func (v *viewer) outputTableView(res *globalping.Measurement) error {
+func (v *viewer) outputTableView(m *globalping.Measurement) error {
 	var err error
 	if len(v.ctx.CompletedStats) == 0 {
 		// Initialize state
-		v.ctx.CompletedStats = make([]MeasurementStats, len(res.Results))
-		for i := range v.ctx.CompletedStats {
-			v.ctx.CompletedStats[i].Last = -1
-			v.ctx.CompletedStats[i].Min = math.MaxFloat64
-			v.ctx.CompletedStats[i].Avg = -1
-			v.ctx.CompletedStats[i].Max = -1
+		v.ctx.CompletedStats = make([]MeasurementStats, 0, len(m.Results))
+		for i := 0; i < len(m.Results); i++ {
+			v.ctx.CompletedStats = append(v.ctx.CompletedStats, NewMeasurementStats())
 		}
 		// Create new writer
 		v.ctx.Area, err = pterm.DefaultArea.Start()
@@ -121,43 +84,32 @@ func (v *viewer) outputTableView(res *globalping.Measurement) error {
 			return errors.New("failed to start writer: " + err.Error())
 		}
 	}
-	for {
-		if isFailedMeasurement(res) {
-			return v.outputFailSummary(res)
-		}
-		o, stats := v.generateTable(res, pterm.GetTerminalWidth()-2)
-		if o != nil {
-			v.ctx.Area.Update(*o)
-		}
+	o, stats := v.generateTable(m, pterm.GetTerminalWidth()-2)
+	if o != nil {
+		v.ctx.Area.Update(*o)
+	}
+	if stats != nil {
+		v.ctx.InProgressStats = stats
+	}
+	if m.Status != globalping.StatusInProgress {
 		if stats != nil {
-			v.ctx.InProgressStats = stats
-		}
-		if res.Status != globalping.StatusInProgress {
-			if stats != nil {
-				v.ctx.CompletedStats = stats
-			}
-			break
-		}
-		time.Sleep(v.ctx.APIMinInterval)
-		res, err = v.globalping.GetMeasurement(res.ID)
-		if err != nil {
-			return err
+			v.ctx.CompletedStats = stats
 		}
 	}
 	return nil
 }
 
-func (v *viewer) outputFailSummary(res *globalping.Measurement) error {
-	for i := range res.Results {
-		v.printer.Println(generateProbeInfo(&res.Results[i], !v.ctx.CIMode))
-		v.printer.Println(res.Results[i].Result.RawOutput)
+func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
+	for i := range m.Results {
+		v.printer.Println(generateProbeInfo(&m.Results[i], !v.ctx.CIMode))
+		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
 	return errors.New("all probes failed")
 }
 
-func isFailedMeasurement(res *globalping.Measurement) bool {
-	for i := range res.Results {
-		if res.Results[i].Result.Status != globalping.StatusFailed {
+func isFailedMeasurement(m *globalping.Measurement) bool {
+	for i := range m.Results {
+		if m.Results[i].Result.Status != globalping.StatusFailed {
 			return false
 		}
 	}
@@ -174,7 +126,7 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func (v *viewer) generateTable(res *globalping.Measurement, areaWidth int) (*string, []MeasurementStats) {
+func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*string, []MeasurementStats) {
 	table := [][7]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	// Calculate max column width and max line width
 	// We handle multi-line values only for the first column
@@ -184,14 +136,15 @@ func (v *viewer) generateTable(res *globalping.Measurement, areaWidth int) (*str
 		maxLineWidth += len(table[i]) + len(colSeparator)
 	}
 	skip := false
-	newStats := make([]MeasurementStats, len(res.Results))
-	for i := range res.Results {
-		measurement := &res.Results[i]
-		if measurement.Result.RawOutput == "" {
+	newStats := make([]MeasurementStats, len(m.Results))
+	historyMeasurement := v.ctx.History.Find(m.ID)
+	for i := range m.Results {
+		probeMeasurement := &m.Results[i]
+		if probeMeasurement.Result.RawOutput == "" {
 			skip = true
 			break
 		}
-		parsedOutput := v.parsePingRawOutput(measurement, v.ctx.CompletedStats[i].Sent)
+		parsedOutput := v.parsePingRawOutput(historyMeasurement, probeMeasurement, v.ctx.CompletedStats[i].Sent)
 		newStats[i] = mergeMeasurementStats(v.ctx.CompletedStats[i], parsedOutput)
 		row := getRowValues(&newStats[i])
 		rowWidth := 0
@@ -200,7 +153,7 @@ func (v *viewer) generateTable(res *globalping.Measurement, areaWidth int) (*str
 			colMax[j] = max(colMax[j], len(row[j]))
 		}
 		maxLineWidth = max(maxLineWidth, rowWidth)
-		row[0] = getLocationText(measurement)
+		row[0] = getLocationText(probeMeasurement)
 		colMax[0] = max(colMax[0], len(row[0]))
 		table = append(table, row)
 	}
@@ -215,7 +168,7 @@ func (v *viewer) generateTable(res *globalping.Measurement, areaWidth int) (*str
 		table[i][0] = strings.ReplaceAll(table[i][0], "\t", "  ") // Replace tabs with spaces
 		lines := strings.Split(table[i][0], "\n")                 // Split first column into lines
 		color := pterm.Reset                                      // No color
-		if i == 0 {
+		if i == 0 && !v.ctx.CIMode {
 			color = pterm.FgLightCyan
 		}
 		for k := range lines {
@@ -325,7 +278,10 @@ type ParsedPingOutput struct {
 //
 // - If startIncmpSeq is -1, RawPacketLines will be empty
 func (v *viewer) parsePingRawOutput(
-	m *globalping.ProbeMeasurement, startIncmpSeq int) *ParsedPingOutput {
+	hm *HistoryItem,
+	m *globalping.ProbeMeasurement,
+	startIncmpSeq int,
+) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]globalping.PingTiming, 0),
 		Stats: &MeasurementStats{
@@ -419,7 +375,7 @@ func (v *viewer) parsePingRawOutput(
 			res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
 		}
 	} else {
-		res.Time = float64(v.time.Now().Sub(v.ctx.MStartedAt).Milliseconds())
+		res.Time = float64(v.time.Now().Sub(hm.StartedAt).Milliseconds())
 	}
 	if res.Stats.Sent > 0 {
 		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv

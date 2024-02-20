@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"io"
 	"os"
 	"testing"
 
@@ -25,28 +24,21 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	probeMock.EXPECT().InspectContainer(probe.ContainerEngineDocker).Times(1).Return(nil)
 	probeMock.EXPECT().RunContainer(probe.ContainerEngineDocker).Times(1).Return(nil)
 
-	ctx := &view.Context{}
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
 	reader := bytes.NewReader([]byte("Y\n"))
-
+	w := new(bytes.Buffer)
 	printer := view.NewPrinter(reader, w, w)
+	ctx := &view.Context{}
 	root := NewRoot(printer, ctx, nil, nil, nil, probeMock)
 	os.Args = []string{"globalping", "install-probe"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
-	w.Close()
 
-	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 	assert.Equal(t, `Detected container engine: Docker
 
 The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.
 Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe) [Y/n] The Globalping probe started successfully. Thank you for joining our community! 
-`, string(output))
+`, w.String())
 
 	expectedCtx := &view.Context{
 		From:  "world",

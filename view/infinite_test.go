@@ -1,6 +1,7 @@
 package view
 
 import (
+	"bytes"
 	"io"
 	"math"
 	"os"
@@ -18,13 +19,65 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	rawOutput1 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
-	rawOutput2 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
+
+	ctx := getDefaultContext("ping")
+	w := new(bytes.Buffer)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+
+	measurement := getPingGetMeasurement(measurementID1)
+	measurement.Status = globalping.StatusInProgress
+	measurement.Results[0].Result.Status = globalping.StatusInProgress
+	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
+
+	err := viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+`,
+		w.String(),
+	)
+
+	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms`
-	rawOutput3 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+
+	err = viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
+`,
+		w.String(),
+	)
+
+	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms`
-	rawOutput4 := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+
+	err = viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
+`,
+		w.String(),
+	)
+
+	expectedStats := []MeasurementStats{{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 12.7, Min: 12.7,
+		Avg: 12.8, Max: 12.9, Time: 500, Tsum: 25.6, Tsum2: 327.7, Mdev: 0.0999}}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
+
+	measurement.Status = globalping.StatusFinished
+	measurement.Results[0].Result.Status = globalping.StatusFinished
+	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=56 time=13.0 ms
@@ -33,52 +86,9 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 3 packets transmitted, 3 received, 0% packet loss, time 1001ms
 rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 
-	gbMock := mocks.NewMockClient(ctrl)
-	measurement := getPingGetMeasurement(measurementID1)
-
-	callCount := 0 // 1st call is done in the caller.
-	gbMock.EXPECT().GetMeasurement(measurementID1).DoAndReturn(func(id string) (*globalping.Measurement, error) {
-		callCount++
-		switch callCount {
-		case 1:
-			measurement.Results[0].Result.RawOutput = rawOutput1
-		case 2:
-			measurement.Results[0].Result.RawOutput = rawOutput2
-		case 3:
-			measurement.Results[0].Result.RawOutput = rawOutput3
-		case 4:
-			measurement.Status = globalping.StatusFinished
-			measurement.Results[0].Result.Status = globalping.StatusFinished
-			measurement.Results[0].Result.RawOutput = rawOutput4
-		}
-		return measurement, nil
-	}).Times(4)
-
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).Times(3)
-
-	r, w, err := os.Pipe()
+	err = viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
 
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-		MStartedAt: defaultCurrentTime,
-	}
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, gbMock)
-
-	measurement.Status = globalping.StatusInProgress
-	measurement.Results[0].Result.Status = globalping.StatusInProgress
-	measurement.Results[0].Result.RawOutput = rawOutput1
-
-	err = viewer.OutputInfinite(measurement.ID)
-	assert.NoError(t, err)
-	w.Close()
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t,
 		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
@@ -86,96 +96,60 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=56 time=13.0 ms
 `,
-		string(output),
+		w.String(),
 	)
 
-	expectedStats := []MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
+	expectedStats = []MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
 		Avg: 12.8666, Max: 13, Time: 1001, Tsum: 38.6, Tsum2: 496.7, Mdev: 0.1247}}
-	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+
+	ctx.MeasurementsCreated = 2
+	ctx.History.Push(&HistoryItem{
+		Id:        measurementID2,
+		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
+	})
+	measurement.ID = measurementID2
+	err = viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
+
+	assert.Equal(t,
+		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=56 time=13.0 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=4 ttl=56 time=12.9 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=5 ttl=56 time=12.7 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=6 ttl=56 time=13.0 ms
+`,
+		w.String(),
+	)
+
+	expectedStats = []MeasurementStats{{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
+		Avg: 12.8666, Max: 13, Time: 2002, Tsum: 77.2, Tsum2: 993.4, Mdev: 0.1247}}
 	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
 }
 
 func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	gbMock := mocks.NewMockClient(ctrl)
 	measurement := getPingGetMeasurement(measurementID1)
 	measurement.Status = globalping.StatusFailed
 	measurement.Results[0].Result.Status = globalping.StatusFailed
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-	}
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
-	err = viewer.OutputInfinite(measurement.ID)
+	ctx := getDefaultContext("ping")
+	w := new(bytes.Buffer)
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+	err := viewer.OutputInfinite(measurement)
 	assert.Equal(t, "all probes failed", err.Error())
-	w.Close()
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t,
 		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
 ping: cdn.jsdelivr.net.xc: Name or service not known
 `,
-		string(output),
+		w.String(),
 	)
 
-	expectedStats := []MeasurementStats{NewMeasurementStats()}
-	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
-	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
-}
-
-func Test_OutputInfinite_SingleProbe_MultipleCalls(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	gbMock := mocks.NewMockClient(ctrl)
-	measurement := getPingGetMeasurement(measurementID1)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(3).Return(measurement, nil)
-
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-	}
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
-
-	err = viewer.OutputInfinite(measurement.ID)
-	assert.NoError(t, err)
-	err = viewer.OutputInfinite(measurement.ID)
-	assert.NoError(t, err)
-	err = viewer.OutputInfinite(measurement.ID)
-	assert.NoError(t, err)
-	w.Close()
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
-64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
-64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=60 time=17.6 ms
-64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=60 time=17.6 ms
-`,
-		string(output))
-
-	expectedStats := []MeasurementStats{{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17.6, Min: 17.6,
-		Avg: 17.6, Max: 17.6, Time: 3000, Tsum: 52.8, Tsum2: 929.28, Mdev: 0}}
-	assertMeasurementStats(t, &expectedStats[0], &ctx.InProgressStats[0])
-	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+	assert.Nil(t, ctx.CompletedStats)
 }
 
 func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
@@ -183,18 +157,63 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	defer ctrl.Finish()
 
 	osStdout := os.Stdout
-
-	gbMock := mocks.NewMockClient(ctrl)
-	res := getPingGetMeasurementMultipleLocations(measurementID1)
+	defer func() { os.Stdout = osStdout }()
 
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
 
-	rawOutput1 := `PING  (146.75.73.229) 56(84) bytes of data.`
-	rawOutput2 := `PING  (146.75.73.229) 56(84) bytes of data.
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	defer r.Close()
+	defer w.Close()
+
+	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement.Status = globalping.StatusInProgress
+	measurement.Results[0].Result.Status = globalping.StatusInProgress
+	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
+
+	expectedCtx := getDefaultContext("ping")
+	expectedCtx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	expectedViewer := &viewer{ctx: expectedCtx, time: timeMock}
+	expectedTables := [4]*string{}
+	expectedTables[0], _ = expectedViewer.generateTable(measurement, 78)
+
+	ctx := getDefaultContext("ping")
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement)
+	os.Stdout = osStdout
+
+	expectedStats := []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+	assertMeasurementStats(t, &expectedStats[1], &ctx.CompletedStats[1])
+	assertMeasurementStats(t, &expectedStats[2], &ctx.CompletedStats[2])
+
+	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
 no answer yet for icmp_seq=2`
-	rawOutputFinal := `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	expectedTables[1], _ = expectedViewer.generateTable(measurement, 78)
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement)
+	os.Stdout = osStdout
+
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+	assertMeasurementStats(t, &expectedStats[1], &ctx.CompletedStats[1])
+	assertMeasurementStats(t, &expectedStats[2], &ctx.CompletedStats[2])
+
+	measurement.Status = globalping.StatusFinished
+	measurement.Results[0].Result.Status = globalping.StatusFinished
+	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
 no answer yet for icmp_seq=2
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=17.3 ms
@@ -204,85 +223,52 @@ no answer yet for icmp_seq=2
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
-	expectedViewer := &viewer{
-		ctx:  getDefaultPingCtx(len(res.Results)),
-		time: timeMock,
-	}
-	expectedViewer.ctx.MStartedAt = defaultCurrentTime
-	expectedTables := [6]*string{}
+	expectedTables[2], _ = expectedViewer.generateTable(measurement, 78)
 
-	callCount := 0 // 1st call is done in the caller.
-	gbMock.EXPECT().GetMeasurement(measurementID1).DoAndReturn(func(id string) (*globalping.Measurement, error) {
-		callCount++
-		switch callCount {
-		case 1, 4:
-			res.Results[0].Result.RawOutput = rawOutput1
-		case 2, 5:
-			res.Results[0].Result.RawOutput = rawOutput2
-			expectedTables[callCount-1], _ = expectedViewer.generateTable(res, 78)
-		case 3, 6:
-			res.Status = globalping.StatusFinished
-			res.Results[0].Result.Status = globalping.StatusFinished
-			res.Results[0].Result.RawOutput = rawOutputFinal
-			expectedTables[callCount-1], _ = expectedViewer.generateTable(res, 78)
-		}
-		return res, nil
-	}).Times(6)
-
-	// 1st call
-	res.Status = globalping.StatusInProgress
-	res.Results[0].Result.Status = globalping.StatusInProgress
-	res.Results[0].Result.RawOutput = rawOutput1
-	expectedTables[0], _ = expectedViewer.generateTable(res, 78)
-
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-		MStartedAt: defaultCurrentTime,
-	}
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, gbMock)
 	os.Stdout = w
-	err = viewer.OutputInfinite(measurementID1)
+	err = viewer.OutputInfinite(measurement)
+	os.Stdout = osStdout
 	assert.NoError(t, err)
 
-	firstCallStats := []MeasurementStats{
+	expectedStats = []MeasurementStats{
 		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 2002, Tsum: 51.9, Tsum2: 898.05, Mdev: 0.2449},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
 	}
-	for i := range firstCallStats {
-		assertMeasurementStats(t, &firstCallStats[i], &ctx.InProgressStats[i])
-		assertMeasurementStats(t, &firstCallStats[i], &ctx.CompletedStats[i])
-	}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+	assertMeasurementStats(t, &expectedStats[1], &ctx.CompletedStats[1])
+	assertMeasurementStats(t, &expectedStats[2], &ctx.CompletedStats[2])
 
 	// 2nd call
-	res.Status = globalping.StatusInProgress
-	res.Results[0].Result.Status = globalping.StatusInProgress
-	res.Results[0].Result.RawOutput = rawOutput1
-	expectedViewer.ctx.CompletedStats = firstCallStats
+	measurement2 := getPingGetMeasurementMultipleLocations(measurementID2)
+	measurement2.Results[0].Result.RawOutput = measurement.Results[0].Result.RawOutput
+	expectedCtx.CompletedStats = expectedStats
+	hm := &HistoryItem{
+		Id:        measurementID2,
+		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
+	}
+	expectedCtx.History.Push(hm)
+	ctx.History.Push(hm)
 
-	expectedTables[3], _ = expectedViewer.generateTable(res, 78)
-	err = viewer.OutputInfinite(measurementID1)
+	expectedTables[3], _ = expectedViewer.generateTable(measurement2, 78)
+
+	os.Stdout = w
+	err = viewer.OutputInfinite(measurement2)
+	os.Stdout = osStdout
 	assert.NoError(t, err)
 	w.Close()
 
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
-	secondCallStats := []MeasurementStats{
+	expectedStats = []MeasurementStats{
 		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 4004, Tsum: 103.8, Tsum2: 1796.1, Mdev: 0.2449},
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 400, Tsum: 10.92, Tsum2: 59.6232},
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 600, Tsum: 8.14, Tsum2: 33.1298},
 	}
-	for i := range secondCallStats {
-		assertMeasurementStats(t, &secondCallStats[i], &ctx.InProgressStats[i])
-		assertMeasurementStats(t, &secondCallStats[i], &ctx.CompletedStats[i])
-	}
+	assertMeasurementStats(t, &expectedStats[0], &ctx.CompletedStats[0])
+	assertMeasurementStats(t, &expectedStats[1], &ctx.CompletedStats[1])
+	assertMeasurementStats(t, &expectedStats[2], &ctx.CompletedStats[2])
 
 	rr, ww, err := os.Pipe()
 	assert.NoError(t, err)
@@ -309,23 +295,19 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	defer ctrl.Finish()
 
 	osStdout := os.Stdout
+	defer func() { os.Stdout = osStdout }()
 
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
 	defer r.Close()
 	defer w.Close()
 
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-	}
-	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
+	ctx := getDefaultContext("ping")
+	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	os.Stdout = w
-	err = v.OutputInfinite(measurementID1)
+	err = v.OutputInfinite(measurement)
 	assert.NoError(t, err)
 	os.Stdout = osStdout
 	w.Close()
@@ -333,9 +315,13 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
-	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(measurement.Results)),
+	expectedCtx := getDefaultContext("ping")
+	expectedCtx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
 	}
+	expectedViewer := &viewer{ctx: expectedCtx}
 
 	rr, ww, err := os.Pipe()
 	assert.NoError(t, err)
@@ -365,55 +351,28 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 }
 
 func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	osStdout := os.Stdout
-
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
 	measurement.Status = globalping.StatusFinished
 	for i := range measurement.Results {
 		measurement.Results[i].Result.Status = globalping.StatusFailed
 		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 	}
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
+	ctx := getDefaultContext("ping")
+	w := new(bytes.Buffer)
+	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+	err := v.OutputInfinite(measurement)
 
-	ctx := &Context{
-		Cmd:        "ping",
-		MaxHistory: 3,
-	}
-	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, gbMock)
-	os.Stdout = w
-	err = v.OutputInfinite(measurementID1)
-	os.Stdout = osStdout
 	assert.Equal(t, "all probes failed", err.Error())
-	w.Close()
-
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-
 	assert.Equal(t, `> EU, GB, London, ASN:0, OVH SAS
 ping: cdn.jsdelivr.net.xc: Name or service not known
 > EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH
 ping: cdn.jsdelivr.net.xc: Name or service not known
 > EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH
 ping: cdn.jsdelivr.net.xc: Name or service not known
-`, string(output))
-	expectedStats := []MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
-	assert.Equal(t,
-		expectedStats,
-		ctx.CompletedStats,
-	)
+`, w.String())
+
+	assert.Nil(t, ctx.CompletedStats)
 }
 
 func Test_FormatDuration(t *testing.T) {
@@ -426,17 +385,49 @@ func Test_FormatDuration(t *testing.T) {
 }
 
 func Test_GenerateTable_Full(t *testing.T) {
+	ctx := getDefaultContext("ping")
+	ctx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	viewer := &viewer{ctx: ctx}
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	table, stats := viewer.generateTable(measurement, 500)
+
 	expectedTable := "\x1b[96m\x1b[96mLocation                                       \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
 		"EU, GB, London, ASN:0, OVH SAS                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-
-	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(measurement.Results)),
-	}
-	table, stats := expectedViewer.generateTable(measurement, 500)
 	assert.Equal(t, expectedTable, *table)
+
+	assert.Equal(t, []MeasurementStats{
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+	}, stats)
+}
+
+func Test_GenerateTable_CIMode(t *testing.T) {
+	ctx := getDefaultContext("ping")
+	ctx.CIMode = true
+	ctx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	viewer := &viewer{ctx: ctx}
+
+	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	table, stats := viewer.generateTable(measurement, 500)
+
+	expectedTable := `Location                                        | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London, ASN:0, OVH SAS                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
+EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+	assert.Equal(t, expectedTable, *table)
+
 	assert.Equal(t, []MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
@@ -445,17 +436,25 @@ func Test_GenerateTable_Full(t *testing.T) {
 }
 
 func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
+	ctx := getDefaultContext("ping")
+	ctx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	viewer := &viewer{ctx: ctx}
+
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
+
+	table, stats := viewer.generateTable(measurement, 106)
+
 	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
 		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"EU, DE, Falkenstein, ASN:0, 作者聚集的原创...  |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(measurement.Results)),
-	}
-	table, stats := expectedViewer.generateTable(measurement, 106)
 	assert.Equal(t, expectedTable, *table)
+
 	assert.Equal(t, []MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
@@ -464,19 +463,27 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 }
 
 func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
+	ctx := getDefaultContext("ping")
+	ctx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	viewer := &viewer{ctx: ctx}
+
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
+
+	table, stats := viewer.generateTable(measurement, 106)
+
 	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
 		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"EU, DE, Falkenstein, ASN:0, Hetzner Online ... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Lorem ipsum                                    |      |         |          |          |          |         \n" +
 		"Lorem ipsum dolor sit amet                     |      |         |          |          |          |         \n" +
 		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(measurement.Results)),
-	}
-	table, stats := expectedViewer.generateTable(measurement, 106)
 	assert.Equal(t, expectedTable, *table)
+
 	assert.Equal(t, []MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
@@ -485,118 +492,28 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 }
 
 func Test_GenerateTable_MaxTruncated(t *testing.T) {
+	ctx := getDefaultContext("ping")
+	ctx.CompletedStats = []MeasurementStats{
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+		NewMeasurementStats(),
+	}
+	viewer := &viewer{ctx: ctx}
+
 	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	table, stats := viewer.generateTable(measurement, 0)
+
 	expectedTable := "\x1b[96m\x1b[96mLoc...\x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
 		"EU,... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"EU,... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"EU,... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	expectedViewer := &viewer{
-		ctx: getDefaultPingCtx(len(measurement.Results)),
-	}
-	table, stats := expectedViewer.generateTable(measurement, 0)
 	assert.Equal(t, expectedTable, *table)
+
 	assert.Equal(t, []MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
 	}, stats)
-}
-
-func Test_MergeMeasurementStats(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).Times(2)
-
-	v := viewer{
-		ctx: &Context{
-			MStartedAt: defaultCurrentTime,
-		},
-		time: timeMock,
-	}
-
-	o := v.parsePingRawOutput(&globalping.ProbeMeasurement{
-		Result: globalping.ProbeResult{
-			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.`,
-		},
-	}, 0)
-	newStats := mergeMeasurementStats(
-		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
-		o,
-	)
-	assert.Equal(t,
-		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 1},
-		newStats,
-	)
-	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
-		Result: globalping.ProbeResult{
-			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
-no answer yet for icmp_seq=1
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=10 ms
-no answer yet for icmp_seq=2
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=2 ttl=59 time=20 ms
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=3 ttl=59 time=30 ms
-no answer yet for icmp_seq=4`,
-		},
-	}, 0)
-	newStats = mergeMeasurementStats(
-		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
-		o)
-	assertMeasurementStats(t, &MeasurementStats{Sent: 4, Rcv: 3, Lost: 1, Loss: 25, Last: 30, Min: 10,
-		Avg: 20, Max: 30, Time: 1, Tsum: 60, Tsum2: 1400, Mdev: 8.1649},
-		&newStats)
-	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
-		Result: globalping.ProbeResult{
-			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
-no answer yet for icmp_seq=1
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=10 ms
-no answer yet for icmp_seq=2
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=2 ttl=59 time=10 ms
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=3 ttl=59 time=30 ms
-no answer yet for icmp_seq=4
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=3 ttl=59 time=30 ms
-
----  ping statistics ---
-4 packets transmitted, 4 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 10/20/30/0 ms`,
-		},
-	}, 0)
-	newStats = mergeMeasurementStats(
-		MeasurementStats{Sent: 0, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1},
-		o)
-	assertMeasurementStats(t, &MeasurementStats{Sent: 4, Rcv: 4, Lost: 0, Loss: 0, Last: 30, Min: 10,
-		Avg: 20, Max: 30, Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10}, &newStats)
-	o = v.parsePingRawOutput(&globalping.ProbeMeasurement{
-		Result: globalping.ProbeResult{
-			RawOutput: `PING  (142.250.65.174) 56(84) bytes of data.
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=10 ms
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=20 ms
-64 bytes from lga25s71-in-f14.1e100.net (142.250.65.174): icmp_seq=1 ttl=59 time=30 ms
-
----  ping statistics ---
-3 packets transmitted, 3 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 10/20/30/0 ms`,
-		},
-	}, 0)
-	newStats = mergeMeasurementStats(
-		MeasurementStats{Sent: 5, Rcv: 4, Lost: 1, Loss: 20, Last: 30, Min: 10, Avg: 20, Max: 30,
-			Time: 1000, Tsum: 80, Tsum2: 2000, Mdev: 10},
-		o)
-	assertMeasurementStats(t, &MeasurementStats{
-		Sent:  8,
-		Rcv:   7,
-		Lost:  1,
-		Loss:  12.5,
-		Last:  30,
-		Min:   10,
-		Avg:   20,
-		Max:   30,
-		Time:  2000,
-		Tsum:  140,
-		Tsum2: 3400,
-		Mdev:  9.2582,
-	}, &newStats)
 }
 
 func Test_GetRowValues_NoPacketsRcv(t *testing.T) {
@@ -638,10 +555,10 @@ func Test_GetRowValues(t *testing.T) {
 }
 
 func Test_ParsePingRawOutput_Full(t *testing.T) {
-	v := viewer{
-		ctx: &Context{},
-	}
+	ctx := getDefaultContext("ping")
+	v := viewer{ctx: ctx}
 
+	hm := ctx.History.Find(measurementID1)
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
 			RawOutput: `PING cdn.jsdelivr.net (142.250.65.174) 56(84) bytes of data.
@@ -655,7 +572,7 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 		},
 	}
 
-	res := v.parsePingRawOutput(m, -1)
+	res := v.parsePingRawOutput(hm, m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -686,12 +603,10 @@ func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond))
 
-	v := viewer{
-		ctx: &Context{
-			MStartedAt: defaultCurrentTime,
-		},
-		time: timeMock,
-	}
+	ctx := getDefaultContext("ping")
+	v := viewer{ctx: ctx, time: timeMock}
+
+	hm := ctx.History.Find(measurementID1)
 
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
@@ -704,7 +619,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := v.parsePingRawOutput(m, -1)
+	res := v.parsePingRawOutput(hm, m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -735,12 +650,10 @@ func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond))
 
-	v := viewer{
-		ctx: &Context{
-			MStartedAt: defaultCurrentTime,
-		},
-		time: timeMock,
-	}
+	ctx := getDefaultContext("ping")
+	v := viewer{ctx: ctx, time: timeMock}
+
+	hm := ctx.History.Find(measurementID1)
 
 	m := &globalping.ProbeMeasurement{
 		Result: globalping.ProbeResult{
@@ -753,7 +666,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := v.parsePingRawOutput(m, 4)
+	res := v.parsePingRawOutput(hm, m, 4)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Equal(t, []string{
@@ -797,16 +710,16 @@ func Test_ComputeMdev(t *testing.T) {
 }
 
 func assertMeasurementStats(t *testing.T, expected *MeasurementStats, actual *MeasurementStats) {
-	assert.Equal(t, expected.Sent, actual.Sent)
-	assert.Equal(t, expected.Rcv, actual.Rcv)
-	assert.Equal(t, expected.Lost, actual.Lost)
-	assert.InDelta(t, expected.Loss, actual.Loss, 0.0001)
-	assert.Equal(t, expected.Last, actual.Last)
-	assert.Equal(t, expected.Min, actual.Min)
-	assert.InDelta(t, expected.Avg, actual.Avg, 0.0001)
-	assert.Equal(t, expected.Max, actual.Max)
-	assert.Equal(t, expected.Time, actual.Time)
-	assert.InDelta(t, expected.Tsum, actual.Tsum, 0.0001)
-	assert.InDelta(t, expected.Tsum2, actual.Tsum2, 0.0001)
-	assert.InDelta(t, expected.Mdev, actual.Mdev, 0.0001)
+	assert.Equal(t, expected.Sent, actual.Sent, "Sent")
+	assert.Equal(t, expected.Rcv, actual.Rcv, "Rcv")
+	assert.Equal(t, expected.Lost, actual.Lost, "Lost")
+	assert.InDelta(t, expected.Loss, actual.Loss, 0.0001, "Loss")
+	assert.Equal(t, expected.Last, actual.Last, "Last")
+	assert.Equal(t, expected.Min, actual.Min, "Min")
+	assert.InDelta(t, expected.Avg, actual.Avg, 0.0001, "Avg")
+	assert.Equal(t, expected.Max, actual.Max, "Max")
+	assert.Equal(t, expected.Time, actual.Time, "Time")
+	assert.InDelta(t, expected.Tsum, actual.Tsum, 0.0001, "Tsum")
+	assert.InDelta(t, expected.Tsum2, actual.Tsum2, 0.0001, "Tsum2")
+	assert.InDelta(t, expected.Mdev, actual.Mdev, 0.0001, "Mdev")
 }

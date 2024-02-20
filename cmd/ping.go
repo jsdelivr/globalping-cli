@@ -5,8 +5,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -60,14 +62,12 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if r.ctx.Infinite {
-		return r.pingInfinite()
-	}
-	_, err = r.ping()
-	return err
-}
 
-func (r *Root) ping() (string, error) {
+	r.ctx.RecordToSession = true
+	if r.ctx.Infinite {
+		r.ctx.Packets = 16
+	}
+
 	opts := &globalping.MeasurementCreate{
 		Type:              "ping",
 		Target:            r.ctx.Target,
@@ -77,69 +77,99 @@ func (r *Root) ping() (string, error) {
 			Packets: r.ctx.Packets,
 		},
 	}
-	var err error
-	isPreviousMeasurementId := true
-	if r.ctx.CallCount == 0 {
-		opts.Locations, isPreviousMeasurementId, err = createLocations(r.ctx.From)
-		if err != nil {
-			r.Cmd.SilenceUsage = true
-			return "", err
-		}
-	} else {
-		opts.Locations = []globalping.Locations{{Magic: r.ctx.From}}
+	opts.Locations, err = r.getLocations()
+	if err != nil {
+		r.Cmd.SilenceUsage = true
+		return err
 	}
 
+	if r.ctx.Infinite {
+		return r.pingInfinite(opts)
+	}
+
+	res, err := r.createMeasurement(opts)
+	if err != nil {
+		return err
+	}
+	return r.viewer.Output(res.ID, opts)
+}
+
+func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
+	if r.ctx.Limit > 5 {
+		return fmt.Errorf("continous mode is currently limited to 5 probes")
+	}
+
+	var err error
+	var id string
+	// Trap sigterm or interupt to display summary on exit
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for {
+			id, err = r.ping(opts)
+			if err != nil {
+				sig <- syscall.SIGINT
+				return
+			}
+			opts.Locations = []globalping.Locations{{Magic: id}}
+		}
+	}()
+	<-sig
+
+	if err == nil {
+		r.viewer.OutputSummary()
+	}
+	return err
+}
+
+func (r *Root) ping(opts *globalping.MeasurementCreate) (string, error) {
+	res, err := r.createMeasurement(opts)
+	if err != nil {
+		return "", err
+	}
+	for {
+		m, err := r.client.GetMeasurement(res.ID)
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+			return res.ID, err
+		}
+		if len(m.Results) == 0 {
+			time.Sleep(r.ctx.APIMinInterval)
+			continue
+		}
+		err = r.viewer.OutputInfinite(m)
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+			return res.ID, err
+		}
+		if m.Status != globalping.StatusInProgress {
+			break
+		}
+		time.Sleep(r.ctx.APIMinInterval)
+	}
+
+	return res.ID, nil
+}
+
+func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	res, showHelp, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {
 			r.Cmd.SilenceUsage = true
 		}
-		return "", err
+		return nil, err
 	}
-
-	r.ctx.MStartedAt = r.time.Now()
-	r.ctx.CallCount++
-
-	// Save measurement ID to history
-	if !isPreviousMeasurementId {
-		err := saveIdToHistory(res.ID)
+	r.ctx.MeasurementsCreated++
+	r.ctx.History.Push(&view.HistoryItem{
+		Id:        res.ID,
+		StartedAt: r.time.Now(),
+	})
+	if r.ctx.RecordToSession {
+		r.ctx.RecordToSession = false
+		err := saveIdToSession(res.ID)
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}
 	}
-	if r.ctx.Infinite {
-		err = r.viewer.OutputInfinite(res.ID)
-		r.Cmd.SilenceUsage = true
-	} else {
-		r.viewer.Output(res.ID, opts)
-	}
-	return res.ID, err
-}
-
-func (r *Root) pingInfinite() error {
-	var err error
-	if r.ctx.Limit > 5 {
-		return fmt.Errorf("continous mode is currently limited to 5 probes")
-	}
-	r.ctx.Packets = 16 // Default to 16 packets
-
-	// Trap sigterm or interupt to display info on exit
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		for {
-			r.ctx.From, err = r.ping()
-			if err != nil {
-				sig <- syscall.SIGINT
-				return
-			}
-		}
-	}()
-
-	<-sig
-	if err == nil {
-		r.viewer.OutputSummary()
-	}
-	return err
+	return res, nil
 }

@@ -54,17 +54,17 @@ func (mr *MockViewerMockRecorder) Output(id, m any) *gomock.Call {
 }
 
 // OutputInfinite mocks base method.
-func (m *MockViewer) OutputInfinite(id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OutputInfinite", id)
+func (m_2 *MockViewer) OutputInfinite(m *globalping.Measurement) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "OutputInfinite", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // OutputInfinite indicates an expected call of OutputInfinite.
-func (mr *MockViewerMockRecorder) OutputInfinite(id any) *gomock.Call {
+func (mr *MockViewerMockRecorder) OutputInfinite(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputInfinite", reflect.TypeOf((*MockViewer)(nil).OutputInfinite), id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputInfinite", reflect.TypeOf((*MockViewer)(nil).OutputInfinite), m)
 }
 
 // OutputSummary mocks base method.

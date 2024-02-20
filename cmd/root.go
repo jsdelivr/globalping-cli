@@ -27,7 +27,7 @@ func Execute() {
 	printer := view.NewPrinter(os.Stdin, os.Stdout, os.Stderr)
 	ctx := &view.Context{
 		APIMinInterval: globalping.API_MIN_INTERVAL,
-		MaxHistory:     10,
+		History:        view.NewHistoryBuffer(10),
 	}
 	globalpingClient := globalping.NewClient(globalping.API_URL)
 	globalpingProbe := probe.NewProbe()

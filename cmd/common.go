@@ -68,20 +68,19 @@ func (r *Root) updateContext(cmd string, args []string) error {
 	return nil
 }
 
-func createLocations(from string) ([]globalping.Locations, bool, error) {
-	fromArr := strings.Split(from, ",")
+func (r *Root) getLocations() ([]globalping.Locations, error) {
+	fromArr := strings.Split(r.ctx.From, ",")
 	if len(fromArr) == 1 {
-		mId, err := mapFromHistory(fromArr[0])
+		mId, err := mapFromSession(fromArr[0])
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
-		isFromHistory := false
 		if mId == "" {
 			mId = strings.TrimSpace(fromArr[0])
 		} else {
-			isFromHistory = true
+			r.ctx.RecordToSession = false
 		}
-		return []globalping.Locations{{Magic: mId}}, isFromHistory, nil
+		return []globalping.Locations{{Magic: mId}}, nil
 	}
 	locations := make([]globalping.Locations, len(fromArr))
 	for i, v := range fromArr {
@@ -89,7 +88,7 @@ func createLocations(from string) ([]globalping.Locations, bool, error) {
 			Magic: strings.TrimSpace(v),
 		}
 	}
-	return locations, false, nil
+	return locations, nil
 }
 
 type TargetQuery struct {
@@ -155,7 +154,7 @@ func findAndRemoveResolver(args []string) (string, []string) {
 }
 
 // Maps a location to a measurement ID from history, if possible.
-func mapFromHistory(location string) (string, error) {
+func mapFromSession(location string) (string, error) {
 	if location == "" {
 		return "", nil
 	}
@@ -164,19 +163,19 @@ func mapFromHistory(location string) (string, error) {
 		if err != nil {
 			return "", ErrInvalidIndex
 		}
-		return getIdFromHistory(index)
+		return getIdFromSession(index)
 	}
 	if location == "first" {
-		return getIdFromHistory(1)
+		return getIdFromSession(1)
 	}
 	if location == "last" || location == "previous" {
-		return getIdFromHistory(-1)
+		return getIdFromSession(-1)
 	}
 	return "", nil
 }
 
 // Returns the measurement ID at the given index from the session history
-func getIdFromHistory(index int) (string, error) {
+func getIdFromSession(index int) (string, error) {
 	if index == 0 {
 		return "", ErrInvalidIndex
 	}
@@ -227,7 +226,7 @@ func getIdFromHistory(index int) (string, error) {
 }
 
 // Saves the measurement ID to the session history
-func saveIdToHistory(id string) error {
+func saveIdToSession(id string) error {
 	_, err := os.Stat(getSessionPath())
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

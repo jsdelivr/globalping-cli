@@ -1,12 +1,11 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"io"
 	"os"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/stretchr/testify/assert"
@@ -19,19 +18,12 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := &globalping.MeasurementCreate{
-		Type:   "traceroute",
-		Target: "jsdelivr.com",
-		Limit:  2,
-		Options: &globalping.MeasurementOptions{
-			Protocol: "tcp",
-			Port:     99,
-		},
-		Locations: []globalping.Locations{
-			{Magic: "Berlin"},
-		},
-	}
-	expectedResponse := getMeasurementCreateResponse(measurementID1)
+	expectedOpts := getDefaultMeasurementCreate("traceroute")
+	expectedOpts.Limit = 2
+	expectedOpts.Options.Protocol = "tcp"
+	expectedOpts.Options.Port = 99
+
+	expectedResponse := getDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -39,15 +31,9 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	ctx := &view.Context{
-		MaxHistory: 1,
-	}
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
+	ctx := getDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
@@ -55,24 +41,15 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 		"--protocol", "tcp",
 		"--port", "99",
 	}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
-	w.Close()
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Equal(t, "", string(output))
+	assert.Equal(t, "", w.String())
 
-	expectedCtx := &view.Context{
-		Cmd:        "traceroute",
-		Target:     "jsdelivr.com",
-		From:       "Berlin",
-		Limit:      2,
-		Protocol:   "tcp",
-		Port:       99,
-		CIMode:     true,
-		MaxHistory: 1,
-	}
+	expectedCtx := getDefaultExpectedContext("traceroute")
+	expectedCtx.Limit = 2
+	expectedCtx.Protocol = "tcp"
+	expectedCtx.Port = 99
 	assert.Equal(t, expectedCtx, ctx)
 
 	b, err := os.ReadFile(getMeasurementsPath())

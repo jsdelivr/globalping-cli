@@ -33,25 +33,15 @@ type Context struct {
 
 	APIMinInterval time.Duration // Minimum interval between API calls
 
-	Area            *pterm.AreaPrinter
-	Hostname        string
-	MStartedAt      time.Time // Time when the measurement started
-	CompletedStats  []MeasurementStats
-	InProgressStats []MeasurementStats
-	CallCount       int      // Number of measurements created
-	MaxHistory      int      // Maximum number of measurements to keep in history
-	History         *Rbuffer // History of measurements
-}
+	RecordToSession bool // Record measurement to session history
 
-type HTTPOpts struct {
-	Path     string
-	Query    string
-	Host     string
-	Method   string
-	Protocol string
-	Port     int
-	Resolver string
-	Headers  []string
+	Area                *pterm.AreaPrinter
+	Hostname            string
+	IsHeaderPrinted     bool
+	CompletedStats      []MeasurementStats
+	InProgressStats     []MeasurementStats
+	MeasurementsCreated int
+	History             *HistoryBuffer // History of measurements
 }
 
 type MeasurementStats struct {
@@ -71,42 +61,4 @@ type MeasurementStats struct {
 
 func NewMeasurementStats() MeasurementStats {
 	return MeasurementStats{Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
-}
-
-type Rbuffer struct {
-	Index int
-	Slice []string
-}
-
-func (q *Rbuffer) Push(id string) {
-	q.Slice[q.Index] = id
-	q.Index = (q.Index + 1) % len(q.Slice)
-}
-
-func (q *Rbuffer) ToString(sep string) string {
-	s := ""
-	i := q.Index
-	isFirst := true
-	for {
-		if q.Slice[i] != "" {
-			if isFirst {
-				isFirst = false
-				s += q.Slice[i]
-			} else {
-				s += sep + q.Slice[i]
-			}
-		}
-		i = (i + 1) % len(q.Slice)
-		if i == q.Index {
-			break
-		}
-	}
-	return s
-}
-
-func NewRbuffer(size int) *Rbuffer {
-	return &Rbuffer{
-		Index: 0,
-		Slice: make([]string, size),
-	}
 }

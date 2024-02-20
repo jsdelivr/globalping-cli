@@ -47,9 +47,9 @@ func (v *viewer) OutputSummary() {
 		if ids != "" {
 			v.printer.Println(formatWithLeadingArrow(shareMessage(ids), !v.ctx.CIMode))
 		}
-		if v.ctx.CallCount > v.ctx.MaxHistory {
+		if v.ctx.MeasurementsCreated > v.ctx.History.Capacity() {
 			v.printer.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n",
-				v.ctx.Packets*v.ctx.MaxHistory)
+				v.ctx.Packets*v.ctx.History.Capacity())
 		}
 	}
 }

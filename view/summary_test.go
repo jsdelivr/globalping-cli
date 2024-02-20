@@ -1,9 +1,8 @@
 package view
 
 import (
-	"io"
+	"bytes"
 	"math"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,26 +10,15 @@ import (
 
 func Test_OutputSummary(t *testing.T) {
 	t.Run("No_stats", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		w := new(bytes.Buffer)
 		viewer := NewViewer(&Context{}, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
 
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
-		assert.Equal(t, "", string(output))
+		assert.Equal(t, "", w.String())
 	})
 
 	t.Run("With_stats_Single_location", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		w := new(bytes.Buffer)
 		ctx := &Context{
 			InProgressStats: []MeasurementStats{
 				{Sent: 10, Rcv: 9, Lost: 1, Loss: 10, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1000, Mdev: 0.001},
@@ -38,24 +26,17 @@ func Test_OutputSummary(t *testing.T) {
 		}
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
 
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
 		assert.Equal(t, `
 ---  ping statistics ---
 10 packets transmitted, 9 received, 10.00% packet loss, time 1000ms
 rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms
 `,
-			string(output))
+			w.String())
 	})
 
 	t.Run("With_stats_In_progress", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		w := new(bytes.Buffer)
 		ctx := &Context{
 			InProgressStats: []MeasurementStats{
 				{Sent: 1, Rcv: 0, Lost: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 0},
@@ -63,24 +44,17 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms
 		}
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
 
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
 		assert.Equal(t, `
 ---  ping statistics ---
 1 packets transmitted, 0 received, 100.00% packet loss, time 0ms
 rtt min/avg/max/mdev = -/-/-/- ms
 `,
-			string(output))
+			w.String())
 	})
 
 	t.Run("Multiple_locations", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		w := new(bytes.Buffer)
 		ctx := &Context{
 			InProgressStats: []MeasurementStats{
 				NewMeasurementStats(),
@@ -89,24 +63,17 @@ rtt min/avg/max/mdev = -/-/-/- ms
 		}
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
 
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
-		assert.Equal(t, "", string(output))
+		assert.Equal(t, "", w.String())
 	})
 
 	t.Run("Single_location_Share", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
+		history := NewHistoryBuffer(1)
+		history.Push(&HistoryItem{Id: measurementID1})
 
+		w := new(bytes.Buffer)
 		ctx := &Context{
-			History: &Rbuffer{
-				Index: 0,
-				Slice: []string{measurementID1},
-			},
+			History: history,
 			InProgressStats: []MeasurementStats{
 				{Sent: 1, Rcv: 0, Lost: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 0},
 			},
@@ -114,10 +81,6 @@ rtt min/avg/max/mdev = -/-/-/- ms
 		}
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
-
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
 
 		expectedOutput := `
 ---  ping statistics ---
@@ -125,66 +88,48 @@ rtt min/avg/max/mdev = -/-/-/- ms
 rtt min/avg/max/mdev = -/-/-/- ms
 ` + formatWithLeadingArrow(shareMessage(measurementID1), true) + "\n"
 
-		assert.Equal(t, expectedOutput, string(output))
+		assert.Equal(t, expectedOutput, w.String())
 	})
 
 	t.Run("Multiple_locations_Share", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		history := NewHistoryBuffer(2)
+		history.Push(&HistoryItem{Id: measurementID1})
+		history.Push(&HistoryItem{Id: measurementID2})
 		ctx := &Context{
-			History: &Rbuffer{
-				Index: 0,
-				Slice: []string{measurementID1, measurementID2},
-			},
+			History: history,
 			InProgressStats: []MeasurementStats{
 				NewMeasurementStats(),
 				NewMeasurementStats(),
 			},
 			Share: true,
 		}
+		w := new(bytes.Buffer)
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
-
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
 
 		expectedOutput := "\n" + formatWithLeadingArrow(shareMessage(measurementID1+"+"+measurementID2), true) + "\n"
-		assert.Equal(t, expectedOutput, string(output))
+		assert.Equal(t, expectedOutput, w.String())
 	})
 
 	t.Run("Multiple_locations_Share_More_calls_than_MaxHistory", func(t *testing.T) {
-		r, w, err := os.Pipe()
-		assert.NoError(t, err)
-		defer r.Close()
-		defer w.Close()
-
+		history := NewHistoryBuffer(1)
+		history.Push(&HistoryItem{Id: measurementID2})
 		ctx := &Context{
-			History: &Rbuffer{
-				Index: 0,
-				Slice: []string{measurementID2},
-			},
+			History: history,
 			InProgressStats: []MeasurementStats{
 				NewMeasurementStats(),
 				NewMeasurementStats(),
 			},
-			Share:      true,
-			CallCount:  2,
-			MaxHistory: 1,
-			Packets:    16,
+			Share:               true,
+			MeasurementsCreated: 2,
+			Packets:             16,
 		}
+		w := new(bytes.Buffer)
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
-		w.Close()
-
-		output, err := io.ReadAll(r)
-		assert.NoError(t, err)
 
 		expectedOutput := "\n" + formatWithLeadingArrow(shareMessage(measurementID2), true) +
 			"\nFor long-running continuous mode measurements, only the last 16 packets are shared.\n"
-		assert.Equal(t, expectedOutput, string(output))
+		assert.Equal(t, expectedOutput, w.String())
 	})
 }

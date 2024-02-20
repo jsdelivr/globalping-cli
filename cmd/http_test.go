@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"io"
 	"os"
 	"testing"
 
@@ -19,27 +19,19 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := &globalping.MeasurementCreate{
-		Type:   "http",
-		Target: "jsdelivr.com",
-		Limit:  1,
-		Options: &globalping.MeasurementOptions{
-			Protocol: "HTTPS",
-			Port:     99,
-			Resolver: "1.1.1.1",
-			Request: &globalping.RequestOptions{
-				Host:    "example.com",
-				Path:    "/robots.txt",
-				Query:   "test=1",
-				Method:  "GET",
-				Headers: map[string]string{"X-Test": "1"},
-			},
-		},
-		Locations: []globalping.Locations{
-			{Magic: "Berlin"},
-		},
+	expectedOpts := getDefaultMeasurementCreate("http")
+	expectedOpts.Options.Protocol = "HTTPS"
+	expectedOpts.Options.Port = 99
+	expectedOpts.Options.Resolver = "1.1.1.1"
+	expectedOpts.Options.Request = &globalping.RequestOptions{
+		Host:    "example.com",
+		Path:    "/robots.txt",
+		Query:   "test=1",
+		Method:  "GET",
+		Headers: map[string]string{"X-Test": "1"},
 	}
-	expectedResponse := getMeasurementCreateResponse(measurementID1)
+
+	expectedResponse := getDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -47,15 +39,9 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	ctx := &view.Context{
-		MaxHistory: 1,
-	}
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
+	ctx := getDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
@@ -69,31 +55,22 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 		"--port", "99",
 		"--full",
 	}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
-	w.Close()
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Equal(t, "", string(output))
+	assert.Equal(t, "", w.String())
 
-	expectedCtx := &view.Context{
-		Cmd:        "http",
-		Target:     "jsdelivr.com",
-		From:       "Berlin",
-		Limit:      1,
-		Host:       "example.com",
-		Resolver:   "1.1.1.1",
-		Protocol:   "HTTPS",
-		Method:     "GET",
-		Query:      "test=1",
-		Path:       "/robots.txt",
-		Headers:    []string{"X-Test: 1"},
-		Full:       true,
-		Port:       99,
-		CIMode:     true,
-		MaxHistory: 1,
-	}
+	expectedCtx := getDefaultExpectedContext("http")
+	expectedCtx.Protocol = "HTTPS"
+	expectedCtx.Method = "GET"
+	expectedCtx.Host = "example.com"
+	expectedCtx.Path = "/robots.txt"
+	expectedCtx.Query = "test=1"
+	expectedCtx.Headers = []string{"X-Test: 1"}
+	expectedCtx.Resolver = "1.1.1.1"
+	expectedCtx.Port = 99
+	expectedCtx.Full = true
+
 	assert.Equal(t, expectedCtx, ctx)
 
 	b, err := os.ReadFile(getMeasurementsPath())
@@ -102,7 +79,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	assert.Equal(t, expectedHistory, b)
 }
 
-func TestParseUrlData(t *testing.T) {
+func Test_ParseUrlData(t *testing.T) {
 	urlData, err := parseUrlData("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
@@ -112,7 +89,7 @@ func TestParseUrlData(t *testing.T) {
 	assert.Equal(t, "query=3", urlData.Query)
 }
 
-func TestParseUrlDataNoScheme(t *testing.T) {
+func Test_ParseUrlData_NoScheme(t *testing.T) {
 	urlData, err := parseUrlData("cdn.jsdelivr.net/npm/react/?query=3")
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
@@ -122,7 +99,7 @@ func TestParseUrlDataNoScheme(t *testing.T) {
 	assert.Equal(t, "query=3", urlData.Query)
 }
 
-func TestParseUrlDataHostOnly(t *testing.T) {
+func Test_ParseUrlData_HostOnly(t *testing.T) {
 	urlData, err := parseUrlData("cdn.jsdelivr.net")
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
@@ -132,14 +109,14 @@ func TestParseUrlDataHostOnly(t *testing.T) {
 	assert.Equal(t, "", urlData.Query)
 }
 
-func TestOverrideOpt(t *testing.T) {
+func Test_OverrideOpt(t *testing.T) {
 	assert.Equal(t, "new", overrideOpt("orig", "new"))
 	assert.Equal(t, "orig", overrideOpt("orig", ""))
 	assert.Equal(t, 10, overrideOptInt(0, 10))
 	assert.Equal(t, 10, overrideOptInt(10, 0))
 }
 
-func TestParseHttpHeaders_None(t *testing.T) {
+func Test_ParseHttpHeaders_None(t *testing.T) {
 	headerStrings := []string{}
 
 	m, err := parseHttpHeaders(headerStrings)
@@ -148,7 +125,7 @@ func TestParseHttpHeaders_None(t *testing.T) {
 	assert.Nil(t, nil, m)
 }
 
-func TestParseHttpHeaders_Single(t *testing.T) {
+func Test_ParseHttpHeaders_Single(t *testing.T) {
 	headerStrings := []string{"ABC: 123x"}
 
 	m, err := parseHttpHeaders(headerStrings)
@@ -157,7 +134,7 @@ func TestParseHttpHeaders_Single(t *testing.T) {
 	assert.Equal(t, map[string]string{"ABC": "123x"}, m)
 }
 
-func TestParseHttpHeaders_Multiple(t *testing.T) {
+func Test_ParseHttpHeaders_Multiple(t *testing.T) {
 	headerStrings := []string{"ABC: 123x", "DEF: 456y,789z"}
 
 	m, err := parseHttpHeaders(headerStrings)
@@ -166,14 +143,14 @@ func TestParseHttpHeaders_Multiple(t *testing.T) {
 	assert.Equal(t, map[string]string{"ABC": "123x", "DEF": "456y,789z"}, m)
 }
 
-func TestParseHttpHeaders_Invalid(t *testing.T) {
+func Test_ParseHttpHeaders_Invalid(t *testing.T) {
 	headerStrings := []string{"ABC=123x"}
 
 	_, err := parseHttpHeaders(headerStrings)
 	assert.ErrorContains(t, err, "invalid header")
 }
 
-func Test_BuildHttpMeasurementRequest_FULL(t *testing.T) {
+func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 	ctx := &view.Context{}
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
@@ -206,7 +183,7 @@ func Test_BuildHttpMeasurementRequest_FULL(t *testing.T) {
 	assert.Equal(t, expectedM, m)
 }
 
-func TestBuildHttpMeasurementRequest_HEAD(t *testing.T) {
+func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	ctx := &view.Context{}
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
