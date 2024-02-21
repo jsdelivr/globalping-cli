@@ -1,6 +1,10 @@
 package view
 
-import "time"
+import (
+	"time"
+
+	"github.com/jsdelivr/globalping-cli/globalping"
+)
 
 type HistoryBuffer struct {
 	Index int
@@ -8,9 +12,12 @@ type HistoryBuffer struct {
 }
 
 type HistoryItem struct {
-	Id           string
-	LinesPrinted int
-	StartedAt    time.Time
+	Id                  string
+	Status              globalping.MeasurementStatus
+	IsPartiallyFinished bool
+	LinesPrinted        int
+	StartedAt           time.Time
+	Stats               []*MeasurementStats
 }
 
 func NewHistoryBuffer(size int) *HistoryBuffer {
@@ -20,16 +27,16 @@ func NewHistoryBuffer(size int) *HistoryBuffer {
 	}
 }
 
-func (q *HistoryBuffer) Find(id string) *HistoryItem {
-	i := q.Index - 1
+func (h *HistoryBuffer) Find(id string) *HistoryItem {
+	i := h.Index - 1
 	for {
 		if i < 0 {
-			i = len(q.Slice) - 1
+			i = len(h.Slice) - 1
 		}
-		if q.Slice[i] != nil && q.Slice[i].Id == id {
-			return q.Slice[i]
+		if h.Slice[i] != nil && h.Slice[i].Id == id {
+			return h.Slice[i]
 		}
-		if i == q.Index {
+		if i == h.Index {
 			break
 		}
 		i--
@@ -37,30 +44,53 @@ func (q *HistoryBuffer) Find(id string) *HistoryItem {
 	return nil
 }
 
-func (q *HistoryBuffer) Push(m *HistoryItem) {
-	q.Slice[q.Index] = m
-	q.Index = (q.Index + 1) % len(q.Slice)
+func (h *HistoryBuffer) FilterByStatus(status globalping.MeasurementStatus) []*HistoryItem {
+	items := make([]*HistoryItem, 0, len(h.Slice))
+	i := h.Index
+	for {
+		if h.Slice[i] != nil && h.Slice[i].Status == status {
+			items = append(items, h.Slice[i])
+		}
+		i = (i + 1) % len(h.Slice)
+		if i == h.Index {
+			break
+		}
+	}
+	return items
 }
 
-func (q *HistoryBuffer) Capacity() int {
-	return len(q.Slice)
+func (h *HistoryBuffer) Push(m *HistoryItem) {
+	h.Slice[h.Index] = m
+	h.Index = (h.Index + 1) % len(h.Slice)
 }
 
-func (q *HistoryBuffer) ToString(sep string) string {
+func (h *HistoryBuffer) Last() *HistoryItem {
+	i := h.Index - 1
+	if i < 0 {
+		i = len(h.Slice) - 1
+	}
+	return h.Slice[i]
+}
+
+func (h *HistoryBuffer) Capacity() int {
+	return len(h.Slice)
+}
+
+func (h *HistoryBuffer) ToString(sep string) string {
 	s := ""
-	i := q.Index
+	i := h.Index
 	isFirst := true
 	for {
-		if q.Slice[i] != nil {
+		if h.Slice[i] != nil {
 			if isFirst {
 				isFirst = false
-				s += q.Slice[i].Id
+				s += h.Slice[i].Id
 			} else {
-				s += sep + q.Slice[i].Id
+				s += sep + h.Slice[i].Id
 			}
 		}
-		i = (i + 1) % len(q.Slice)
-		if i == q.Index {
+		i = (i + 1) % len(h.Slice)
+		if i == h.Index {
 			break
 		}
 	}

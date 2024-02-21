@@ -40,14 +40,18 @@ func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
-	if len(v.ctx.CompletedStats) == 0 {
-		v.ctx.CompletedStats = []MeasurementStats{NewMeasurementStats()}
-		v.ctx.InProgressStats = []MeasurementStats{NewMeasurementStats()}
+	if len(v.ctx.AggregatedStats) == 0 {
+		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
 	}
 	probeMeasurement := &m.Results[0]
-	historyMeasurement := v.ctx.History.Find(m.ID)
+	hm := v.ctx.History.Find(m.ID)
 	if probeMeasurement.Result.RawOutput != "" {
-		parsedOutput := v.parsePingRawOutput(historyMeasurement, probeMeasurement, v.ctx.CompletedStats[0].Sent)
+		concurentStats := v.aggregateConcurentStats(v.ctx.AggregatedStats[0], 0, m.ID)
+		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, concurentStats.Sent)
+		if len(hm.Stats) == 0 {
+			hm.Stats = make([]*MeasurementStats, 1)
+		}
+		hm.Stats[0] = parsedOutput.Stats
 		if !v.ctx.IsHeaderPrinted {
 			v.ctx.Hostname = parsedOutput.Hostname
 			v.printer.Println(generateProbeInfo(probeMeasurement, !v.ctx.CIMode))
@@ -58,13 +62,12 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 			)
 			v.ctx.IsHeaderPrinted = true
 		}
-		for historyMeasurement.LinesPrinted < len(parsedOutput.RawPacketLines) {
-			v.printer.Println(parsedOutput.RawPacketLines[historyMeasurement.LinesPrinted])
-			historyMeasurement.LinesPrinted++
+		for hm.LinesPrinted < len(parsedOutput.RawPacketLines) {
+			v.printer.Println(parsedOutput.RawPacketLines[hm.LinesPrinted])
+			hm.LinesPrinted++
 		}
-		v.ctx.InProgressStats[0] = mergeMeasurementStats(v.ctx.CompletedStats[0], parsedOutput)
 		if m.Status != globalping.StatusInProgress {
-			v.ctx.CompletedStats[0] = v.ctx.InProgressStats[0]
+			v.ctx.AggregatedStats[0] = mergeMeasurementStats(*v.ctx.AggregatedStats[0], parsedOutput.Stats)
 		}
 	}
 	return nil
@@ -72,11 +75,11 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 
 func (v *viewer) outputTableView(m *globalping.Measurement) error {
 	var err error
-	if len(v.ctx.CompletedStats) == 0 {
+	if len(v.ctx.AggregatedStats) == 0 {
 		// Initialize state
-		v.ctx.CompletedStats = make([]MeasurementStats, 0, len(m.Results))
-		for i := 0; i < len(m.Results); i++ {
-			v.ctx.CompletedStats = append(v.ctx.CompletedStats, NewMeasurementStats())
+		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
+		for i := range m.Results {
+			v.ctx.AggregatedStats[i] = NewMeasurementStats()
 		}
 		// Create new writer
 		v.ctx.Area, err = pterm.DefaultArea.Start()
@@ -84,17 +87,12 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 			return errors.New("failed to start writer: " + err.Error())
 		}
 	}
-	o, stats := v.generateTable(m, pterm.GetTerminalWidth()-2)
-	if o != nil {
-		v.ctx.Area.Update(*o)
-	}
-	if stats != nil {
-		v.ctx.InProgressStats = stats
-	}
+	hm := v.ctx.History.Find(m.ID)
+	o, newStats, newAggregatedStats := v.generateTable(hm, m, pterm.GetTerminalWidth()-2)
+	hm.Stats = newStats
+	v.ctx.Area.Update(*o)
 	if m.Status != globalping.StatusInProgress {
-		if stats != nil {
-			v.ctx.CompletedStats = stats
-		}
+		v.ctx.AggregatedStats = newAggregatedStats
 	}
 	return nil
 }
@@ -126,7 +124,7 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*string, []MeasurementStats) {
+func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
 	table := [][7]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	// Calculate max column width and max line width
 	// We handle multi-line values only for the first column
@@ -135,18 +133,14 @@ func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*strin
 	for i := 1; i < len(table[0]); i++ {
 		maxLineWidth += len(table[i]) + len(colSeparator)
 	}
-	skip := false
-	newStats := make([]MeasurementStats, len(m.Results))
-	historyMeasurement := v.ctx.History.Find(m.ID)
+	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
+	newStats := make([]*MeasurementStats, len(m.Results))
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
-		if probeMeasurement.Result.RawOutput == "" {
-			skip = true
-			break
-		}
-		parsedOutput := v.parsePingRawOutput(historyMeasurement, probeMeasurement, v.ctx.CompletedStats[i].Sent)
-		newStats[i] = mergeMeasurementStats(v.ctx.CompletedStats[i], parsedOutput)
-		row := getRowValues(&newStats[i])
+		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
+		newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
+		newStats[i] = parsedOutput.Stats
+		row := getRowValues(v.aggregateConcurentStats(newAggregatedStats[i], i, m.ID))
 		rowWidth := 0
 		for j := 1; j < len(row); j++ {
 			rowWidth += len(row[j]) + len(colSeparator)
@@ -156,9 +150,6 @@ func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*strin
 		row[0] = getLocationText(probeMeasurement)
 		colMax[0] = max(colMax[0], len(row[0]))
 		table = append(table, row)
-	}
-	if skip {
-		return nil, nil
 	}
 	remainingWidth := max(areaWidth-maxLineWidth, 6) // Remaining width for first column
 	colMax[0] = min(colMax[0], remainingWidth)       // Truncate first column if necessary
@@ -195,31 +186,45 @@ func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*strin
 			output += lines[j] + "\n"
 		}
 	}
-	return &output, newStats
+	return &output, newStats, newAggregatedStats
 }
 
-func mergeMeasurementStats(stats MeasurementStats, o *ParsedPingOutput) MeasurementStats {
-	if o.Stats.Rcv > 0 {
-		if o.Stats.Min < stats.Min && o.Stats.Min != 0 {
-			stats.Min = o.Stats.Min
+func (v *viewer) aggregateConcurentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
+	inProgressStats := v.ctx.History.FilterByStatus(globalping.StatusInProgress)
+	for i := range inProgressStats {
+		if inProgressStats[i].Id == excludeId {
+			continue
 		}
-		if o.Stats.Max > stats.Max {
-			stats.Max = o.Stats.Max
+		if len(inProgressStats[i].Stats) == 0 {
+			continue
 		}
-		stats.Tsum += o.Stats.Tsum
-		stats.Tsum2 += o.Stats.Tsum2
-		stats.Rcv += o.Stats.Rcv
+		completed = mergeMeasurementStats(*completed, inProgressStats[i].Stats[probeIndex])
+	}
+	return completed
+}
+
+func mergeMeasurementStats(stats MeasurementStats, newStats *MeasurementStats) *MeasurementStats {
+	if newStats.Rcv > 0 {
+		if newStats.Min < stats.Min && newStats.Min != 0 {
+			stats.Min = newStats.Min
+		}
+		if newStats.Max > stats.Max {
+			stats.Max = newStats.Max
+		}
+		stats.Tsum += newStats.Tsum
+		stats.Tsum2 += newStats.Tsum2
+		stats.Rcv += newStats.Rcv
 		stats.Avg = stats.Tsum / float64(stats.Rcv)
 		stats.Mdev = computeMdev(stats.Tsum, stats.Tsum2, stats.Rcv, stats.Avg)
-		stats.Last = o.Timings[len(o.Timings)-1].RTT
+		stats.Last = newStats.Last
 	}
-	stats.Sent += o.Stats.Sent
-	stats.Lost += o.Stats.Lost
-	stats.Time += o.Time
+	stats.Sent += newStats.Sent
+	stats.Lost += newStats.Lost
+	stats.Time += newStats.Time
 	if stats.Sent > 0 {
 		stats.Loss = float64(stats.Lost) / float64(stats.Sent) * 100
 	}
-	return stats
+	return &stats
 }
 
 func getRowValues(stats *MeasurementStats) [7]string {
@@ -271,7 +276,6 @@ type ParsedPingOutput struct {
 	RawPacketLines []string
 	Timings        []globalping.PingTiming
 	Stats          *MeasurementStats
-	Time           float64 // Total time, in milliseconds
 }
 
 // Parse ping's raw output. Adapted from iputils ping: https://github.com/iputils/iputils/tree/1c08152/ping
@@ -284,11 +288,10 @@ func (v *viewer) parsePingRawOutput(
 ) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]globalping.PingTiming, 0),
-		Stats: &MeasurementStats{
-			Min: math.MaxFloat64,
-			Max: -1,
-			Avg: -1,
-		},
+		Stats:   NewMeasurementStats(),
+	}
+	if m.Result.RawOutput == "" {
+		return res
 	}
 	scanner := bufio.NewScanner(strings.NewReader(m.Result.RawOutput))
 	scanner.Scan()
@@ -366,16 +369,13 @@ func (v *viewer) parsePingRawOutput(
 		scanner.Scan() // skip ---  ping statistics ---
 		line := scanner.Text()
 		words = strings.Split(line, " ")
-		if len(words) < 3 {
-			return res
-		}
-		if words[1] == "packets" && words[2] == "transmitted," {
+		if len(words) > 9 && words[1] == "packets" && words[2] == "transmitted," {
 			res.Stats.Sent, _ = strconv.Atoi(words[0])
 			res.Stats.Rcv, _ = strconv.Atoi(words[3])
-			res.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
+			res.Stats.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
 		}
 	} else {
-		res.Time = float64(v.time.Now().Sub(hm.StartedAt).Milliseconds())
+		res.Stats.Time = float64(v.time.Now().Sub(hm.StartedAt).Milliseconds())
 	}
 	if res.Stats.Sent > 0 {
 		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv

@@ -49,8 +49,8 @@ func getDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
 func getDefaultMeasurement(cmd string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
-		Type:        cmd,
 		Status:      globalping.StatusFinished,
+		Type:        cmd,
 		ProbesCount: 1,
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -81,6 +81,7 @@ func getDefaultExpectedContext(cmd string) *view.Context {
 	if cmd == "ping" {
 		ctx.History.Push(&view.HistoryItem{
 			Id:        measurementID1,
+			Status:    globalping.StatusInProgress,
 			StartedAt: defaultCurrentTime,
 		})
 	}

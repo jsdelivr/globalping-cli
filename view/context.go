@@ -38,8 +38,7 @@ type Context struct {
 	Area                *pterm.AreaPrinter
 	Hostname            string
 	IsHeaderPrinted     bool
-	CompletedStats      []MeasurementStats
-	InProgressStats     []MeasurementStats
+	AggregatedStats     []*MeasurementStats
 	MeasurementsCreated int
 	History             *HistoryBuffer // History of measurements
 }
@@ -59,6 +58,6 @@ type MeasurementStats struct {
 	Tsum2 float64 // Total sum of RTT squared
 }
 
-func NewMeasurementStats() MeasurementStats {
-	return MeasurementStats{Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
+func NewMeasurementStats() *MeasurementStats {
+	return &MeasurementStats{Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
 }

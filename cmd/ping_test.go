@@ -335,6 +335,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedCtx.MeasurementsCreated = 3
 	expectedCtx.History.Push(&view.HistoryItem{
 		Id:        measurementID3,
+		Status:    globalping.StatusFinished,
 		StartedAt: defaultCurrentTime.Add(4 * time.Millisecond),
 	})
 	assert.Equal(t, expectedCtx, ctx)
@@ -380,6 +381,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	assert.Equal(t, "Error: error message\n", w.String())
 
 	expectedCtx := getDefaultExpectedContext("ping")
+	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished
 	expectedCtx.Packets = 16
 	expectedCtx.Infinite = true
 	assert.Equal(t, expectedCtx, ctx)

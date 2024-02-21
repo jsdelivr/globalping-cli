@@ -87,11 +87,11 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return r.pingInfinite(opts)
 	}
 
-	res, err := r.createMeasurement(opts)
+	hm, err := r.createMeasurement(opts)
 	if err != nil {
 		return err
 	}
-	return r.viewer.Output(res.ID, opts)
+	return r.viewer.Output(hm.Id, opts)
 }
 
 func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
@@ -100,18 +100,14 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	}
 
 	var err error
-	var id string
 	// Trap sigterm or interupt to display summary on exit
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		for {
-			id, err = r.ping(opts)
-			if err != nil {
-				sig <- syscall.SIGINT
-				return
-			}
-			opts.Locations = []globalping.Locations{{Magic: id}}
+		err = r.ping(opts)
+		if err != nil {
+			sig <- syscall.SIGINT
+			return
 		}
 	}()
 	<-sig
@@ -122,36 +118,82 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	return err
 }
 
-func (r *Root) ping(opts *globalping.MeasurementCreate) (string, error) {
-	res, err := r.createMeasurement(opts)
-	if err != nil {
-		return "", err
-	}
+func (r *Root) ping(opts *globalping.MeasurementCreate) error {
+	var runErr error
+	mbuf := NewMeasurementsBuffer(2)
 	for {
-		m, err := r.client.GetMeasurement(res.ID)
-		if err != nil {
-			r.Cmd.SilenceUsage = true
-			return res.ID, err
+		mbuf.Restart()
+		elapsedTime := time.Duration(0)
+		el := mbuf.Next()
+		for el != nil {
+			m, err := r.client.GetMeasurement(el.Id)
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+				return err
+			}
+			el.Status = m.Status
+			if len(m.Results) == 0 {
+				el = mbuf.Next()
+				continue
+			}
+			err = r.viewer.OutputInfinite(m)
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+				return err
+			}
+			if m.Status != globalping.StatusInProgress {
+				mbuf.Remove(el)
+			} else {
+				el.IsPartiallyFinished = r.IsPartiallyFinished(m)
+			}
+			statuses := ""
+			for i := range m.Results {
+				statuses += fmt.Sprintf("%s ", m.Results[i].Result.Status)
+			}
+			if runErr == nil && mbuf.CanAppend() {
+				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+				start := r.time.Now()
+				hm, err := r.createMeasurement(opts)
+				if err != nil {
+					runErr = err
+				}
+				mbuf.Append(hm)
+				elapsedTime += r.time.Now().Sub(start)
+			}
+			el = mbuf.Next()
 		}
-		if len(m.Results) == 0 {
-			time.Sleep(r.ctx.APIMinInterval)
+		if mbuf.Len() > 0 {
+			time.Sleep(r.ctx.APIMinInterval - elapsedTime)
 			continue
 		}
-		err = r.viewer.OutputInfinite(m)
+		if runErr != nil {
+			return runErr
+		}
+		last := r.ctx.History.Last()
+		if last != nil {
+			opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+		}
+		hm, err := r.createMeasurement(opts)
 		if err != nil {
-			r.Cmd.SilenceUsage = true
-			return res.ID, err
+			return err
 		}
-		if m.Status != globalping.StatusInProgress {
-			break
-		}
-		time.Sleep(r.ctx.APIMinInterval)
+		mbuf.Append(hm)
 	}
-
-	return res.ID, nil
 }
 
-func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
+func (r *Root) IsPartiallyFinished(m *globalping.Measurement) bool {
+	if m.Status != globalping.StatusInProgress {
+		return false
+	}
+	for i := range m.Results {
+		if m.Results[i].Result.Status == globalping.StatusFinished {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
 	res, showHelp, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {
@@ -160,10 +202,12 @@ func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*globalpin
 		return nil, err
 	}
 	r.ctx.MeasurementsCreated++
-	r.ctx.History.Push(&view.HistoryItem{
+	hm := &view.HistoryItem{
 		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
 		StartedAt: r.time.Now(),
-	})
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)
@@ -171,5 +215,65 @@ func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*globalpin
 			r.printer.Printf("Warning: %s\n", err)
 		}
 	}
-	return res, nil
+	return hm, nil
+}
+
+type MeasurementsBuffer struct {
+	capacity int
+	items    []*view.HistoryItem
+	pos      int
+}
+
+func NewMeasurementsBuffer(capacity int) *MeasurementsBuffer {
+	return &MeasurementsBuffer{
+		capacity: capacity,
+		items:    make([]*view.HistoryItem, 0, capacity),
+	}
+}
+
+func (b *MeasurementsBuffer) Len() int {
+	return len(b.items)
+}
+
+func (b *MeasurementsBuffer) Next() *view.HistoryItem {
+	if b.pos >= len(b.items) {
+		return nil
+	}
+	b.pos++
+	return b.items[b.pos-1]
+}
+
+func (b *MeasurementsBuffer) Restart() {
+	b.pos = 0
+}
+
+func (b *MeasurementsBuffer) Append(hm *view.HistoryItem) {
+	b.items = append(b.items, hm)
+}
+
+func (b *MeasurementsBuffer) Remove(el *view.HistoryItem) {
+	if len(b.items) == 0 {
+		return
+	}
+	newb := make([]*view.HistoryItem, 0, b.capacity)
+	for i, item := range b.items {
+		if item != el {
+			newb = append(newb, item)
+		} else if i < b.pos {
+			b.pos--
+		}
+	}
+	b.items = newb
+}
+
+func (b *MeasurementsBuffer) CanAppend() bool {
+	if len(b.items) >= b.capacity {
+		return false
+	}
+	for _, el := range b.items {
+		if el.IsPartiallyFinished {
+			return true
+		}
+	}
+	return false
 }
