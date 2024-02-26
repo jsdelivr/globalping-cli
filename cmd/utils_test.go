@@ -14,7 +14,7 @@ var (
 	measurementID1 = "1OOxHNyhdsBQYEjU"
 	measurementID2 = "2hUicONd75250Z1b"
 	measurementID3 = "3PDXL29YeGctf6iJ"
-	// measurementID4 = "4H3tBVPZEj5k6AcW"
+	measurementID4 = "4H3tBVPZEj5k6AcW"
 
 	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
@@ -27,14 +27,14 @@ func sessionCleanup() {
 	}
 }
 
-func getDefaultMeasurementCreateResponse() *globalping.MeasurementCreateResponse {
+func createDefaultMeasurementCreateResponse() *globalping.MeasurementCreateResponse {
 	return &globalping.MeasurementCreateResponse{
 		ID:          measurementID1,
 		ProbesCount: 1,
 	}
 }
 
-func getDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
+func createDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
 	return &globalping.MeasurementCreate{
 		Type:    cmd,
 		Target:  "jsdelivr.com",
@@ -46,7 +46,7 @@ func getDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
 	}
 }
 
-func getDefaultMeasurement(cmd string) *globalping.Measurement {
+func createDefaultMeasurement(cmd string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Status:      globalping.StatusFinished,
@@ -62,13 +62,39 @@ func getDefaultMeasurement(cmd string) *globalping.Measurement {
 	}
 }
 
-func getDefaultContext() *view.Context {
+func createDefaultMeasurement_MultipleProbes(cmd string, status globalping.MeasurementStatus) *globalping.Measurement {
+	return &globalping.Measurement{
+		ID:          measurementID1,
+		Status:      status,
+		Type:        cmd,
+		ProbesCount: 3,
+		Results: []globalping.ProbeMeasurement{
+			{
+				Result: globalping.ProbeResult{
+					Status: status,
+				},
+			},
+			{
+				Result: globalping.ProbeResult{
+					Status: status,
+				},
+			},
+			{
+				Result: globalping.ProbeResult{
+					Status: status,
+				},
+			},
+		},
+	}
+}
+
+func createDefaultContext() *view.Context {
 	return &view.Context{
 		History: view.NewHistoryBuffer(1),
 	}
 }
 
-func getDefaultExpectedContext(cmd string) *view.Context {
+func createDefaultExpectedContext(cmd string) *view.Context {
 	ctx := &view.Context{
 		Cmd:                 cmd,
 		Target:              "jsdelivr.com",

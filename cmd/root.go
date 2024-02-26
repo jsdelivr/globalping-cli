@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/globalping/probe"
@@ -18,6 +20,7 @@ type Root struct {
 	probe   probe.Probe
 	time    utils.Time
 	Cmd     *cobra.Command
+	cancel  chan os.Signal
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -55,7 +58,10 @@ func NewRoot(
 		time:    time,
 		client:  globalpingClient,
 		probe:   globalpingProbe,
+		cancel:  make(chan os.Signal, 1),
 	}
+
+	signal.Notify(root.cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	// rootCmd represents the base command when called without any subcommands
 	root.Cmd = &cobra.Command{

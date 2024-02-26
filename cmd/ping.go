@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"syscall"
 	"time"
 
@@ -100,17 +98,14 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	}
 
 	var err error
-	// Trap sigterm or interupt to display summary on exit
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		err = r.ping(opts)
 		if err != nil {
-			sig <- syscall.SIGINT
+			r.cancel <- syscall.SIGINT
 			return
 		}
 	}()
-	<-sig
+	<-r.cancel
 
 	if err == nil {
 		r.viewer.OutputSummary()
@@ -120,7 +115,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 
 func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 	var runErr error
-	mbuf := NewMeasurementsBuffer(2)
+	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	for {
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
@@ -144,18 +139,17 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 			if m.Status != globalping.StatusInProgress {
 				mbuf.Remove(el)
 			} else {
-				el.IsPartiallyFinished = r.IsPartiallyFinished(m)
-			}
-			statuses := ""
-			for i := range m.Results {
-				statuses += fmt.Sprintf("%s ", m.Results[i].Result.Status)
+				el.ProbeStatus = make([]globalping.MeasurementStatus, len(m.Results))
+				for i := range m.Results {
+					el.ProbeStatus[i] = m.Results[i].Result.Status
+				}
 			}
 			if runErr == nil && mbuf.CanAppend() {
 				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
 				start := r.time.Now()
 				hm, err := r.createMeasurement(opts)
 				if err != nil {
-					runErr = err
+					runErr = err // Return the error after all measurements have finished
 				}
 				mbuf.Append(hm)
 				elapsedTime += r.time.Now().Sub(start)
@@ -179,18 +173,6 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 		}
 		mbuf.Append(hm)
 	}
-}
-
-func (r *Root) IsPartiallyFinished(m *globalping.Measurement) bool {
-	if m.Status != globalping.StatusInProgress {
-		return false
-	}
-	for i := range m.Results {
-		if m.Results[i].Result.Status == globalping.StatusFinished {
-			return true
-		}
-	}
-	return false
 }
 
 func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
@@ -270,8 +252,21 @@ func (b *MeasurementsBuffer) CanAppend() bool {
 	if len(b.items) >= b.capacity {
 		return false
 	}
-	for _, el := range b.items {
-		if el.IsPartiallyFinished {
+	if len(b.items) == 0 {
+		return true
+	}
+	// If there is at least one probe that has finished in all measurements then we can append
+	inProgressMat := make([]bool, len(b.items[0].ProbeStatus))
+	for i := range b.items {
+		if len(b.items[i].ProbeStatus) == 0 {
+			return false
+		}
+		for j := range b.items[i].ProbeStatus {
+			inProgressMat[j] = inProgressMat[j] || b.items[i].ProbeStatus[j] != globalping.StatusFinished
+		}
+	}
+	for _, inProgress := range inProgressMat {
+		if !inProgress {
 			return true
 		}
 	}

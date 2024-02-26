@@ -10,7 +10,6 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
-	"github.com/pterm/pterm"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -22,12 +21,12 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
 
-	measurement := getPingGetMeasurement(measurementID1)
+	measurement := createPingMeasurement(measurementID1)
 	measurement.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
@@ -132,12 +131,12 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 }
 
 func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
-	measurement := getPingGetMeasurement(measurementID1)
+	measurement := createPingMeasurement(measurementID1)
 	measurement.Status = globalping.StatusFailed
 	measurement.Results[0].Result.Status = globalping.StatusFailed
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	err := viewer.OutputInfinite(measurement)
@@ -168,25 +167,21 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	defer r.Close()
 	defer w.Close()
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.Status = globalping.StatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
 
-	expectedCtx := getDefaultContext("ping")
-	expectedCtx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
-	expectedHm := expectedCtx.History.Find(measurementID1)
-	expectedViewer := &viewer{ctx: expectedCtx, time: timeMock}
-	expectedTables := [4]*string{}
-	expectedTables[0], _, _ = expectedViewer.generateTable(expectedHm, measurement, 78)
-
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
+	ctx.CIMode = true
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
 
+	// Call 1
+	expectedOutput := `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    0 |   0.00% |        - |        - |        - |        -
+EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
 	os.Stdout = w
 	viewer.OutputInfinite(measurement)
 	os.Stdout = osStdout
@@ -203,7 +198,13 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
 no answer yet for icmp_seq=2`
-	expectedTables[1], _, _ = expectedViewer.generateTable(expectedHm, measurement, 78)
+
+	// Call 2
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
+EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
 
 	os.Stdout = w
 	viewer.OutputInfinite(measurement)
@@ -225,7 +226,12 @@ no answer yet for icmp_seq=2
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
-	expectedTables[2], _, _ = expectedViewer.generateTable(expectedHm, measurement, 78)
+	// Call 3
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
+EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
 
 	os.Stdout = w
 	err = viewer.OutputInfinite(measurement)
@@ -241,17 +247,14 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	// 2nd call
-	measurement2 := getPingGetMeasurementMultipleLocations(measurementID2)
+	// Call 4
+	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
 	measurement2.Results[0].Result.RawOutput = measurement.Results[0].Result.RawOutput
-	expectedCtx.AggregatedStats = expectedStats
-	expectedHm = &HistoryItem{
+
+	ctx.History.Push(&HistoryItem{
 		Id:        measurementID2,
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
-	}
-	expectedCtx.History.Push(expectedHm)
-	ctx.History.Push(expectedHm)
-	expectedTables[3], _, _ = expectedViewer.generateTable(expectedHm, measurement2, 78)
+	})
 
 	os.Stdout = w
 	err = viewer.OutputInfinite(measurement2)
@@ -271,24 +274,151 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	rr, ww, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rr.Close()
-	defer ww.Close()
-	os.Stdout = ww
-	// TODO: fix writer for AreaPrinter
-	// pterm.DefaultArea.SetWriter(ww)
-	area, _ := pterm.DefaultArea.Start()
-	for i := range expectedTables {
-		area.Update(*expectedTables[i])
-	}
-	area.Stop()
-	os.Stdout = osStdout
-	ww.Close()
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
+EU, DE, Falkens... |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+	assert.Equal(t, expectedOutput, string(output))
+}
 
-	expectedOutput, err := io.ReadAll(rr)
+func Test_OutputInfinite_MultipleProbes_MultipleConcurentCalls(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	osStdout := os.Stdout
+	defer func() { os.Stdout = osStdout }()
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
+
+	r, w, err := os.Pipe()
 	assert.NoError(t, err)
-	assert.Equal(t, string(expectedOutput), string(output))
+	defer r.Close()
+	defer w.Close()
+
+	// Call 1
+	measurement1 := createPingMeasurement_MultipleProbes(measurementID1)
+	measurement1.Status = globalping.StatusInProgress
+	measurement1.Results[0].Result.Status = globalping.StatusInProgress
+	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms`
+	measurement1.Results[1].Result.Status = globalping.StatusInProgress
+	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
+
+	ctx := createDefaultContext("ping")
+	hm1 := ctx.History.Find(measurementID1)
+	hm1.Status = globalping.StatusInProgress
+	ctx.CIMode = true
+	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+
+	expectedOutput := `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+EU, DE, Falkens... |    0 |   0.00% |        - |        - |        - |        -
+EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement1)
+	os.Stdout = osStdout
+
+	// Call 2
+	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
+	measurement2.Status = globalping.StatusInProgress
+	measurement2.Results[0].Result.Status = globalping.StatusInProgress
+	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
+	measurement2.Results[1].Result.Status = globalping.StatusInProgress
+	measurement2.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms`
+	ctx.History.Push(&HistoryItem{
+		Id:        measurementID2,
+		Status:    globalping.StatusInProgress,
+		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
+	})
+
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+EU, DE, Falkens... |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
+EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement2)
+	os.Stdout = osStdout
+
+	// Call 3
+	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
+
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+EU, DE, Falkens... |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
+EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement1)
+	os.Stdout = osStdout
+
+	// Call 4
+	measurement1.Status = globalping.StatusFinished
+	measurement1.Results[0].Result.Status = globalping.StatusFinished
+	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=15 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=30 time=25 ms
+
+---  ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 100ms
+rtt min/avg/max/mdev = 10/15/25/5 ms`
+	measurement1.Results[1].Result.Status = globalping.StatusFinished
+	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=30 time=30 ms
+
+---  ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 200ms
+rtt min/avg/max/mdev = 20/25/30/5 ms`
+	hm1.Status = globalping.StatusFinished
+
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
+EU, DE, Falkens... |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
+EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+
+	os.Stdout = w
+	viewer.OutputInfinite(measurement1)
+	os.Stdout = osStdout
+
+	// Call 5
+	measurement2.Results[0].Result.Status = globalping.StatusFinished
+	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=15 ms
+64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=30 time=25 ms
+
+---  ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 100ms
+rtt min/avg/max/mdev = 10/15/25/5 ms`
+
+	os.Stdout = w
+	err = viewer.OutputInfinite(measurement2)
+	os.Stdout = osStdout
+	assert.NoError(t, err)
+	w.Close()
+
+	output, err := io.ReadAll(r)
+	assert.NoError(t, err)
+
+	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
+EU, GB, London,... |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
+EU, DE, Falkens... |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
+EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+	assert.Equal(t, expectedOutput, string(output))
 }
 
 func Test_OutputInfinite_MultipleProbes(t *testing.T) {
@@ -298,14 +428,14 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	osStdout := os.Stdout
 	defer func() { os.Stdout = osStdout }()
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 
 	r, w, err := os.Pipe()
 	assert.NoError(t, err)
 	defer r.Close()
 	defer w.Close()
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	os.Stdout = w
 	err = v.OutputInfinite(measurement)
@@ -316,32 +446,13 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
-	expectedCtx := getDefaultContext("ping")
-	expectedCtx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
-	expectedHm := expectedCtx.History.Find(measurementID1)
-	expectedViewer := &viewer{ctx: expectedCtx}
-
-	rr, ww, err := os.Pipe()
-	assert.NoError(t, err)
-	defer rr.Close()
-	defer ww.Close()
-	os.Stdout = ww
-	// TODO: fix writer for AreaPrinter
-	// pterm.DefaultArea.SetWriter(ww)
-	area, _ := pterm.DefaultArea.Start()
-	expectedTable, _, _ := expectedViewer.generateTable(expectedHm, measurement, 78)
-	area.Update(*expectedTable)
-	area.Stop()
-	os.Stdout = osStdout
-	ww.Close()
-
-	expectedOutput, err := io.ReadAll(rr)
-	assert.NoError(t, err)
-	assert.Equal(t, string(expectedOutput), string(output))
+	expectedOutput := "\x1b[96m\x1b[96mLocation          \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m" +
+		`
+EU, GB, London,... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
+EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+`
+	assert.Equal(t, expectedOutput, string(output))
 	assert.Equal(t,
 		[]*MeasurementStats{
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
@@ -353,14 +464,14 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 }
 
 func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.StatusFinished
 	for i := range measurement.Results {
 		measurement.Results[i].Result.Status = globalping.StatusFailed
 		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 	}
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
 	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	err := v.OutputInfinite(measurement)
@@ -387,7 +498,7 @@ func Test_FormatDuration(t *testing.T) {
 }
 
 func Test_GenerateTable_Full(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
 		NewMeasurementStats(),
@@ -395,7 +506,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 	}
 	hm := ctx.History.Find(measurementID1)
 	viewer := &viewer{ctx: ctx}
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
 
 	expectedTable := "\x1b[96m\x1b[96mLocation                                       \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
@@ -412,7 +523,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 }
 
 func Test_GenerateTable_CIMode(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	ctx.CIMode = true
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
@@ -422,7 +533,7 @@ func Test_GenerateTable_CIMode(t *testing.T) {
 	hm := ctx.History.Find(measurementID1)
 	viewer := &viewer{ctx: ctx}
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
 
 	expectedTable := `Location                                        | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -440,7 +551,7 @@ EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4
 }
 
 func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
 		NewMeasurementStats(),
@@ -449,7 +560,7 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 	hm := ctx.History.Find(measurementID1)
 	viewer := &viewer{ctx: ctx}
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
 	table, _, stats := viewer.generateTable(hm, measurement, 106)
 
@@ -467,7 +578,7 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 }
 
 func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
 		NewMeasurementStats(),
@@ -476,7 +587,7 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 	hm := ctx.History.Find(measurementID1)
 	viewer := &viewer{ctx: ctx}
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
 	table, _, stats := viewer.generateTable(hm, measurement, 106)
 
@@ -496,7 +607,7 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 }
 
 func Test_GenerateTable_MaxTruncated(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
 		NewMeasurementStats(),
@@ -505,7 +616,7 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 	hm := ctx.History.Find(measurementID1)
 	viewer := &viewer{ctx: ctx}
 
-	measurement := getPingGetMeasurementMultipleLocations(measurementID1)
+	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 0)
 
 	expectedTable := "\x1b[96m\x1b[96mLoc...\x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
@@ -560,7 +671,7 @@ func Test_GetRowValues(t *testing.T) {
 }
 
 func Test_ParsePingRawOutput_Full(t *testing.T) {
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	v := viewer{ctx: ctx}
 
 	hm := ctx.History.Find(measurementID1)
@@ -609,7 +720,7 @@ func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	v := viewer{ctx: ctx, time: timeMock}
 
 	hm := ctx.History.Find(measurementID1)
@@ -657,7 +768,7 @@ func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
-	ctx := getDefaultContext("ping")
+	ctx := createDefaultContext("ping")
 	v := viewer{ctx: ctx, time: timeMock}
 
 	hm := ctx.History.Find(measurementID1)

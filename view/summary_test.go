@@ -12,7 +12,7 @@ import (
 func Test_OutputSummary(t *testing.T) {
 	t.Run("No_stats", func(t *testing.T) {
 		w := new(bytes.Buffer)
-		ctx := getDefaultContext("ping")
+		ctx := createDefaultContext("ping")
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 
@@ -21,7 +21,7 @@ func Test_OutputSummary(t *testing.T) {
 
 	t.Run("With_stats_Single_location", func(t *testing.T) {
 		w := new(bytes.Buffer)
-		ctx := getDefaultContext("ping")
+		ctx := createDefaultContext("ping")
 		ctx.AggregatedStats = []*MeasurementStats{
 			NewMeasurementStats(),
 		}
@@ -51,7 +51,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms
 
 	t.Run("Multiple_locations", func(t *testing.T) {
 		w := new(bytes.Buffer)
-		ctx := getDefaultContext("ping")
+		ctx := createDefaultContext("ping")
 		ctx.AggregatedStats = []*MeasurementStats{
 			NewMeasurementStats(),
 			NewMeasurementStats(),
@@ -64,7 +64,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms
 
 	t.Run("Single_location_Share", func(t *testing.T) {
 		w := new(bytes.Buffer)
-		ctx := getDefaultContext("ping")
+		ctx := createDefaultContext("ping")
 		ctx.AggregatedStats = []*MeasurementStats{
 			{Sent: 1, Rcv: 0, Lost: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 0},
 		}
@@ -82,7 +82,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 	})
 
 	t.Run("Multiple_locations_Share", func(t *testing.T) {
-		ctx := getDefaultContext("ping")
+		ctx := createDefaultContext("ping")
 		ctx.AggregatedStats = []*MeasurementStats{
 			NewMeasurementStats(),
 			NewMeasurementStats(),

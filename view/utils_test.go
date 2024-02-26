@@ -15,7 +15,7 @@ var (
 	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
-func getPingGetMeasurement(id string) *globalping.Measurement {
+func createPingMeasurement(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
@@ -54,7 +54,7 @@ rtt min/avg/max/mdev = 17.639/17.639/17.639/0.123 ms`,
 	}
 }
 
-func getPingGetMeasurementMultipleLocations(id string) *globalping.Measurement {
+func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
@@ -140,7 +140,7 @@ rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
 	}
 }
 
-func getDefaultContext(cmd string) *Context {
+func createDefaultContext(cmd string) *Context {
 	ctx := &Context{
 		Cmd:                 cmd,
 		MeasurementsCreated: 1,

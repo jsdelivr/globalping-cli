@@ -19,7 +19,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := getDefaultMeasurementCreate("http")
+	expectedOpts := createDefaultMeasurementCreate("http")
 	expectedOpts.Options.Protocol = "HTTPS"
 	expectedOpts.Options.Port = 99
 	expectedOpts.Options.Resolver = "1.1.1.1"
@@ -31,7 +31,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 		Headers: map[string]string{"X-Test": "1"},
 	}
 
-	expectedResponse := getDefaultMeasurementCreateResponse()
+	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -41,7 +41,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := getDefaultContext()
+	ctx := createDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
@@ -60,7 +60,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 
 	assert.Equal(t, "", w.String())
 
-	expectedCtx := getDefaultExpectedContext("http")
+	expectedCtx := createDefaultExpectedContext("http")
 	expectedCtx.Protocol = "HTTPS"
 	expectedCtx.Method = "GET"
 	expectedCtx.Host = "example.com"

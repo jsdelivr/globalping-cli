@@ -18,13 +18,13 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := getDefaultMeasurementCreate("mtr")
+	expectedOpts := createDefaultMeasurementCreate("mtr")
 	expectedOpts.Limit = 2
 	expectedOpts.Options.Protocol = "tcp"
 	expectedOpts.Options.Port = 99
 	expectedOpts.Options.Packets = 16
 
-	expectedResponse := getDefaultMeasurementCreateResponse()
+	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -34,7 +34,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := getDefaultContext()
+	ctx := createDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
@@ -48,7 +48,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	assert.Equal(t, "", w.String())
 
-	expectedCtx := getDefaultExpectedContext("mtr")
+	expectedCtx := createDefaultExpectedContext("mtr")
 	expectedCtx.Limit = 2
 	expectedCtx.Protocol = "tcp"
 	expectedCtx.Port = 99

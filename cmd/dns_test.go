@@ -19,7 +19,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := getDefaultMeasurementCreate("dns")
+	expectedOpts := createDefaultMeasurementCreate("dns")
 	expectedOpts.Limit = 2
 	expectedOpts.Options.Protocol = "tcp"
 	expectedOpts.Options.Port = 99
@@ -29,7 +29,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	}
 	expectedOpts.Options.Trace = true
 
-	expectedResponse := getDefaultMeasurementCreateResponse()
+	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -39,7 +39,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := getDefaultContext()
+	ctx := createDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
@@ -55,7 +55,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	assert.Equal(t, "", w.String())
 
-	expectedCtx := getDefaultExpectedContext("dns")
+	expectedCtx := createDefaultExpectedContext("dns")
 	expectedCtx.Limit = 2
 	expectedCtx.Resolver = "1.1.1.1"
 	expectedCtx.QueryType = "MX"

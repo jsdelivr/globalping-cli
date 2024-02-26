@@ -12,12 +12,12 @@ type HistoryBuffer struct {
 }
 
 type HistoryItem struct {
-	Id                  string
-	Status              globalping.MeasurementStatus
-	IsPartiallyFinished bool
-	LinesPrinted        int
-	StartedAt           time.Time
-	Stats               []*MeasurementStats
+	Id           string
+	Status       globalping.MeasurementStatus
+	ProbeStatus  []globalping.MeasurementStatus
+	LinesPrinted int
+	StartedAt    time.Time
+	Stats        []*MeasurementStats
 }
 
 func NewHistoryBuffer(size int) *HistoryBuffer {

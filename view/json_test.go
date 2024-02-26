@@ -18,7 +18,7 @@ func Test_Output_Json(t *testing.T) {
 	b := []byte(`{"fake": "results"}`)
 
 	gbMock := mocks.NewMockClient(ctrl)
-	measurement := getPingGetMeasurement(measurementID1)
+	measurement := createPingMeasurement(measurementID1)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 	gbMock.EXPECT().GetMeasurementRaw(measurementID1).Times(1).Return(b, nil)
 
