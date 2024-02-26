@@ -309,7 +309,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	outputCall5 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(wait1Ms).After(outputCall4)
 	outputCall6 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(wait1Ms).After(outputCall5)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) error {
-		time.Sleep(16 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		return nil
 	}).After(outputCall6)
 
@@ -327,7 +327,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 
 	go func() {
-		time.Sleep(16 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		root.cancel <- syscall.SIGINT
 	}()
 	err := root.Cmd.ExecuteContext(context.TODO())
