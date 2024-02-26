@@ -301,15 +301,15 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID4).Return(expectedMeasurement4, nil).After(getCall6)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
-	wait1Ms := func(m *globalping.Measurement) error { time.Sleep(1 * time.Millisecond); return nil }
-	outputCall1 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(wait1Ms)
-	outputCall2 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(wait1Ms).After(outputCall1)
-	outputCall3 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(wait1Ms).After(outputCall2)
-	outputCall4 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(wait1Ms).After(outputCall3)
-	outputCall5 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(wait1Ms).After(outputCall4)
-	outputCall6 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(wait1Ms).After(outputCall5)
+	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
+	outputCall1 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(waitFn)
+	outputCall2 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn).After(outputCall1)
+	outputCall3 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn).After(outputCall2)
+	outputCall4 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(waitFn).After(outputCall3)
+	outputCall5 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn).After(outputCall4)
+	outputCall6 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn).After(outputCall5)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) error {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 		return nil
 	}).After(outputCall6)
 
@@ -327,7 +327,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(150 * time.Millisecond)
 		root.cancel <- syscall.SIGINT
 	}()
 	err := root.Cmd.ExecuteContext(context.TODO())
