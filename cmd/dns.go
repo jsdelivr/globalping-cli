@@ -68,6 +68,8 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	r.ctx.RecordToSession = true
+
 	opts := &globalping.MeasurementCreate{
 		Type:              "dns",
 		Target:            r.ctx.Target,
@@ -83,8 +85,7 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 			Trace: r.ctx.Trace,
 		},
 	}
-	isPreviousMeasurementId := false
-	opts.Locations, isPreviousMeasurementId, err = createLocations(r.ctx.From)
+	opts.Locations, err = r.getLocations()
 	if err != nil {
 		cmd.SilenceUsage = true
 		return err
@@ -98,9 +99,11 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Save measurement ID to history
-	if !isPreviousMeasurementId {
-		err := saveIdToHistory(res.ID)
+	r.ctx.MeasurementsCreated++
+
+	if r.ctx.RecordToSession {
+		r.ctx.RecordToSession = false
+		err := saveIdToSession(res.ID)
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}

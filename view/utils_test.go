@@ -2,21 +2,20 @@ package view
 
 import (
 	"encoding/json"
-	"math"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 )
 
 var (
-	measurementID1 = "nzGzfAGL7sZfUs3c"
-	measurementID2 = "A2ZfUs3cnzGzfAGL"
-	// measurementID3 = "7sZfUs3cnzGz1I20"
+	measurementID1 = "1zGzfAGL7sZfUs3c"
+	measurementID2 = "2aZfUs3cnzGzfAGL"
+	// measurementID3 = "3sZfUs3cnzGz1I20"
 
-	defaultCurrentTime = time.Unix(0, 0)
+	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
-func getPingGetMeasurement(id string) *globalping.Measurement {
+func createPingMeasurement(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
@@ -44,7 +43,7 @@ func getPingGetMeasurement(id string) *globalping.Measurement {
 
 --- jsdelivr.map.fastly.net ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 1000ms
-rtt min/avg/max/mdev = 17.639/17.639/17.639/0.000 ms`,
+rtt min/avg/max/mdev = 17.639/17.639/17.639/0.123 ms`,
 					ResolvedAddress:  "151.101.1.229",
 					ResolvedHostname: "151.101.1.229",
 					StatsRaw:         json.RawMessage(`{"min":17.639,"avg":17.639,"max":17.639,"total":1,"rcv":1,"drop":0,"loss":0}`),
@@ -55,7 +54,7 @@ rtt min/avg/max/mdev = 17.639/17.639/17.639/0.000 ms`,
 	}
 }
 
-func getPingGetMeasurementMultipleLocations(id string) *globalping.Measurement {
+func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
@@ -141,17 +140,17 @@ rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
 	}
 }
 
-func getDefaultPingCtx(size int) *Context {
+func createDefaultContext(cmd string) *Context {
 	ctx := &Context{
-		Cmd:            "ping",
-		APIMinInterval: 0,
-		CompletedStats: make([]MeasurementStats, size),
+		Cmd:                 cmd,
+		MeasurementsCreated: 1,
+		History:             NewHistoryBuffer(3),
 	}
-	for i := range ctx.CompletedStats {
-		ctx.CompletedStats[i].Last = -1
-		ctx.CompletedStats[i].Min = math.MaxFloat64
-		ctx.CompletedStats[i].Avg = -1
-		ctx.CompletedStats[i].Max = -1
+	if cmd == "ping" {
+		ctx.History.Push(&HistoryItem{
+			Id:        measurementID1,
+			StartedAt: defaultCurrentTime,
+		})
 	}
 	return ctx
 }

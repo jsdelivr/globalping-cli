@@ -7,7 +7,7 @@ import (
 
 type Viewer interface {
 	Output(id string, m *globalping.MeasurementCreate) error
-	OutputInfinite(id string) error
+	OutputInfinite(m *globalping.Measurement) error
 	OutputSummary()
 }
 

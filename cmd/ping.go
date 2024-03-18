@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -60,14 +60,12 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if r.ctx.Infinite {
-		return r.pingInfinite()
-	}
-	_, err = r.ping()
-	return err
-}
 
-func (r *Root) ping() (string, error) {
+	r.ctx.RecordToSession = true
+	if r.ctx.Infinite {
+		r.ctx.Packets = 16
+	}
+
 	opts := &globalping.MeasurementCreate{
 		Type:              "ping",
 		Target:            r.ctx.Target,
@@ -77,69 +75,200 @@ func (r *Root) ping() (string, error) {
 			Packets: r.ctx.Packets,
 		},
 	}
-	var err error
-	isPreviousMeasurementId := true
-	if r.ctx.CallCount == 0 {
-		opts.Locations, isPreviousMeasurementId, err = createLocations(r.ctx.From)
-		if err != nil {
-			r.Cmd.SilenceUsage = true
-			return "", err
-		}
-	} else {
-		opts.Locations = []globalping.Locations{{Magic: r.ctx.From}}
+	opts.Locations, err = r.getLocations()
+	if err != nil {
+		r.Cmd.SilenceUsage = true
+		return err
 	}
 
+	if r.ctx.Infinite {
+		return r.pingInfinite(opts)
+	}
+
+	hm, err := r.createMeasurement(opts)
+	if err != nil {
+		return err
+	}
+	return r.viewer.Output(hm.Id, opts)
+}
+
+func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
+	if r.ctx.Limit > 5 {
+		return fmt.Errorf("continous mode is currently limited to 5 probes")
+	}
+
+	var err error
+	go func() {
+		err = r.ping(opts)
+		if err != nil {
+			r.cancel <- syscall.SIGINT
+			return
+		}
+	}()
+	<-r.cancel
+
+	if err == nil {
+		r.viewer.OutputSummary()
+	}
+	return err
+}
+
+func (r *Root) ping(opts *globalping.MeasurementCreate) error {
+	var runErr error
+	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
+	for {
+		mbuf.Restart()
+		elapsedTime := time.Duration(0)
+		el := mbuf.Next()
+		for el != nil {
+			m, err := r.client.GetMeasurement(el.Id)
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+				return err
+			}
+			el.Status = m.Status
+			if len(m.Results) == 0 {
+				el = mbuf.Next()
+				continue
+			}
+			err = r.viewer.OutputInfinite(m)
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+				return err
+			}
+			if m.Status != globalping.StatusInProgress {
+				mbuf.Remove(el)
+			} else {
+				el.ProbeStatus = make([]globalping.MeasurementStatus, len(m.Results))
+				for i := range m.Results {
+					el.ProbeStatus[i] = m.Results[i].Result.Status
+				}
+			}
+			if runErr == nil && mbuf.CanAppend() {
+				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+				start := r.time.Now()
+				hm, err := r.createMeasurement(opts)
+				if err != nil {
+					runErr = err // Return the error after all measurements have finished
+				}
+				mbuf.Append(hm)
+				elapsedTime += r.time.Now().Sub(start)
+			}
+			el = mbuf.Next()
+		}
+		if mbuf.Len() > 0 {
+			time.Sleep(r.ctx.APIMinInterval - elapsedTime)
+			continue
+		}
+		if runErr != nil {
+			return runErr
+		}
+		last := r.ctx.History.Last()
+		if last != nil {
+			opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+		}
+		hm, err := r.createMeasurement(opts)
+		if err != nil {
+			return err
+		}
+		mbuf.Append(hm)
+	}
+}
+
+func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
 	res, showHelp, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {
 			r.Cmd.SilenceUsage = true
 		}
-		return "", err
+		return nil, err
 	}
-
-	r.ctx.MStartedAt = r.time.Now()
-	r.ctx.CallCount++
-
-	// Save measurement ID to history
-	if !isPreviousMeasurementId {
-		err := saveIdToHistory(res.ID)
+	r.ctx.MeasurementsCreated++
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
+	if r.ctx.RecordToSession {
+		r.ctx.RecordToSession = false
+		err := saveIdToSession(res.ID)
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}
 	}
-	if r.ctx.Infinite {
-		err = r.viewer.OutputInfinite(res.ID)
-		r.Cmd.SilenceUsage = true
-	} else {
-		r.viewer.Output(res.ID, opts)
-	}
-	return res.ID, err
+	return hm, nil
 }
 
-func (r *Root) pingInfinite() error {
-	var err error
-	if r.ctx.Limit > 5 {
-		return fmt.Errorf("continous mode is currently limited to 5 probes")
+type MeasurementsBuffer struct {
+	capacity int
+	items    []*view.HistoryItem
+	pos      int
+}
+
+func NewMeasurementsBuffer(capacity int) *MeasurementsBuffer {
+	return &MeasurementsBuffer{
+		capacity: capacity,
+		items:    make([]*view.HistoryItem, 0, capacity),
 	}
-	r.ctx.Packets = 16 // Default to 16 packets
+}
 
-	// Trap sigterm or interupt to display info on exit
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+func (b *MeasurementsBuffer) Len() int {
+	return len(b.items)
+}
 
-	go func() {
-		for {
-			r.ctx.From, err = r.ping()
-			if err != nil {
-				sig <- syscall.SIGINT
-				return
-			}
+func (b *MeasurementsBuffer) Next() *view.HistoryItem {
+	if b.pos >= len(b.items) {
+		return nil
+	}
+	b.pos++
+	return b.items[b.pos-1]
+}
+
+func (b *MeasurementsBuffer) Restart() {
+	b.pos = 0
+}
+
+func (b *MeasurementsBuffer) Append(hm *view.HistoryItem) {
+	b.items = append(b.items, hm)
+}
+
+func (b *MeasurementsBuffer) Remove(el *view.HistoryItem) {
+	if len(b.items) == 0 {
+		return
+	}
+	newb := make([]*view.HistoryItem, 0, b.capacity)
+	for i, item := range b.items {
+		if item != el {
+			newb = append(newb, item)
+		} else if i < b.pos {
+			b.pos--
 		}
-	}()
-
-	<-sig
-	if err == nil {
-		r.viewer.OutputSummary()
 	}
-	return err
+	b.items = newb
+}
+
+func (b *MeasurementsBuffer) CanAppend() bool {
+	if len(b.items) >= b.capacity {
+		return false
+	}
+	if len(b.items) == 0 {
+		return true
+	}
+	// If there is at least one probe that has finished in all measurements then we can append
+	inProgressMat := make([]bool, len(b.items[0].ProbeStatus))
+	for i := range b.items {
+		if len(b.items[i].ProbeStatus) == 0 {
+			return false
+		}
+		for j := range b.items[i].ProbeStatus {
+			inProgressMat[j] = inProgressMat[j] || b.items[i].ProbeStatus[j] != globalping.StatusFinished
+		}
+	}
+	for _, inProgress := range inProgressMat {
+		if !inProgress {
+			return true
+		}
+	}
+	return false
 }

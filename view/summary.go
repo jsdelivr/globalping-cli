@@ -6,12 +6,12 @@ import (
 )
 
 func (v *viewer) OutputSummary() {
-	if len(v.ctx.InProgressStats) == 0 {
+	if len(v.ctx.AggregatedStats) == 0 {
 		return
 	}
 
-	if len(v.ctx.InProgressStats) == 1 {
-		stats := v.ctx.InProgressStats[0]
+	if len(v.ctx.AggregatedStats) == 1 {
+		stats := v.aggregateConcurentStats(v.ctx.AggregatedStats[0], 0, "")
 
 		v.printer.Printf("\n--- %s ping statistics ---\n", v.ctx.Hostname)
 		v.printer.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",
@@ -40,16 +40,16 @@ func (v *viewer) OutputSummary() {
 	}
 
 	if v.ctx.Share && v.ctx.History != nil {
-		if len(v.ctx.InProgressStats) > 1 {
-			v.printer.Println()
+		if len(v.ctx.AggregatedStats) > 1 {
+			v.printer.Println() // Add a newline in table view
 		}
 		ids := v.ctx.History.ToString("+")
 		if ids != "" {
 			v.printer.Println(formatWithLeadingArrow(shareMessage(ids), !v.ctx.CIMode))
 		}
-		if v.ctx.CallCount > v.ctx.MaxHistory {
+		if v.ctx.MeasurementsCreated > v.ctx.History.Capacity() {
 			v.printer.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n",
-				v.ctx.Packets*v.ctx.MaxHistory)
+				v.ctx.Packets*v.ctx.History.Capacity())
 		}
 	}
 }

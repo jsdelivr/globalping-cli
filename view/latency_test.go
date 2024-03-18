@@ -1,9 +1,8 @@
 package view
 
 import (
+	"bytes"
 	"encoding/json"
-	"io"
-	"os"
 	"testing"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -52,11 +51,7 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "ping",
@@ -67,12 +62,9 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network (tag-1)
 Min: 8.00 ms
 Max: 20.00 ms
@@ -83,7 +75,7 @@ Min: 9.00 ms
 Max: 22.00 ms
 Avg: 15.00 ms
 
-`, string(outContent))
+`, w.String())
 }
 
 func Test_Output_Latency_Ping_CI(t *testing.T) {
@@ -112,11 +104,7 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "ping",
@@ -128,18 +116,15 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
 Min: 8.00 ms
 Max: 20.00 ms
 Avg: 12.00 ms
 
-`, string(outContent))
+`, w.String())
 }
 
 func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
@@ -168,11 +153,7 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "dns",
@@ -183,16 +164,13 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
 Total: 44 ms
 
-`, string(outContent))
+`, w.String())
 }
 
 func Test_Output_Latency_DNS_CI(t *testing.T) {
@@ -221,11 +199,7 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "dns",
@@ -237,16 +211,13 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
 Total: 44 ms
 
-`, string(outContent))
+`, w.String())
 }
 
 func Test_Output_Latency_Http_Not_CI(t *testing.T) {
@@ -275,11 +246,7 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "http",
@@ -290,12 +257,9 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
 Total: 44 ms
 Download: 11 ms
@@ -304,7 +268,7 @@ DNS: 5 ms
 TLS: 2 ms
 TCP: 4 ms
 
-`, string(outContent))
+`, w.String())
 }
 
 func Test_Output_Latency_Http_CI(t *testing.T) {
@@ -333,11 +297,7 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "http",
@@ -349,12 +309,9 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 		gbMock,
 	)
 
-	err = viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
-	w.Close()
 
-	outContent, err := io.ReadAll(r)
-	assert.NoError(t, err)
 	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
 Total: 44 ms
 Download: 11 ms
@@ -363,5 +320,5 @@ DNS: 5 ms
 TLS: 2 ms
 TCP: 4 ms
 
-`, string(outContent))
+`, w.String())
 }

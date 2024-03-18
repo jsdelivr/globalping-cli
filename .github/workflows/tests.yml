@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Run tests
-        run: go test ./... -v
+        run: go test ./... -v -timeout 30s
       - name: Build
         run: go build -o bin/
       - name: Test windows cmd

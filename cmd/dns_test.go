@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
-	"io"
 	"os"
 	"testing"
 
@@ -19,24 +19,17 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	expectedOpts := &globalping.MeasurementCreate{
-		Type:   "dns",
-		Target: "jsdelivr.com",
-		Limit:  2,
-		Options: &globalping.MeasurementOptions{
-			Protocol: "tcp",
-			Port:     99,
-			Resolver: "1.1.1.1",
-			Query: &globalping.QueryOptions{
-				Type: "MX",
-			},
-			Trace: true,
-		},
-		Locations: []globalping.Locations{
-			{Magic: "Berlin"},
-		},
+	expectedOpts := createDefaultMeasurementCreate("dns")
+	expectedOpts.Limit = 2
+	expectedOpts.Options.Protocol = "tcp"
+	expectedOpts.Options.Port = 99
+	expectedOpts.Options.Resolver = "1.1.1.1"
+	expectedOpts.Options.Query = &globalping.QueryOptions{
+		Type: "MX",
 	}
-	expectedResponse := getMeasurementCreateResponse(measurementID1)
+	expectedOpts.Options.Trace = true
+
+	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
 	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
@@ -44,16 +37,11 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	ctx := &view.Context{
-		MaxHistory: 1,
-	}
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
+	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext()
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
+
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
 		"--limit", "2",
@@ -62,27 +50,19 @@ func Test_Execute_DNS_Default(t *testing.T) {
 		"--port", "99",
 		"--protocol", "tcp",
 		"--trace"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
-	w.Close()
 
-	output, err := io.ReadAll(r)
-	assert.NoError(t, err)
-	assert.Equal(t, "", string(output))
+	assert.Equal(t, "", w.String())
 
-	expectedCtx := &view.Context{
-		Cmd:        "dns",
-		Target:     "jsdelivr.com",
-		From:       "Berlin",
-		Limit:      2,
-		Resolver:   "1.1.1.1",
-		QueryType:  "MX",
-		Protocol:   "tcp",
-		Trace:      true,
-		Port:       99,
-		CIMode:     true,
-		MaxHistory: 1,
-	}
+	expectedCtx := createDefaultExpectedContext("dns")
+	expectedCtx.Limit = 2
+	expectedCtx.Resolver = "1.1.1.1"
+	expectedCtx.QueryType = "MX"
+	expectedCtx.Protocol = "tcp"
+	expectedCtx.Port = 99
+	expectedCtx.Trace = true
+
 	assert.Equal(t, expectedCtx, ctx)
 
 	b, err := os.ReadFile(getMeasurementsPath())
