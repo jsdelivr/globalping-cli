@@ -192,7 +192,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 no answer yet for icmp_seq=2`
 
 	// Call 2
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
@@ -219,7 +219,7 @@ no answer yet for icmp_seq=2
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	// Call 3
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
@@ -259,7 +259,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
@@ -314,7 +314,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
 	})
 
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
@@ -329,7 +329,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
 
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
@@ -361,7 +361,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 rtt min/avg/max/mdev = 20/25/30/5 ms`
 	hm1.Status = globalping.StatusFinished
 
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
@@ -385,7 +385,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 	err = viewer.OutputInfinite(measurement2)
 	assert.NoError(t, err)
 
-	expectedOutput += "\033[4A\033[K" +
+	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms

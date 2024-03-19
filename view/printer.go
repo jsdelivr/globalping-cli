@@ -120,6 +120,6 @@ func (p *Printer) AreaClear() {
 	if p.areaHeight == 0 {
 		return
 	}
-	fmt.Fprintf(p.OutWriter, "\033[%dA\033[K", p.areaHeight)
+	fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
 	p.areaHeight = 0
 }

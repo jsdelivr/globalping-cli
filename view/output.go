@@ -55,8 +55,6 @@ func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) error {
 	var err error
 
-	defer v.printer.AreaClear()
-
 	w, h := v.printer.GetSize()
 
 	output := &strings.Builder{}
