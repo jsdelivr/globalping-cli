@@ -45,7 +45,7 @@ func (v *viewer) OutputSummary() {
 		}
 		ids := v.ctx.History.ToString("+")
 		if ids != "" {
-			v.printer.Println(formatWithLeadingArrow(shareMessage(ids), !v.ctx.CIMode))
+			v.printer.Println(v.getShareMessage(ids))
 		}
 		if v.ctx.MeasurementsCreated > v.ctx.History.Capacity() {
 			v.printer.Printf("For long-running continuous mode measurements, only the last %d packets are shared.\n",

@@ -10,7 +10,6 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/mattn/go-runewidth"
-	"github.com/pterm/pterm"
 )
 
 // Table defaults
@@ -54,7 +53,7 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 		hm.Stats[0] = parsedOutput.Stats
 		if !v.ctx.IsHeaderPrinted {
 			v.ctx.Hostname = parsedOutput.Hostname
-			v.printer.Println(generateProbeInfo(probeMeasurement, !v.ctx.CIMode))
+			v.printer.Println(v.getProbeInfo(probeMeasurement))
 			v.printer.Printf("PING %s (%s) %s bytes of data.\n",
 				parsedOutput.Hostname,
 				parsedOutput.Address,
@@ -74,23 +73,18 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) error {
-	var err error
 	if len(v.ctx.AggregatedStats) == 0 {
 		// Initialize state
 		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
 		for i := range m.Results {
 			v.ctx.AggregatedStats[i] = NewMeasurementStats()
 		}
-		// Create new writer
-		v.ctx.Area, err = pterm.DefaultArea.Start()
-		if err != nil {
-			return errors.New("failed to start writer: " + err.Error())
-		}
 	}
 	hm := v.ctx.History.Find(m.ID)
-	o, newStats, newAggregatedStats := v.generateTable(hm, m, pterm.GetTerminalWidth()-2)
+	width, _ := v.printer.GetSize()
+	o, newStats, newAggregatedStats := v.generateTable(hm, m, width-2)
 	hm.Stats = newStats
-	v.ctx.Area.Update(*o)
+	v.printer.AreaUpdate(o)
 	if m.Status != globalping.StatusInProgress {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
@@ -99,7 +93,7 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
-		v.printer.Println(generateProbeInfo(&m.Results[i], !v.ctx.CIMode))
+		v.printer.Println(v.getProbeInfo(&m.Results[i]))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
 	return errors.New("all probes failed")
@@ -158,9 +152,9 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	for i := range table {
 		table[i][0] = strings.ReplaceAll(table[i][0], "\t", "  ") // Replace tabs with spaces
 		lines := strings.Split(table[i][0], "\n")                 // Split first column into lines
-		color := pterm.Reset                                      // No color
+		color := ColorNone                                        // No color
 		if i == 0 && !v.ctx.CIMode {
-			color = pterm.FgLightCyan
+			color = ColorLightCyan
 		}
 		for k := range lines {
 			width := runewidth.StringWidth(lines[k])
@@ -172,14 +166,19 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 			} else if colMax[0] > width {
 				lines[k] = runewidth.FillRight(lines[k], colMax[0])
 			}
-			if color != 0 {
-				lines[k] = pterm.NewStyle(color).Sprint(lines[k])
+			if color != "" {
+				lines[k] = v.printer.Color(lines[k], color)
 			}
 		}
 		for j := 1; j < len(table[i]); j++ {
-			lines[0] += colSeparator + formatValue(table[i][j], color, colMax[j], j != 0)
+			lines[0] += colSeparator
+			if j == 0 {
+				lines[0] += v.printer.FillRightAndColor(table[i][j], colMax[j], color)
+			} else {
+				lines[0] += v.printer.FillLeftAndColor(table[i][j], colMax[j], color)
+			}
 			for k := 1; k < len(lines); k++ {
-				lines[k] += colSeparator + formatValue("", 0, colMax[j], false)
+				lines[k] += colSeparator + v.printer.FillLeft("", colMax[j])
 			}
 		}
 		for j := 0; j < len(lines); j++ {
@@ -253,20 +252,6 @@ func getRowValues(stats *MeasurementStats) [7]string {
 		avg,
 		max,
 	}
-}
-
-func formatValue(v string, color pterm.Color, width int, toRight bool) string {
-	for len(v) < width {
-		if toRight {
-			v = " " + v
-		} else {
-			v = v + " "
-		}
-	}
-	if color != 0 {
-		v = pterm.NewStyle(color).Sprint(v)
-	}
-	return v
 }
 
 type ParsedPingOutput struct {

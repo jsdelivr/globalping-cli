@@ -1,6 +1,7 @@
 package view
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -8,11 +9,6 @@ import (
 )
 
 var (
-	testContext = Context{
-		From:   "New York",
-		Target: "1.1.1.1",
-		CIMode: true,
-	}
 	testResult = globalping.ProbeMeasurement{
 		Probe: globalping.ProbeDetails{
 			Continent: "Continent",
@@ -27,21 +23,32 @@ var (
 )
 
 func Test_HeadersBase(t *testing.T) {
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network", generateProbeInfo(&testResult, !testContext.CIMode))
+	v := viewer{
+		ctx: &Context{
+			CIMode: false,
+		},
+	}
+	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345)\033[0m", v.getProbeInfo(&testResult))
 }
 
 func Test_HeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
+	v := viewer{
+		ctx: &Context{
+			CIMode: true,
+		},
+	}
 
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag1)", generateProbeInfo(&newResult, !testContext.CIMode))
+	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345) (tag1)", v.getProbeInfo(&newResult))
 
 	newResult.Probe.Tags = []string{"tag", "tag2"}
-	assert.Equal(t, "> Continent, Country, (State), City, ASN:12345, Network (tag2)", generateProbeInfo(&newResult, !testContext.CIMode))
+	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345) (tag2)", v.getProbeInfo(&newResult))
 }
 
 func Test_TrimOutput(t *testing.T) {
-	output := `> EU, GB, London, ASN:12345
+	output := &strings.Builder{}
+	output.WriteString(`> London, GB, EU, Network (AS12345)
 TEST CONTENT
 ABCD
 EDF
@@ -52,7 +59,7 @@ IOPU
 GHJKL
 IOPU
 GHJKL
-LOREM IPSUM LOREM IPSUM LOREM IPSUM`
+LOREM IPSUM LOREM IPSUM LOREM IPSUM`)
 
 	res := trimOutput(output, 84, 11)
 
@@ -64,23 +71,24 @@ IOPU
 GHJKL
 LOREM IPSUM LOREM IPSUM LOREM IPSUM`
 
-	assert.Equal(t, expectedRes, res)
+	assert.Equal(t, expectedRes, *res)
 }
 
 func Test_TrimOutput_CN(t *testing.T) {
-	output := `> EU, GB, London, ASN:12345
+	output := &strings.Builder{}
+	output.WriteString(`> London, GB, EU, Network (AS12345)
 some text a
 中文互联文互联网高质量的问答社区和创 作者聚集的原创内容平台于201 1年1月正式上线让人们更 好的分享 知识经验和见解到自己的解答」中文互联网高质量的问答社区和创作者聚集的原创内容平台中文互联网高质量的问答社区和创作者聚集的原创内容平台于2011年1月正式上线让人们更好的分享知识经验和见解到自己的解答」中文互联网高质量的问答社区和创作者聚集的原创内容平台于
 some text e
-some text f`
+some text f`)
 
 	res := trimOutput(output, 84, 10)
 
-	expectedRes := `> EU, GB, London, ASN:12345
+	expectedRes := `> London, GB, EU, Network (AS12345)
 some text a
 中文互联文互联网高质量的问答社区和创 作者聚集的原创内容平台于201 1年1月正式上线让人们更 好的分享 知识经验和见解到自己的解答」中文互联网高质量的问答社区和创作者聚集的原
 some text e
 some text f`
 
-	assert.Equal(t, expectedRes, res)
+	assert.Equal(t, expectedRes, *res)
 }

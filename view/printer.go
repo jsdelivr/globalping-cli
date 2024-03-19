@@ -3,14 +3,26 @@ package view
 import (
 	"fmt"
 	"io"
+	"math"
+	"os"
+	"strings"
 
-	"github.com/pterm/pterm"
+	"golang.org/x/term"
+)
+
+type Color string
+
+const (
+	ColorNone      Color = ""
+	ColorLightCyan Color = "96"
+	ColorHighlight Color = "38;2;23;212;167"
 )
 
 type Printer struct {
-	InReader  io.Reader
-	OutWriter io.Writer
-	ErrWriter io.Writer
+	InReader   io.Reader
+	OutWriter  io.Writer
+	ErrWriter  io.Writer
+	areaHeight int
 }
 
 func NewPrinter(
@@ -18,7 +30,6 @@ func NewPrinter(
 	outWriter io.Writer,
 	errWriter io.Writer,
 ) *Printer {
-	pterm.SetDefaultOutput(outWriter) // TODO: Set writer for AreaPrinter
 	return &Printer{
 		InReader:  inReader,
 		OutWriter: outWriter,
@@ -36,4 +47,79 @@ func (p *Printer) Println(a ...any) {
 
 func (p *Printer) Printf(format string, a ...any) {
 	fmt.Fprintf(p.OutWriter, format, a...)
+}
+
+func (p *Printer) FillLeft(s string, w int) string {
+	if len(s) >= w {
+		return s
+	}
+	return strings.Repeat(" ", w-len(s)) + s
+}
+
+func (p *Printer) FillRight(s string, w int) string {
+	if len(s) >= w {
+		return s
+	}
+	return s + strings.Repeat(" ", w-len(s))
+}
+
+func (p *Printer) FillLeftAndColor(s string, w int, color Color) string {
+	if len(s) < w {
+		s = strings.Repeat(" ", w-len(s)) + s
+	}
+	if color == ColorNone {
+		return s
+	}
+	return p.Color(s, color)
+}
+
+func (p *Printer) FillRightAndColor(s string, w int, color Color) string {
+	if len(s) < w {
+		s += strings.Repeat(" ", w-len(s))
+	}
+	if color == ColorNone {
+		return s
+	}
+	return p.Color(s, color)
+}
+
+func (p *Printer) Color(s string, color Color) string {
+	return fmt.Sprintf("\033[%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) Bold(s string) string {
+	return fmt.Sprintf("\033[1m%s\033[0m", s)
+}
+
+func (p *Printer) BoldWithColor(s string, color Color) string {
+	return fmt.Sprintf("\033[1;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) GetSize() (width, height int) {
+	f, ok := p.OutWriter.(*os.File)
+	if !ok {
+		return math.MaxInt, math.MaxInt
+	}
+	w, h, _ := term.GetSize(int(f.Fd()))
+	if w <= 0 {
+		w = math.MaxInt
+	}
+	if h <= 0 {
+		h = math.MaxInt
+	}
+	return w, h
+}
+
+func (p *Printer) AreaUpdate(content *string) {
+	p.AreaClear()
+	p.areaHeight = strings.Count(*content, "\n")
+	fmt.Fprint(p.OutWriter, *content)
+}
+
+func (p *Printer) AreaClear() {
+	if p.areaHeight == 0 {
+		return
+	}
+	fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
+	p.areaHeight = 0
 }
