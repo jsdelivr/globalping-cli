@@ -69,10 +69,10 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
-	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 Body 1
 
-> NA, US, (NY), New York, ASN:567, Network 2
+> New York (NY), US, NA, Network 2 (AS567)
 Body 2
 `, w.String())
 }
@@ -135,10 +135,10 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
-	assert.Equal(t, fmt.Sprintf(`> EU, DE, Berlin, ASN:123, Network 1
+	assert.Equal(t, fmt.Sprintf(`> Berlin, DE, EU, Network 1 (AS123)
 Body 1
 
-> NA, US, (NY), New York, ASN:567, Network 2
+> New York (NY), US, NA, Network 2 (AS567)
 Body 2
 > View the results online: https://www.jsdelivr.com/globalping?measurement=%s
 `, measurementID1), w.String())
@@ -201,11 +201,11 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
-	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 Headers 1
 Body 1
 
-> NA, US, (NY), New York, ASN:567, Network 2
+> New York (NY), US, NA, Network 2 (AS567)
 Headers 2
 Body 2
 `, w.String())
@@ -266,10 +266,10 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
-	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 Headers 1
 
-> NA, US, (NY), New York, ASN:567, Network 2
+> New York (NY), US, NA, Network 2 (AS567)
 Headers 2
 `, w.String())
 }
@@ -321,10 +321,10 @@ func Test_Output_Default_Ping(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
-	assert.Equal(t, `> EU, DE, Berlin, ASN:123, Network 1
+	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 Ping Results 1
 
-> NA, US, (NY), New York, ASN:567, Network 2
+> New York (NY), US, NA, Network 2 (AS567)
 Ping Results 2
 `, w.String())
 }

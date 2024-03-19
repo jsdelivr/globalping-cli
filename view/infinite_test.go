@@ -2,10 +2,7 @@ package view
 
 import (
 	"bytes"
-	"io"
 	"math"
-	"os"
-	"runtime"
 	"testing"
 	"time"
 
@@ -23,6 +20,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
 
 	ctx := createDefaultContext("ping")
+	ctx.CIMode = true
 	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
@@ -36,7 +34,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 `,
 		w.String(),
@@ -49,7 +47,7 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 `,
@@ -64,7 +62,7 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -91,7 +89,7 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -114,7 +112,7 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -138,13 +136,14 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 
 	ctx := createDefaultContext("ping")
+	ctx.CIMode = true
 	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	err := viewer.OutputInfinite(measurement)
 	assert.Equal(t, "all probes failed", err.Error())
 
 	assert.Equal(t,
-		`> EU, DE, Berlin, ASN:3320, Deutsche Telekom AG
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 ping: cdn.jsdelivr.net.xc: Name or service not known
 `,
 		w.String(),
@@ -154,22 +153,11 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 }
 
 func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping test on windows") // Newline issues. Should be fixed once we use custom writer
-	}
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdout := os.Stdout
-	defer func() { os.Stdout = osStdout }()
-
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
-
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.StatusInProgress
@@ -178,17 +166,17 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.CIMode = true
+	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
 
 	// Call 1
-	expectedOutput := `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    0 |   0.00% |        - |        - |        - |        -
-EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    0 |   0.00% |        - |        - |        - |        -
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	os.Stdout = w
-	viewer.OutputInfinite(measurement)
-	os.Stdout = osStdout
+	err := viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
 
 	expectedStats := []*MeasurementStats{
 		NewMeasurementStats(),
@@ -204,15 +192,15 @@ EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 no answer yet for icmp_seq=2`
 
 	// Call 2
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
-EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
-	viewer.OutputInfinite(measurement)
-	os.Stdout = osStdout
+	err = viewer.OutputInfinite(measurement)
+	assert.NoError(t, err)
 
 	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
@@ -231,15 +219,14 @@ no answer yet for icmp_seq=2
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	// Call 3
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
-EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
 	err = viewer.OutputInfinite(measurement)
-	os.Stdout = osStdout
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
@@ -260,13 +247,7 @@ EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
 	})
 
-	os.Stdout = w
 	err = viewer.OutputInfinite(measurement2)
-	os.Stdout = osStdout
-	assert.NoError(t, err)
-	w.Close()
-
-	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
@@ -278,32 +259,21 @@ EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
-EU, DE, Falkens... |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	assert.Equal(t, expectedOutput, string(output))
+	assert.Equal(t, expectedOutput, w.String())
 }
 
 func Test_OutputInfinite_MultipleProbes_MultipleConcurentCalls(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping test on windows") // Newline issues. Should be fixed once we use custom writer
-	}
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdout := os.Stdout
-	defer func() { os.Stdout = osStdout }()
-
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
-
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
 
 	// Call 1
 	measurement1 := createPingMeasurement_MultipleProbes(measurementID1)
@@ -318,17 +288,17 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurentCalls(t *testing.T) {
 	hm1 := ctx.History.Find(measurementID1)
 	hm1.Status = globalping.StatusInProgress
 	ctx.CIMode = true
+	w := new(bytes.Buffer)
 	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
 
-	expectedOutput := `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
-EU, DE, Falkens... |    0 |   0.00% |        - |        - |        - |        -
-EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    0 |   0.00% |        - |        - |        - |        -
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
-	viewer.OutputInfinite(measurement1)
-	os.Stdout = osStdout
+	err := viewer.OutputInfinite(measurement1)
+	assert.NoError(t, err)
 
 	// Call 2
 	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
@@ -344,30 +314,30 @@ EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
 	})
 
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
-EU, DE, Falkens... |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
-EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
-	viewer.OutputInfinite(measurement2)
-	os.Stdout = osStdout
+	err = viewer.OutputInfinite(measurement2)
+	assert.NoError(t, err)
 
 	// Call 3
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
 
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
-EU, DE, Falkens... |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
-EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
-	viewer.OutputInfinite(measurement1)
-	os.Stdout = osStdout
+	err = viewer.OutputInfinite(measurement1)
+	assert.NoError(t, err)
 
 	// Call 4
 	measurement1.Status = globalping.StatusFinished
@@ -391,15 +361,15 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 rtt min/avg/max/mdev = 20/25/30/5 ms`
 	hm1.Status = globalping.StatusFinished
 
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
-EU, DE, Falkens... |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
-EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	os.Stdout = w
-	viewer.OutputInfinite(measurement1)
-	os.Stdout = osStdout
+	err = viewer.OutputInfinite(measurement1)
+	assert.NoError(t, err)
 
 	// Call 5
 	measurement2.Results[0].Result.Status = globalping.StatusFinished
@@ -412,59 +382,37 @@ EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 3 packets transmitted, 3 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 10/15/25/5 ms`
 
-	os.Stdout = w
 	err = viewer.OutputInfinite(measurement2)
-	os.Stdout = osStdout
-	assert.NoError(t, err)
-	w.Close()
-
-	output, err := io.ReadAll(r)
 	assert.NoError(t, err)
 
-	expectedOutput += `Location           | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London,... |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
-EU, DE, Falkens... |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
-EU, DE, Nurembe... |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedOutput += "\033[4A\033[K" +
+		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	assert.Equal(t, expectedOutput, string(output))
+	assert.Equal(t, expectedOutput, w.String())
 }
 
 func Test_OutputInfinite_MultipleProbes(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping test on windows") // Newline issues. Should be fixed once we use custom writer
-	}
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	osStdout := os.Stdout
-	defer func() { os.Stdout = osStdout }()
-
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 
-	r, w, err := os.Pipe()
-	assert.NoError(t, err)
-	defer r.Close()
-	defer w.Close()
-
 	ctx := createDefaultContext("ping")
+	w := new(bytes.Buffer)
 	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
-	os.Stdout = w
-	err = v.OutputInfinite(measurement)
-	assert.NoError(t, err)
-	os.Stdout = osStdout
-	w.Close()
-
-	output, err := io.ReadAll(r)
+	err := v.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
-	expectedOutput := "\x1b[96m\x1b[96mLocation          \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m" +
+	expectedOutput := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m" +
 		`
-EU, GB, London,... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
-EU, DE, Falkens... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nurembe... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	assert.Equal(t, expectedOutput, string(output))
+	assert.Equal(t, expectedOutput, w.String())
 	assert.Equal(t,
 		[]*MeasurementStats{
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
@@ -484,16 +432,17 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	}
 
 	ctx := createDefaultContext("ping")
+	ctx.CIMode = true
 	w := new(bytes.Buffer)
 	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 	err := v.OutputInfinite(measurement)
 
 	assert.Equal(t, "all probes failed", err.Error())
-	assert.Equal(t, `> EU, GB, London, ASN:0, OVH SAS
+	assert.Equal(t, `> London, GB, EU, OVH SAS (AS0)
 ping: cdn.jsdelivr.net.xc: Name or service not known
-> EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH
+> Falkenstein, DE, EU, Hetzner Online GmbH (AS0)
 ping: cdn.jsdelivr.net.xc: Name or service not known
-> EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH
+> Nuremberg, DE, EU, Hetzner Online GmbH (AS0)
 ping: cdn.jsdelivr.net.xc: Name or service not known
 `, w.String())
 
@@ -521,10 +470,10 @@ func Test_GenerateTable_Full(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
 
-	expectedTable := "\x1b[96m\x1b[96mLocation                                       \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
-		"EU, GB, London, ASN:0, OVH SAS                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
@@ -548,10 +497,10 @@ func Test_GenerateTable_CIMode(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
 
-	expectedTable := `Location                                        | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London, ASN:0, OVH SAS                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
-EU, DE, Falkenstein, ASN:0, Hetzner Online GmbH |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
-EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+	expectedTable := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
+Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 	assert.Equal(t, expectedTable, *table)
 
@@ -574,12 +523,12 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
-	table, _, stats := viewer.generateTable(hm, measurement, 106)
+	table, _, stats := viewer.generateTable(hm, measurement, 104)
 
-	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
-		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"EU, DE, Falkenstein, ASN:0, 作者聚集的原创...  |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                                    \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)                |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, 作者聚集的原创内容平... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
@@ -601,14 +550,14 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
-	table, _, stats := viewer.generateTable(hm, measurement, 106)
+	table, _, stats := viewer.generateTable(hm, measurement, 99)
 
-	expectedTable := "\x1b[96m\x1b[96mLocation                                      \x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
-		"EU, GB, London, ASN:0, OVH SAS                 |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"EU, DE, Falkenstein, ASN:0, Hetzner Online ... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"Lorem ipsum                                    |      |         |          |          |          |         \n" +
-		"Lorem ipsum dolor sit amet                     |      |         |          |          |          |         \n" +
-		"EU, DE, Nuremberg, ASN:0, Hetzner Online GmbH  |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, Hetzner Online ... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Lorem ipsum                             |      |         |          |          |          |         \n" +
+		"Lorem ipsum dolor sit amet (AS0)        |      |         |          |          |          |         \n" +
+		"Nuremberg, DE, EU, Hetzner Online Gm... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
@@ -631,10 +580,10 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 0)
 
-	expectedTable := "\x1b[96m\x1b[96mLoc...\x1b[0m\x1b[0m | \x1b[96m\x1b[96mSent\x1b[0m\x1b[0m | \x1b[96m\x1b[96m   Loss\x1b[0m\x1b[0m | \x1b[96m\x1b[96m    Last\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Min\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Avg\x1b[0m\x1b[0m | \x1b[96m\x1b[96m     Max\x1b[0m\x1b[0m\n" +
-		"EU,... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"EU,... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"EU,... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLoc...\033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"Lon... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Fal... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Nur... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{

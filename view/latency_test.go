@@ -65,17 +65,14 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network (tag-1)
-Min: 8.00 ms
-Max: 20.00 ms
-Avg: 12.00 ms
-
-> Continent B, Country B, (State B), City B, ASN:12349, Network B
-Min: 9.00 ms
-Max: 22.00 ms
-Avg: 15.00 ms
-
-`, w.String())
+	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345) (tag-1)\033[0m\n"+
+		"\033[1mMin: \033[0m8.00 ms\n"+
+		"\033[1mMax: \033[0m20.00 ms\n"+
+		"\033[1mAvg: \033[0m12.00 ms\n\n"+
+		"\033[1;38;2;23;212;167m> City B (State B), Country B, Continent B, Network B (AS12349)\033[0m\n"+
+		"\033[1mMin: \033[0m9.00 ms\n"+
+		"\033[1mMax: \033[0m22.00 ms\n"+
+		"\033[1mAvg: \033[0m15.00 ms\n\n", w.String())
 }
 
 func Test_Output_Latency_Ping_CI(t *testing.T) {
@@ -119,7 +116,7 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
 Min: 8.00 ms
 Max: 20.00 ms
 Avg: 12.00 ms
@@ -167,10 +164,8 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
-Total: 44 ms
-
-`, w.String())
+	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345)\033[0m\n"+
+		"\033[1mTotal: \033[0m44 ms\n\n", w.String())
 }
 
 func Test_Output_Latency_DNS_CI(t *testing.T) {
@@ -214,7 +209,7 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
 Total: 44 ms
 
 `, w.String())
@@ -260,15 +255,13 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
-Total: 44 ms
-Download: 11 ms
-First byte: 20 ms
-DNS: 5 ms
-TLS: 2 ms
-TCP: 4 ms
-
-`, w.String())
+	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345)\033[0m\n"+
+		"\033[1mTotal: \033[0m44 ms\n"+
+		"\033[1mDownload: \033[0m11 ms\n"+
+		"\033[1mFirst byte: \033[0m20 ms\n"+
+		"\033[1mDNS: \033[0m5 ms\n"+
+		"\033[1mTLS: \033[0m2 ms\n"+
+		"\033[1mTCP: \033[0m4 ms\n\n", w.String())
 }
 
 func Test_Output_Latency_Http_CI(t *testing.T) {
@@ -312,7 +305,7 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, `> Continent, Country, (State), City, ASN:12345, Network
+	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
 Total: 44 ms
 Download: 11 ms
 First byte: 20 ms

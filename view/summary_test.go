@@ -2,6 +2,7 @@ package view
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"testing"
 
@@ -76,7 +77,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms
 ---  ping statistics ---
 1 packets transmitted, 0 received, 100.00% packet loss, time 0ms
 rtt min/avg/max/mdev = -/-/-/- ms
-` + formatWithLeadingArrow(shareMessage(measurementID1), true) + "\n"
+` + fmt.Sprintf("\033[1;38;2;23;212;167m> View the results online: https://www.jsdelivr.com/globalping?measurement=%s\033[0m\n", measurementID1)
 
 		assert.Equal(t, expectedOutput, w.String())
 	})
@@ -89,11 +90,12 @@ rtt min/avg/max/mdev = -/-/-/- ms
 		}
 		ctx.History.Push(&HistoryItem{Id: measurementID2})
 		ctx.Share = true
+		ctx.CIMode = true
 		w := new(bytes.Buffer)
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 
-		expectedOutput := "\n" + formatWithLeadingArrow(shareMessage(measurementID1+"+"+measurementID2), true) + "\n"
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s+%s\n", measurementID1, measurementID2)
 		assert.Equal(t, expectedOutput, w.String())
 	})
 
@@ -107,6 +109,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 			},
 			History:             history,
 			Share:               true,
+			CIMode:              true,
 			MeasurementsCreated: 2,
 			Packets:             16,
 		}
@@ -114,7 +117,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 
-		expectedOutput := "\n" + formatWithLeadingArrow(shareMessage(measurementID2), true) +
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s", measurementID2) +
 			"\nFor long-running continuous mode measurements, only the last 16 packets are shared.\n"
 		assert.Equal(t, expectedOutput, w.String())
 	})

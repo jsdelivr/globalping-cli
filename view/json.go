@@ -9,7 +9,7 @@ func (v *viewer) OutputJson(id string) error {
 	v.printer.Println(string(output))
 
 	if v.ctx.Share {
-		v.printer.Println(formatWithLeadingArrow(shareMessage(id), !v.ctx.CIMode))
+		v.printer.Println(v.getShareMessage(id))
 	}
 	v.printer.Println()
 

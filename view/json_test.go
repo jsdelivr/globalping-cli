@@ -27,6 +27,7 @@ func Test_Output_Json(t *testing.T) {
 		&Context{
 			ToJSON: true,
 			Share:  true,
+			CIMode: true,
 		},
 		NewPrinter(nil, w, w),
 		nil,

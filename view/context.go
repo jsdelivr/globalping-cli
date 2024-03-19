@@ -3,8 +3,6 @@ package view
 import (
 	"math"
 	"time"
-
-	"github.com/pterm/pterm"
 )
 
 type Context struct {
@@ -35,7 +33,6 @@ type Context struct {
 
 	RecordToSession bool // Record measurement to session history
 
-	Area                *pterm.AreaPrinter
 	Hostname            string
 	IsHeaderPrinted     bool
 	AggregatedStats     []*MeasurementStats

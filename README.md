@@ -119,7 +119,7 @@ For example, if you want to run ping from a probe in Seattle that is also part o
 
 ```bash
 globalping ping google.com from Comcast+Seattle
-> NA, US, (WA), Seattle, ASN:7922, Comcast Cable Communications, LLC
+> Seattle (WA), US, NA, Comcast Cable Communications, LLC (AS33650)
 PING  (142.250.217.78) 56(84) bytes of data.
 64 bytes from sea09s29-in-f14.1e100.net (142.250.217.78): icmp_seq=1 ttl=58 time=14.0 ms
 64 bytes from sea09s29-in-f14.1e100.net (142.250.217.78): icmp_seq=2 ttl=58 time=14.5 ms
@@ -141,22 +141,22 @@ With the following command, we execute four ping commands at four different loca
 
 ```bash
 globalping ping google.com from Amazon,Germany,USA,Dallas --limit 4 --latency
-> AS, KR, Seoul, ASN:16509, Amazon.com, Inc. (aws-ap-northeast-2)
+> Seoul, KR, AS, Amazon.com, Inc. (AS16509) (aws-ap-northeast-2)
 Min: 33.163 ms
 Max: 33.256 ms
 Avg: 33.22 ms
 
-> EU, DE, Frankfurt, ASN:16276, OVH SAS
+> Frankfurt, DE, EU, DE, OVH SAS (AS16276)
 Min: 1.221 ms
 Max: 1.291 ms
 Avg: 1.264 ms
 
-> NA, US, (IL), Chicago, ASN:174, Cogent Communications
+> Chicago (IL), US, NA, Cogent Communications (AS174)
 Min: 112.405 ms
 Max: 112.686 ms
 Avg: 112.528 ms
 
-> NA, US, (TX), Dallas, ASN:393336, Catalyst Host LLC
+> Dallas (TX), US, NA, Catalyst Host LLC (AS393336)
 Min: 1.579 ms
 Max: 1.588 ms
 Avg: 1.584 ms
@@ -179,7 +179,7 @@ Include a link at the bottom of your results using the `--share` flag to view an
 
 ```bash
  globalping dns google.com from gcp-asia-south1 --share
-> AS, IN, Mumbai, ASN:396982, Google LLC (gcp-asia-south1)
+> Mumbai, IN, AS, Google LLC (AS396982) (gcp-asia-south1)
 ; <<>> DiG 9.16.37-Debian <<>> -t A google.com -p 53 -4 +timeout=3 +tries=2 +nocookie +nsid
 ;; global options: +cmd
 ;; Got answer:
@@ -207,7 +207,7 @@ You can select the same probes used in a previous measurement by passing the mea
 
 ```bash
 globalping dns google.com from rvasVvKnj48cxNjC
-> AS, IN, Mumbai, ASN:396982, Google LLC (gcp-asia-south1)
+> Mumbai, IN, AS, Google LLC (AS396982) (gcp-asia-south1)
 ; <<>> DiG 9.16.42-Debian <<>> -t A google.com -p 53 -4 +timeout=3 +tries=2 +nocookie +nosplit +nsid
 ;; global options: +cmd
 ;; Got answer:
@@ -234,43 +234,43 @@ Use `[@1 | first, @2 ... @-2, @-1 | last | previous]` to select the probes from 
 
 ```bash
 globalping ping google.com from USA  --latency
-> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+> Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
 
 globalping ping google.com from Germany  --latency
-> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+> Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
 Min: 4.87 ms
 Max: 4.936 ms
 Avg: 4.911 ms
 
 globalping ping google.com from previous --latency
-> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+> Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
 Min: 4.87 ms
 Max: 4.936 ms
 Avg: 4.911 ms
 
 globalping ping google.com from @-1 --latency
-> EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH
+> Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
 Min: 4.87 ms
 Max: 4.936 ms
 Avg: 4.911 ms
 
 globalping ping google.com from @-2 --latency
-> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+> Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
 
 globalping ping google.com from first --latency
-> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+> Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
 
 globalping ping google.com from @1 --latency
-> NA, US, (VA), Ashburn, ASN:213230, Hetzner Online GmbH
+> Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
@@ -287,7 +287,7 @@ This means that eventually you will run out of credits and the test will stop.
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --infinite
-> EU, GB, London, ASN:40676, Psychz Networks
+> London, GB, EU, Psychz Networks (AS40676)
 PING cdn.jsdelivr.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=59 time=0.54 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=59 time=0.42 ms
@@ -298,12 +298,12 @@ If you select multiple probes when using `--infinite` the output will change to 
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite
-Location                                                | Sent |    Loss |     Last |      Min |      Avg |      Max
-EU, GB, London, ASN:16276, OVH SAS                      |   22 |   0.00% |  3.33 ms |  3.07 ms |  3.20 ms |  3.33 ms
-EU, DE, Falkenstein, ASN:24940, Hetzner Online GmbH     |   22 |   0.00% |  5.41 ms |  5.30 ms |  5.78 ms |  13.1 ms
-EU, AT, Vienna, ASN:57169, EDIS GmbH                    |   22 |   0.00% |  0.47 ms |  0.46 ms |  0.56 ms |  0.88 ms
-EU, SE, Stockholm, ASN:20473, The Constant Company, LLC |   22 |   0.00% |  1.03 ms |  0.83 ms |  1.15 ms |  4.66 ms
-EU, ES, Madrid, ASN:47787, EDGOO NETWORKS LLC           |   22 |   0.00% |  0.24 ms |  0.13 ms |  0.26 ms |  0.42 ms
+Location                                               | Sent |    Loss |     Last |      Min |      Avg |      Max
+London, GB, EU, OVH SAS (AS16276)                      |   22 |   0.00% |  3.33 ms |  3.07 ms |  3.20 ms |  3.33 ms
+Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)     |   22 |   0.00% |  5.41 ms |  5.30 ms |  5.78 ms |  13.1 ms
+Vienna, AT, EU, EDIS GmbH (AS57169)                    |   22 |   0.00% |  0.47 ms |  0.46 ms |  0.56 ms |  0.88 ms
+Stockholm, SE, EU, The Constant Company, LLC (AS20473) |   22 |   0.00% |  1.03 ms |  0.83 ms |  1.15 ms |  4.66 ms
+Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 ms |  0.13 ms |  0.26 ms |  0.42 ms
 ^C
 ```
 

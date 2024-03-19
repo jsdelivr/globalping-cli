@@ -6,20 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/mattn/go-runewidth"
-	"github.com/pterm/pterm"
-)
-
-var (
-	// UI styles
-	terminalLayoutHighlight = lipgloss.NewStyle().
-				Bold(true).Foreground(lipgloss.Color("#17D4A7"))
-
-	terminalLayoutArrow = lipgloss.NewStyle().SetString(">").Bold(true).Foreground(lipgloss.Color("#17D4A7")).PaddingRight(1).String()
-
-	terminalLayoutBold = lipgloss.NewStyle().Bold(true)
 )
 
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
@@ -67,28 +55,11 @@ func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) error {
 	var err error
 
-	// Create new writer
-	areaPrinter, err := pterm.DefaultArea.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start writer: %v", err)
-	}
-	areaPrinter.RemoveWhenDone = true
+	defer v.printer.AreaClear()
 
-	defer func() {
-		// Stop area printer and clear area if not already done
-		err := areaPrinter.Stop()
-		if err != nil {
-			v.printer.Printf("failed to stop writer: %v", err)
-		}
-	}()
+	w, h := v.printer.GetSize()
 
-	w, h, err := pterm.GetTerminalSize()
-	if err != nil {
-		return fmt.Errorf("failed to get terminal size: %v", err)
-	}
-
-	// String builder for output
-	var output strings.Builder
+	output := &strings.Builder{}
 
 	// Poll API until the measurement is complete
 	for data.Status == globalping.StatusInProgress {
@@ -98,14 +69,13 @@ func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping
 			return fmt.Errorf("failed to get data: %v", err)
 		}
 
-		// Reset string builder
 		output.Reset()
 
 		// Output every result in case of multiple probes
 		for i := range data.Results {
 			result := &data.Results[i]
 			// Output slightly different format if state is available
-			output.WriteString(generateProbeInfo(result, !v.ctx.CIMode) + "\n")
+			output.WriteString(v.getProbeInfo(result) + "\n")
 
 			if v.isBodyOnlyHttpGet(m) {
 				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
@@ -114,31 +84,23 @@ func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping
 			}
 		}
 
-		areaPrinter.Update(trimOutput(output.String(), w, h))
+		v.printer.AreaUpdate(trimOutput(output, w, h))
 	}
-
-	// Stop area printer and clear area
-	err = areaPrinter.Stop()
-	if err != nil {
-		return fmt.Errorf("failed to stop writer: %v", err)
-	}
+	v.printer.AreaClear()
 
 	v.outputDefault(id, data, m)
 	return nil
 }
 
 // Used to trim the output to fit the terminal in live view
-func trimOutput(output string, terminalW, terminalH int) string {
+func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 	maxW := terminalW - 4 // 4 extra chars to be safe from overflow
 	maxH := terminalH - 4 // 4 extra lines to be safe from overflow
-
 	if maxW <= 0 || maxH <= 0 {
 		panic("terminal width / height too limited to display results")
 	}
 
-	text := strings.ReplaceAll(output, "\t", "  ")
-
-	// Split output into lines
+	text := strings.ReplaceAll(output.String(), "\t", "  ")
 	lines := strings.Split(text, "\n")
 
 	if len(lines) > maxH {
@@ -155,19 +117,14 @@ func trimOutput(output string, terminalW, terminalH int) string {
 		}
 	}
 
-	// Join lines back into a string
 	txt := strings.Join(lines, "\n")
-
-	return txt
+	return &txt
 }
 
-// Also checks if the probe has a state in it in the form %s, %s, (%s), %s, ASN:%d
-func generateProbeInfo(result *globalping.ProbeMeasurement, useStyling bool) string {
+func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 	var output strings.Builder
-
-	// Continent + Country + (State) + City + ASN + Network + (Region Tag)
+	output.WriteString("> ")
 	output.WriteString(getLocationText(result))
-
 	// Check tags to see if there's a region code
 	if len(result.Probe.Tags) > 0 {
 		for _, tag := range result.Probe.Tags {
@@ -178,34 +135,32 @@ func generateProbeInfo(result *globalping.ProbeMeasurement, useStyling bool) str
 			}
 		}
 	}
-
-	headerWithFormat := formatWithLeadingArrow(output.String(), useStyling)
-	return headerWithFormat
+	if v.ctx.CIMode {
+		return output.String()
+	}
+	return v.printer.BoldWithColor(output.String(), ColorHighlight)
 }
 
-func formatWithLeadingArrow(text string, useStyling bool) string {
-	if useStyling {
-		return terminalLayoutArrow + terminalLayoutHighlight.Render(text)
+func (v *viewer) getShareMessage(id string) string {
+	m := fmt.Sprintf("> View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
+	if v.ctx.CIMode {
+		return m
 	}
-	return "> " + text
+	return v.printer.BoldWithColor(m, ColorHighlight)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
 	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !v.ctx.Full
 }
 
-func shareMessage(id string) string {
-	return fmt.Sprintf("View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
-}
-
 func getLocationText(m *globalping.ProbeMeasurement) string {
 	state := ""
 	if m.Probe.State != "" {
-		state = "(" + m.Probe.State + "), "
+		state = " (" + m.Probe.State + ")"
 	}
-	return m.Probe.Continent +
-		", " + m.Probe.Country +
-		", " + state + m.Probe.City +
-		", ASN:" + fmt.Sprint(m.Probe.ASN) +
-		", " + m.Probe.Network
+	return m.Probe.City + state + ", " +
+		m.Probe.Country + ", " +
+		m.Probe.Continent + ", " +
+		m.Probe.Network + " " +
+		"(AS" + fmt.Sprint(m.Probe.ASN) + ")"
 }
