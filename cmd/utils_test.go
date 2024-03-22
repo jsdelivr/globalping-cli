@@ -107,12 +107,10 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		History:             view.NewHistoryBuffer(1),
 		MeasurementsCreated: 1,
 	}
-	if cmd == "ping" {
-		ctx.History.Push(&view.HistoryItem{
-			Id:        measurementID1,
-			Status:    globalping.StatusInProgress,
-			StartedAt: defaultCurrentTime,
-		})
-	}
+	ctx.History.Push(&view.HistoryItem{
+		Id:        measurementID1,
+		Status:    globalping.StatusInProgress,
+		StartedAt: defaultCurrentTime,
+	})
 	return ctx
 }

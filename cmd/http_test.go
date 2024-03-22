@@ -39,10 +39,13 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).Times(1)
+
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--protocol", "HTTPS",

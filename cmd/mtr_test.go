@@ -32,10 +32,13 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).Times(1)
+
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
-	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
 		"--limit", "2",
