@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -43,9 +44,14 @@ Examples:
 
 	// mtr specific flags
 	flags := mtrCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", 0, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
-	flags.IntVar(&r.ctx.Packets, "packets", 0, "Specifies the number of packets to send to each hop (default 3)")
+	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
+	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
+	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
+	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
+	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the number of packets to send to each hop (default 3)")
 
 	r.Cmd.AddCommand(mtrCmd)
 }
@@ -88,7 +94,12 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.MeasurementsCreated++
-
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)

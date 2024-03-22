@@ -49,8 +49,14 @@ Examples:
 
 	// ping specific flags
 	flags := pingCmd.Flags()
-	flags.IntVar(&r.ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	flags.BoolVar(&r.ctx.Infinite, "infinite", false, "Keep pinging the target continuously until stopped (default false)")
+	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
+	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
+	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
+	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
+	flags.BoolVar(&r.ctx.ToLatency, "latency", r.ctx.ToLatency, latencyShortDesc)
+	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "Keep pinging the target continuously until stopped (default false)")
 
 	r.Cmd.AddCommand(pingCmd)
 }

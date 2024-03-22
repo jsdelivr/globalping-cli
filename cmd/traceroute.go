@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -46,8 +47,14 @@ Examples:
 
 	// traceroute specific flags
 	flags := tracerouteCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the protocol used for tracerouting (ICMP, TCP or UDP) (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", 0, "Specifies the port to use for the traceroute. Only applicable for TCP protocol (default 80)")
+	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
+	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
+	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
+	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
+	flags.BoolVar(&r.ctx.ToLatency, "latency", r.ctx.ToLatency, latencyShortDesc)
+	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol used for tracerouting (ICMP, TCP or UDP) (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use for the traceroute. Only applicable for TCP protocol (default 80)")
 
 	r.Cmd.AddCommand(tracerouteCmd)
 }
@@ -89,7 +96,12 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.MeasurementsCreated++
-
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)

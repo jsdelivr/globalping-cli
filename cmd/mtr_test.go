@@ -34,7 +34,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("mtr")
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",

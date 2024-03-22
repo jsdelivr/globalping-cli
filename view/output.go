@@ -10,6 +10,8 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+var ShareURL = "https://www.jsdelivr.com/globalping?measurement="
+
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
 	data, err := v.globalping.GetMeasurement(id)
@@ -140,7 +142,7 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	m := fmt.Sprintf("> View the results online: https://www.jsdelivr.com/globalping?measurement=%s", id)
+	m := fmt.Sprintf("> View the results online: %s%s", ShareURL, id)
 	if v.ctx.CIMode {
 		return m
 	}

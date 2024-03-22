@@ -39,7 +39,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("dns")
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",

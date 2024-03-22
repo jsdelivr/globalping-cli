@@ -88,10 +88,13 @@ func createDefaultMeasurement_MultipleProbes(cmd string, status globalping.Measu
 	}
 }
 
-func createDefaultContext() *view.Context {
-	return &view.Context{
+func createDefaultContext(_ string) *view.Context {
+	ctx := &view.Context{
 		History: view.NewHistoryBuffer(1),
+		From:    "world",
+		Limit:   1,
 	}
+	return ctx
 }
 
 func createDefaultExpectedContext(cmd string) *view.Context {

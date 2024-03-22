@@ -33,7 +33,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("traceroute")
 	root := NewRoot(printer, ctx, viewerMock, nil, gbMock, nil)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",

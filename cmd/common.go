@@ -19,9 +19,13 @@ import (
 )
 
 var (
-	ErrorNoPreviousMeasurements = errors.New("no previous measurements found")
-	ErrInvalidIndex             = errors.New("invalid index")
-	ErrIndexOutOfRange          = errors.New("index out of range")
+	ErrNoPreviousMeasurements = errors.New("no previous measurements found")
+	ErrInvalidIndex           = errors.New("invalid index")
+	ErrIndexOutOfRange        = errors.New("index out of range")
+)
+var (
+	saveIdToSessionErr = "failed to save measurement ID: %s"
+	readMeasuremetsErr = "failed to read previous measurements: %s"
 )
 
 var SESSION_PATH string
@@ -182,19 +186,19 @@ func getIdFromSession(index int) (string, error) {
 	f, err := os.Open(getMeasurementsPath())
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return "", ErrorNoPreviousMeasurements
+			return "", ErrNoPreviousMeasurements
 		}
-		return "", fmt.Errorf("failed to open previous measurements file: %s", err)
+		return "", fmt.Errorf(readMeasuremetsErr, err)
 	}
 	defer f.Close()
 	// Read ids from the end of the file
 	if index < 0 {
 		fStats, err := f.Stat()
 		if err != nil {
-			return "", fmt.Errorf("failed to read previous measurements: %s", err)
+			return "", fmt.Errorf(readMeasuremetsErr, err)
 		}
 		if fStats.Size() == 0 {
-			return "", ErrorNoPreviousMeasurements
+			return "", ErrNoPreviousMeasurements
 		}
 		scanner := backscanner.New(f, int(fStats.Size()-1)) // -1 to skip last newline
 		for {
@@ -204,7 +208,7 @@ func getIdFromSession(index int) (string, error) {
 				if err == io.EOF {
 					return "", ErrIndexOutOfRange
 				}
-				return "", fmt.Errorf("failed to read previous measurements: %s", err)
+				return "", fmt.Errorf(readMeasuremetsErr, err)
 			}
 			if index == 0 {
 				return string(b), nil
@@ -232,20 +236,20 @@ func saveIdToSession(id string) error {
 		if errors.Is(err, fs.ErrNotExist) {
 			err := os.Mkdir(getSessionPath(), 0755)
 			if err != nil {
-				return fmt.Errorf("failed to save measurement ID: %s", err)
+				return fmt.Errorf(saveIdToSessionErr, err)
 			}
 		} else {
-			return fmt.Errorf("failed to save measurement ID: %s", err)
+			return fmt.Errorf(saveIdToSessionErr, err)
 		}
 	}
 	f, err := os.OpenFile(getMeasurementsPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("failed to save measurement ID: %s", err)
+		return fmt.Errorf(saveIdToSessionErr, err)
 	}
 	defer f.Close()
 	_, err = f.WriteString(id + "\n")
 	if err != nil {
-		return fmt.Errorf("failed to save measurement ID: %s", err)
+		return fmt.Errorf(saveIdToSessionErr, err)
 	}
 	return nil
 }
@@ -281,4 +285,8 @@ func getSessionId() string {
 
 func getMeasurementsPath() string {
 	return filepath.Join(getSessionPath(), "measurements")
+}
+
+func getHistoryPath() string {
+	return filepath.Join(getSessionPath(), "history")
 }

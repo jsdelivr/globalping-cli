@@ -37,7 +37,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("ping")
 	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
@@ -80,7 +80,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("ping")
 	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin,New York "}
 	err := root.Cmd.ExecuteContext(context.TODO())
@@ -90,6 +90,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.From = "Berlin,New York"
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-1"}
@@ -97,9 +98,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "@-1"
-	expectedCtx.MeasurementsCreated = 2
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "last"}
@@ -107,9 +108,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "last"
-	expectedCtx.MeasurementsCreated = 3
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "previous"}
@@ -117,9 +118,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "previous"
-	expectedCtx.MeasurementsCreated = 4
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: "world"}}
 	expectedResponse.ID = measurementID2
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
@@ -129,9 +130,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "world"
 	expectedCtx.History.Slice[0].Id = measurementID2
-	expectedCtx.MeasurementsCreated = 5
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@1"}
@@ -139,9 +140,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "@1"
-	expectedCtx.MeasurementsCreated = 6
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "first"}
@@ -149,9 +150,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "first"
-	expectedCtx.MeasurementsCreated = 7
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: "world"}}
 	expectedResponse.ID = measurementID3
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
@@ -161,9 +162,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "world"
 	expectedCtx.History.Slice[0].Id = measurementID3
-	expectedCtx.MeasurementsCreated = 8
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID2}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@2"}
@@ -172,9 +173,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "@2"
 	expectedCtx.RecordToSession = false
-	expectedCtx.MeasurementsCreated = 9
 	assert.Equal(t, expectedCtx, ctx)
 
+	ctx = createDefaultContext("ping")
 	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-3"}
@@ -182,7 +183,6 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "@-3"
-	expectedCtx.MeasurementsCreated = 10
 	assert.Equal(t, expectedCtx, ctx)
 
 	assert.Equal(t, "", w.String())
@@ -192,6 +192,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedHistory := []byte(measurementID1 + "\n" + measurementID2 + "\n" + measurementID3 + "\n")
 	assert.Equal(t, expectedHistory, b)
 
+	ctx = createDefaultContext("ping")
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-4"}
 	err = root.Cmd.ExecuteContext(context.TODO())
@@ -199,52 +200,54 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "@-4"
 	expectedCtx.RecordToSession = true
+	expectedCtx.MeasurementsCreated = 0
+	expectedCtx.History = view.NewHistoryBuffer(1)
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: index out of range\n", w.String())
 
 	sessionCleanup()
 
 	w.Reset()
+	ctx = createDefaultContext("ping")
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@1"}
 	err = root.Cmd.ExecuteContext(context.TODO())
-	assert.Error(t, err, ErrorNoPreviousMeasurements)
+	assert.Error(t, err, ErrNoPreviousMeasurements)
 
 	expectedCtx.From = "@1"
-	expectedCtx.RecordToSession = true
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: no previous measurements found\n", w.String())
 
 	w.Reset()
+	ctx = createDefaultContext("ping")
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@0"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.Error(t, err, ErrInvalidIndex)
 
 	expectedCtx.From = "@0"
-	expectedCtx.RecordToSession = true
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: invalid index\n", w.String())
 
 	w.Reset()
+	ctx = createDefaultContext("ping")
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@x"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.Error(t, err, ErrInvalidIndex)
 
 	expectedCtx.From = "@x"
-	expectedCtx.RecordToSession = true
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: invalid index\n", w.String())
 
 	w.Reset()
+	ctx = createDefaultContext("ping")
 	root = NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.Error(t, err, ErrInvalidIndex)
 
 	expectedCtx.From = "@"
-	expectedCtx.RecordToSession = true
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: invalid index\n", w.String())
 }
@@ -322,6 +325,8 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := &view.Context{
 		History: view.NewHistoryBuffer(10),
+		From:    "world",
+		Limit:   1,
 	}
 	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
@@ -420,7 +425,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext()
+	ctx := createDefaultContext("ping")
 	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 	err := root.Cmd.ExecuteContext(context.TODO())

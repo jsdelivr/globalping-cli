@@ -93,18 +93,12 @@ Measurement Commands:
 Additional Commands:
   completion    Generate the autocompletion script for the specified shell
   help          Help about any command
+  history       Show the history of your measurements
   install-probe Join the community powered Globalping platform by running a Docker container.
   version       Print the version number of Globalping CLI
 
 Flags:
-  -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
-  -F, --from string   Comma-separated list of location values to match against or a measurement ID
-                      For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-                      Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements. (default "world")
   -h, --help          help for globalping
-  -J, --json          Output results in JSON format (default false)
-      --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands
-  -L, --limit int     Limit the number of probes to use (default 1)
 
 Use "globalping [command] --help" for more information about a command.
 ```
@@ -305,6 +299,24 @@ Vienna, AT, EU, EDIS GmbH (AS57169)                    |   22 |   0.00% |  0.47 
 Stockholm, SE, EU, The Constant Company, LLC (AS20473) |   22 |   0.00% |  1.03 ms |  0.83 ms |  1.15 ms |  4.66 ms
 Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 ms |  0.13 ms |  0.26 ms |  0.42 ms
 ^C
+```
+
+#### History
+
+You can view the history of your measurements by running the `history` command.
+
+```bash
+globalping history
+1 | 2024-03-22 16:20:30 | ping google.com from last
+> https://www.jsdelivr.com/globalping?measurement=gdS0v9h5eTIxKEOk
+2 | 2024-03-22 16:09:10 | traceroute google.com from New York --limit 2
+> https://www.jsdelivr.com/globalping?measurement=P4ZA7IcX04K359XN
+3 | 2024-03-22 16:08:44 | mtr google.com from New York --limit 2
+> https://www.jsdelivr.com/globalping?measurement=ePITYQJZhg9yn8NE
+4 | 2024-03-22 16:08:19 | http google.com from London,Belgium --limit 2 --method get --ci
+> https://www.jsdelivr.com/globalping?measurement=Sq8OEuRYNs6s147G
+5 | 2024-03-22 16:07:45 | dns google.com from New York --limit 2
+> https://www.jsdelivr.com/globalping?measurement=OMFclzhYExXTFJDV
 ```
 
 #### Learn about available flags
