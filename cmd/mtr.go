@@ -44,11 +44,6 @@ Examples:
 
 	// mtr specific flags
 	flags := mtrCmd.Flags()
-	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
-	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
-	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
-	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
-	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
 	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
 	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
 	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the number of packets to send to each hop (default 3)")

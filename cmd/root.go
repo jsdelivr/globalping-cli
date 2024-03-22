@@ -12,15 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var fromShortDesc = `Comma-separated list of location values to match against or a measurement ID
-  For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-  Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`
-var limitShortDesc = `Limit the number of probes to use`
-var jsonShortDesc = `Output results in JSON format (default false)`
-var ciModeShortDesc = `Disable realtime terminal updates and color suitable for CI and scripting (default false)`
-var latencyShortDesc = `Output only the stats of a measurement (default false)`
-var shareShortDesc = `Prints a link at the end the results, allowing to vizualize the results online (default false)`
-
 type Root struct {
 	printer *view.Printer
 	ctx     *view.Context
@@ -85,6 +76,16 @@ The CLI tool allows you to interact with the API in a simple and human-friendly 
 
 	root.Cmd.SetOut(printer.OutWriter)
 	root.Cmd.SetErr(printer.ErrWriter)
+	// Global flags
+	flags := root.Cmd.PersistentFlags()
+	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `Comma-separated list of location values to match against or a measurement ID
+	For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
+	Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
+	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "Limit the number of probes to use")
+	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "Output results in JSON format (default false)")
+	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
+	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
+	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 

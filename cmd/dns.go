@@ -54,12 +54,6 @@ Using the dig format @resolver. For example:
 
 	// dns specific flags
 	flags := dnsCmd.Flags()
-	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
-	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
-	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
-	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
-	flags.BoolVar(&r.ctx.ToLatency, "latency", r.ctx.ToLatency, latencyShortDesc)
-	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
 	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
 	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Send the query to a non-standard port on the server (default 53)")
 	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Resolver is the hostname or IP address of the name server to use (default empty)")

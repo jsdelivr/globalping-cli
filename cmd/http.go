@@ -69,12 +69,6 @@ Examples:
 
 	// http specific flags
 	flags := httpCmd.Flags()
-	flags.StringVarP(&r.ctx.From, "from", "F", r.ctx.From, fromShortDesc)
-	flags.IntVarP(&r.ctx.Limit, "limit", "L", r.ctx.Limit, limitShortDesc)
-	flags.BoolVarP(&r.ctx.ToJSON, "json", "J", r.ctx.ToJSON, jsonShortDesc)
-	flags.BoolVarP(&r.ctx.CIMode, "ci", "C", r.ctx.CIMode, ciModeShortDesc)
-	flags.BoolVar(&r.ctx.ToLatency, "latency", r.ctx.ToLatency, latencyShortDesc)
-	flags.BoolVar(&r.ctx.Share, "share", r.ctx.Share, shareShortDesc)
 	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
 	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
