@@ -63,6 +63,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("the latency flag is not supported by the traceroute command")
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{

@@ -33,7 +33,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).Times(1)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
@@ -61,6 +61,14 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
-	expectedHistory := []byte(measurementID1 + "\n")
-	assert.Equal(t, expectedHistory, b)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		measurementID1,
+		"mtr jsdelivr.com from Berlin --limit 2 --protocol tcp --port 99 --packets 16",
+	)
+	assert.Equal(t, expectedHistory, string(b))
 }

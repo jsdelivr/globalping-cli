@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"time"
@@ -113,4 +114,17 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		StartedAt: defaultCurrentTime,
 	})
 	return ctx
+}
+
+func createDefaultExpectedHistoryLogItem(measurements string, cmd string) string {
+	return fmt.Sprintf("%d|%d|%s|%s\n",
+		HistoryItemVersion1,
+		defaultCurrentTime.Unix(),
+		measurements,
+		cmd,
+	)
+}
+
+func createDefaultExpectedHistoryItem(index int, time string, measurements string) string {
+	return fmt.Sprintf("%d | %s | ping jsdelivr.com\n> https://www.jsdelivr.com/globalping?measurement=%s\n", index, time, measurements)
 }

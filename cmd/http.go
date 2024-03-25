@@ -88,6 +88,7 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts, err := r.buildHttpMeasurementRequest()

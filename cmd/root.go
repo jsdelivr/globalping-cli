@@ -43,7 +43,6 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
-	root.UpdateHistory()
 }
 
 func NewRoot(

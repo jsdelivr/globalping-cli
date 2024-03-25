@@ -33,7 +33,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
@@ -52,8 +52,16 @@ func Test_Execute_Ping_Default(t *testing.T) {
 
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
-	expectedHistory := []byte(measurementID1 + "\n")
-	assert.Equal(t, expectedHistory, b)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		measurementID1,
+		"ping jsdelivr.com",
+	)
+	assert.Equal(t, expectedHistory, string(b))
 }
 
 func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
@@ -76,7 +84,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	viewerMock.EXPECT().Output(measurementID3, expectedOpts).Times(3).Return(nil).After(c2)
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Times(totalCalls).Return(defaultCurrentTime)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
@@ -395,8 +403,16 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
-	expectedHistory := []byte(measurementID1 + "\n")
-	assert.Equal(t, expectedHistory, b)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		measurementID1+"+"+measurementID2+"+"+measurementID3+"+"+measurementID4,
+		"ping jsdelivr.com --infinite from Berlin",
+	)
+	assert.Equal(t, expectedHistory, string(b))
 }
 
 func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
@@ -421,7 +437,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	viewerMock.EXPECT().OutputSummary().Times(0)
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
@@ -441,6 +457,14 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	b, err := os.ReadFile(getMeasurementsPath())
 	assert.NoError(t, err)
-	expectedHistory := []byte(measurementID1 + "\n")
-	assert.Equal(t, expectedHistory, b)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		measurementID1,
+		"ping jsdelivr.com --infinite from Berlin",
+	)
+	assert.Equal(t, expectedHistory, string(b))
 }

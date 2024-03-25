@@ -69,6 +69,7 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{

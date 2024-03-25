@@ -61,6 +61,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16
