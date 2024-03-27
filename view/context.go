@@ -29,8 +29,8 @@ type Context struct {
 	Full      bool // Full output
 	Infinite  bool // Infinite flag
 
-	First uint // Number of first measurements to show
-	Last  uint // Number of last measurements to show
+	Head uint // Number of first measurements to show
+	Tail uint // Number of last measurements to show
 
 	APIMinInterval time.Duration // Minimum interval between API calls
 

@@ -37,29 +37,29 @@ func (r *Root) initHistory() {
 		Short: "Show the history of your measurements in your current session",
 		Long: `Show the history of your measurements in your current session
 Examples:
-  # Show the first measurements
+  # Show all the measurements
   history
 
-  # Show the last 10 measurements
-  history --last 10
-  
   # Show the first 5 measurements
-  history --first 5`,
+  history --head 5
+
+  # Show the last 10 measurements
+  history --tail 10`,
 	}
 
 	flags := historyCmd.Flags()
-	flags.UintVar(&r.ctx.First, "first", r.ctx.First, "Number of first measurements to show")
-	flags.UintVar(&r.ctx.Last, "last", r.ctx.Last, "Number of last measurements to show")
+	flags.UintVar(&r.ctx.Head, "head", r.ctx.Head, "Number of first measurements to show")
+	flags.UintVar(&r.ctx.Tail, "tail", r.ctx.Tail, "Number of last measurements to show")
 
 	r.Cmd.AddCommand(historyCmd)
 }
 
 func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
-	var limit int = 5 // default to last 5
-	if r.ctx.First > 0 {
-		limit = int(r.ctx.First)
-	} else if r.ctx.Last > 0 {
-		limit = -int(r.ctx.Last)
+	var limit int = 0
+	if r.ctx.Head > 0 {
+		limit = int(r.ctx.Head)
+	} else if r.ctx.Tail > 0 {
+		limit = -int(r.ctx.Tail)
 	}
 	items, err := r.GetHistory(limit)
 	if err != nil {
@@ -123,7 +123,7 @@ func (r *Root) GetHistory(limit int) ([]string, error) {
 		return nil, ErrReadHistory
 	}
 	defer f.Close()
-	// Read from the start of the file
+	// Read from the end of the file
 	if limit < 0 {
 		fStats, err := f.Stat()
 		if err != nil {

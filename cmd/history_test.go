@@ -67,11 +67,12 @@ func Test_Execute_History_Default(t *testing.T) {
 			createDefaultExpectedHistoryItem("-", timeStr, "ping jsdelivr.com from last", measurementID2)+
 			createDefaultExpectedHistoryItem("2", timeStr, "ping jsdelivr.com", measurementID2)+
 			createDefaultExpectedHistoryItem("3", timeStr, "ping jsdelivr.com", measurementID2)+
-			createDefaultExpectedHistoryItem("4", timeStr, "ping jsdelivr.com", measurementID2),
+			createDefaultExpectedHistoryItem("4", timeStr, "ping jsdelivr.com", measurementID2)+
+			createDefaultExpectedHistoryItem("5", timeStr, "ping jsdelivr.com", measurementID3),
 		w.String())
 
 	w.Reset()
-	os.Args = []string{"globalping", "history", "--last", "2"}
+	os.Args = []string{"globalping", "history", "--tail", "2"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 	assert.Equal(t,
@@ -80,7 +81,7 @@ func Test_Execute_History_Default(t *testing.T) {
 		w.String())
 
 	w.Reset()
-	os.Args = []string{"globalping", "history", "--first", "2"}
+	os.Args = []string{"globalping", "history", "--head", "2"}
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 	assert.Equal(t,
