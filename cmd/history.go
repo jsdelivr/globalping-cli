@@ -48,8 +48,8 @@ Examples:
 	}
 
 	flags := historyCmd.Flags()
-	flags.UintVar(&r.ctx.Head, "head", r.ctx.Head, "Number of first measurements to show")
-	flags.UintVar(&r.ctx.Tail, "tail", r.ctx.Tail, "Number of last measurements to show")
+	flags.UintVar(&r.ctx.Head, "head", r.ctx.Head, "Number of measurements to show from the beginning of the history")
+	flags.UintVar(&r.ctx.Tail, "tail", r.ctx.Tail, "Number of measurements to show from the end of the history")
 
 	r.Cmd.AddCommand(historyCmd)
 }
