@@ -76,6 +76,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"dns jsdelivr.com from Berlin --limit 2 --type MX --resolver 1.1.1.1 --port 99 --protocol tcp --trace",
 	)

@@ -84,6 +84,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"http jsdelivr.com from Berlin --protocol HTTPS --method GET --host example.com --path /robots.txt --query test=1 --header X-Test: 1 --resolver 1.1.1.1 --port 99 --full",
 	)

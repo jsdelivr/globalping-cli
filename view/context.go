@@ -34,7 +34,8 @@ type Context struct {
 
 	APIMinInterval time.Duration // Minimum interval between API calls
 
-	RecordToSession bool // Record measurement to session history
+	IsLocationFromSession bool // Determine whether the previous location is used
+	RecordToSession       bool // Record measurement to session history
 
 	Hostname            string
 	IsHeaderPrinted     bool

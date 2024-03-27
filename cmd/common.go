@@ -82,6 +82,7 @@ func (r *Root) getLocations() ([]globalping.Locations, error) {
 		if mId == "" {
 			mId = strings.TrimSpace(fromArr[0])
 		} else {
+			r.ctx.IsLocationFromSession = true
 			r.ctx.RecordToSession = false
 		}
 		return []globalping.Locations{{Magic: mId}}, nil

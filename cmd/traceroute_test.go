@@ -63,6 +63,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"traceroute jsdelivr.com from Berlin --limit 2 --protocol tcp --port 99",
 	)

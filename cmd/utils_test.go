@@ -116,15 +116,16 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 	return ctx
 }
 
-func createDefaultExpectedHistoryLogItem(measurements string, cmd string) string {
-	return fmt.Sprintf("%d|%d|%s|%s\n",
+func createDefaultExpectedHistoryLogItem(index, measurements string, cmd string) string {
+	return fmt.Sprintf("%s|%s|%d|%s|%s\n",
 		HistoryItemVersion1,
+		index,
 		defaultCurrentTime.Unix(),
 		measurements,
 		cmd,
 	)
 }
 
-func createDefaultExpectedHistoryItem(index int, time string, measurements string) string {
-	return fmt.Sprintf("%d | %s | ping jsdelivr.com\n> https://www.jsdelivr.com/globalping?measurement=%s\n", index, time, measurements)
+func createDefaultExpectedHistoryItem(index string, time string, cmd string, measurements string) string {
+	return fmt.Sprintf("%s | %s | %s\n> https://www.jsdelivr.com/globalping?measurement=%s\n", index, time, cmd, measurements)
 }

@@ -58,6 +58,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"ping jsdelivr.com",
 	)
@@ -106,6 +107,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "@-1"
+	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
@@ -138,6 +140,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "world"
 	expectedCtx.History.Slice[0].Id = measurementID2
+	expectedCtx.IsLocationFromSession = false
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
@@ -148,6 +151,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedCtx.From = "@1"
+	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
@@ -170,6 +174,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "world"
 	expectedCtx.History.Slice[0].Id = measurementID3
+	expectedCtx.IsLocationFromSession = false
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
@@ -181,6 +186,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	expectedCtx.From = "@2"
 	expectedCtx.RecordToSession = false
+	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
@@ -207,6 +213,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Error(t, err, ErrIndexOutOfRange)
 
 	expectedCtx.From = "@-4"
+	expectedCtx.IsLocationFromSession = false
 	expectedCtx.RecordToSession = true
 	expectedCtx.MeasurementsCreated = 0
 	expectedCtx.History = view.NewHistoryBuffer(1)
@@ -409,6 +416,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1+"+"+measurementID2+"+"+measurementID3+"+"+measurementID4,
 		"ping jsdelivr.com --infinite from Berlin",
 	)
@@ -463,6 +471,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"ping jsdelivr.com --infinite from Berlin",
 	)

@@ -67,6 +67,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	b, err = os.ReadFile(getHistoryPath())
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
 		measurementID1,
 		"mtr jsdelivr.com from Berlin --limit 2 --protocol tcp --port 99 --packets 16",
 	)
