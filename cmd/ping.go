@@ -49,8 +49,8 @@ Examples:
 
 	// ping specific flags
 	flags := pingCmd.Flags()
-	flags.IntVar(&r.ctx.Packets, "packets", 0, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	flags.BoolVar(&r.ctx.Infinite, "infinite", false, "Keep pinging the target continuously until stopped (default false)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
+	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "Keep pinging the target continuously until stopped (default false)")
 
 	r.Cmd.AddCommand(pingCmd)
 }
@@ -61,6 +61,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16

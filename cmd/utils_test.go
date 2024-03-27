@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"time"
@@ -88,10 +89,13 @@ func createDefaultMeasurement_MultipleProbes(cmd string, status globalping.Measu
 	}
 }
 
-func createDefaultContext() *view.Context {
-	return &view.Context{
+func createDefaultContext(_ string) *view.Context {
+	ctx := &view.Context{
 		History: view.NewHistoryBuffer(1),
+		From:    "world",
+		Limit:   1,
 	}
+	return ctx
 }
 
 func createDefaultExpectedContext(cmd string) *view.Context {
@@ -104,12 +108,24 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		History:             view.NewHistoryBuffer(1),
 		MeasurementsCreated: 1,
 	}
-	if cmd == "ping" {
-		ctx.History.Push(&view.HistoryItem{
-			Id:        measurementID1,
-			Status:    globalping.StatusInProgress,
-			StartedAt: defaultCurrentTime,
-		})
-	}
+	ctx.History.Push(&view.HistoryItem{
+		Id:        measurementID1,
+		Status:    globalping.StatusInProgress,
+		StartedAt: defaultCurrentTime,
+	})
 	return ctx
+}
+
+func createDefaultExpectedHistoryLogItem(index, measurements string, cmd string) string {
+	return fmt.Sprintf("%s|%s|%d|%s|%s\n",
+		HistoryItemVersion1,
+		index,
+		defaultCurrentTime.Unix(),
+		measurements,
+		cmd,
+	)
+}
+
+func createDefaultExpectedHistoryItem(index string, time string, cmd string, measurements string) string {
+	return fmt.Sprintf("%s | %s | %s\n> https://www.jsdelivr.com/globalping?measurement=%s\n", index, time, cmd, measurements)
 }

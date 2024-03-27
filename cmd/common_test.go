@@ -23,7 +23,7 @@ func Test_UpdateContext(t *testing.T) {
 }
 
 func test_updateContext_NoArg(t *testing.T) {
-	ctx := &view.Context{}
+	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
 
@@ -35,7 +35,7 @@ func test_updateContext_NoArg(t *testing.T) {
 }
 
 func test_updateContext_Country(t *testing.T) {
-	ctx := &view.Context{}
+	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
 
@@ -48,7 +48,7 @@ func test_updateContext_Country(t *testing.T) {
 
 // Check if country with whitespace is parsed correctly
 func test_updateContext_CountryWhitespace(t *testing.T) {
-	ctx := &view.Context{}
+	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
 
@@ -60,7 +60,7 @@ func test_updateContext_CountryWhitespace(t *testing.T) {
 }
 
 func test_updateContext_NoTarget(t *testing.T) {
-	ctx := &view.Context{}
+	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
 
@@ -73,7 +73,7 @@ func test_uodateContext_CIEnv(t *testing.T) {
 	t.Setenv("CI", "true")
 	defer t.Setenv("CI", oldCI)
 
-	ctx := &view.Context{}
+	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil)
 

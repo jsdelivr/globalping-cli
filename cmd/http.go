@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -68,15 +69,15 @@ Examples:
 
 	// http specific flags
 	flags := httpCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
-	flags.IntVar(&r.ctx.Port, "port", 0, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", "", "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
-	flags.StringVar(&r.ctx.Host, "host", "", "Specifies the Host header, which is going to be added to the request (default host defined in target)")
-	flags.StringVar(&r.ctx.Path, "path", "", "A URL pathname (default \"/\")")
-	flags.StringVar(&r.ctx.Query, "query", "", "A query-string")
-	flags.StringVar(&r.ctx.Method, "method", "", "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
-	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", nil, "Specifies a HTTP header to be added to the request, in the format \"Key: Value\". Multiple headers can be added by adding multiple flags")
-	flags.BoolVar(&r.ctx.Full, "full", false, "Full output. Uses an HTTP GET request, and outputs the status, headers and body to the output")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
+	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "Specifies the Host header, which is going to be added to the request (default host defined in target)")
+	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "A URL pathname (default \"/\")")
+	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "A query-string")
+	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
+	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "Specifies a HTTP header to be added to the request, in the format \"Key: Value\". Multiple headers can be added by adding multiple flags")
+	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "Full output. Uses an HTTP GET request, and outputs the status, headers and body to the output")
 
 	r.Cmd.AddCommand(httpCmd)
 }
@@ -87,6 +88,7 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts, err := r.buildHttpMeasurementRequest()
@@ -109,7 +111,12 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.MeasurementsCreated++
-
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)

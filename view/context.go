@@ -29,9 +29,13 @@ type Context struct {
 	Full      bool // Full output
 	Infinite  bool // Infinite flag
 
+	Head uint // Number of first measurements to show
+	Tail uint // Number of last measurements to show
+
 	APIMinInterval time.Duration // Minimum interval between API calls
 
-	RecordToSession bool // Record measurement to session history
+	IsLocationFromSession bool // Determine whether the previous location is used
+	RecordToSession       bool // Record measurement to session history
 
 	Hostname            string
 	IsHeaderPrinted     bool

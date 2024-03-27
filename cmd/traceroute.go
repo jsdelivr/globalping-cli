@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -46,8 +47,8 @@ Examples:
 
 	// traceroute specific flags
 	flags := tracerouteCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the protocol used for tracerouting (ICMP, TCP or UDP) (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", 0, "Specifies the port to use for the traceroute. Only applicable for TCP protocol (default 80)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol used for tracerouting (ICMP, TCP or UDP) (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use for the traceroute. Only applicable for TCP protocol (default 80)")
 
 	r.Cmd.AddCommand(tracerouteCmd)
 }
@@ -62,6 +63,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("the latency flag is not supported by the traceroute command")
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{
@@ -89,7 +91,12 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.MeasurementsCreated++
-
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)

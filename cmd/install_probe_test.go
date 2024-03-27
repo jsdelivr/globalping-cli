@@ -27,7 +27,7 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	reader := bytes.NewReader([]byte("Y\n"))
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(reader, w, w)
-	ctx := &view.Context{}
+	ctx := createDefaultContext("install-probe")
 	root := NewRoot(printer, ctx, nil, nil, nil, probeMock)
 	os.Args = []string{"globalping", "install-probe"}
 	err := root.Cmd.ExecuteContext(context.TODO())
@@ -41,8 +41,9 @@ Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping
 `, w.String())
 
 	expectedCtx := &view.Context{
-		From:  "world",
-		Limit: 1,
+		History: view.NewHistoryBuffer(1),
+		From:    "world",
+		Limit:   1,
 	}
 	assert.Equal(t, expectedCtx, ctx)
 }

@@ -93,6 +93,7 @@ Measurement Commands:
 Additional Commands:
   completion    Generate the autocompletion script for the specified shell
   help          Help about any command
+  history       Show the history of your measurements in your current session
   install-probe Join the community powered Globalping platform by running a Docker container.
   version       Print the version number of Globalping CLI
 
@@ -305,6 +306,24 @@ Vienna, AT, EU, EDIS GmbH (AS57169)                    |   22 |   0.00% |  0.47 
 Stockholm, SE, EU, The Constant Company, LLC (AS20473) |   22 |   0.00% |  1.03 ms |  0.83 ms |  1.15 ms |  4.66 ms
 Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 ms |  0.13 ms |  0.26 ms |  0.42 ms
 ^C
+```
+
+#### History
+
+You can view the history of your measurements by running the `history` command.
+
+```bash
+globalping history
+1 | 2024-03-27 11:56:46 | ping google.com
+> https://www.jsdelivr.com/globalping?measurement=itcR65tYCqbouXib
+- | 2024-03-27 11:57:01 | dns google.com from last
+> https://www.jsdelivr.com/globalping?measurement=kWc5UBK9A6G4RUYM
+2 | 2024-03-27 11:57:20 | traceroute google.com from New York --limit 2
+> https://www.jsdelivr.com/globalping?measurement=Yz7A1UifUonZsC3C
+3 | 2024-03-27 11:57:37 | mtr google.com from New York --limit 2
+> https://www.jsdelivr.com/globalping?measurement=SX1NBgfDKiabM1vZ
+4 | 2024-03-27 11:57:52 | http google.com from London,Belgium --limit 2 --method get --ci
+> https://www.jsdelivr.com/globalping?measurement=eclwFSYX0zgU10Cs
 ```
 
 #### Learn about available flags

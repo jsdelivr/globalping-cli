@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
 )
 
@@ -53,11 +54,11 @@ Using the dig format @resolver. For example:
 
 	// dns specific flags
 	flags := dnsCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", "", "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
-	flags.IntVar(&r.ctx.Port, "port", 0, "Send the query to a non-standard port on the server (default 53)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", "", "Resolver is the hostname or IP address of the name server to use (default empty)")
-	flags.StringVar(&r.ctx.QueryType, "type", "", "Specifies the type of DNS query to perform (default \"A\")")
-	flags.BoolVar(&r.ctx.Trace, "trace", false, "Toggle tracing of the delegation path from the root name servers (default false)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Send the query to a non-standard port on the server (default 53)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Resolver is the hostname or IP address of the name server to use (default empty)")
+	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "Specifies the type of DNS query to perform (default \"A\")")
+	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "Toggle tracing of the delegation path from the root name servers (default false)")
 
 	r.Cmd.AddCommand(dnsCmd)
 }
@@ -68,6 +69,7 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{
@@ -100,7 +102,12 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.MeasurementsCreated++
-
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.StatusInProgress,
+		StartedAt: r.time.Now(),
+	}
+	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)
