@@ -43,7 +43,7 @@ func (v *viewer) OutputSummary() {
 		if len(v.ctx.AggregatedStats) > 1 {
 			v.printer.Println() // Add a newline in table view
 		}
-		ids := v.ctx.History.ToString("+")
+		ids := v.ctx.History.ToString(".")
 		if ids != "" {
 			v.printer.Println(v.getShareMessage(ids))
 		}
