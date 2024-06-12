@@ -68,23 +68,23 @@ func NewRoot(
 	// rootCmd represents the base command when called without any subcommands
 	root.Cmd = &cobra.Command{
 		Use:   "globalping",
-		Short: "A global network of probes to run network tests like ping, traceroute and DNS resolve.",
-		Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
-The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
+		Short: "A global network of probes to perform network tests such as ping, traceroute, and DNS resolution.",
+		Long: `The Globalping platform allows anyone to run networking commands such as ping, traceroute, dig, and mtr on probes distributed around the globe.
+The CLI tool provides access to the Globalping API, enabling you to troubleshoot networking issues and script automated tests and benchmarks in a straightforward and user-friendly way.
+For more information about the platform, tips, and best practices, visit our GitHub repository at https://github.com/jsdelivr/globalping.`,
 	}
 
 	root.Cmd.SetOut(printer.OutWriter)
 	root.Cmd.SetErr(printer.ErrWriter)
 	// Global flags
 	flags := root.Cmd.PersistentFlags()
-	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `Comma-separated list of location values to match against or a measurement ID
-	For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-	Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
-	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "Limit the number of probes to use")
-	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "Output results in JSON format (default false)")
-	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
-	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
-	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
+	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `Specify the probe location by providing a comma-separated list of location values, such as continents, regions, countries, US states, cities, or networks.
+	Alternatively, use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from your previous measurements. (default "world")`)
+	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "Define the number of probes to use. (default 1)")
+	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "Output results in JSON format. (default false)")
+	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "Disable real-time terminal updates and color, suitable for CI and scripting. (default false)")
+	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "Output only the stats of a measurement; applicable only to dns, http, and ping commands. (default false)")
+	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Print a link at the end of the results to visualize them online. (default false)")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 

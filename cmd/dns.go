@@ -11,54 +11,54 @@ func (r *Root) initDNS() {
 		RunE:    r.RunDNS,
 		Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Resolve a DNS record similarly to dig",
-		Long: `Performs DNS lookups and displays the answers that are returned from the name server(s) that were queried.
-The default nameserver depends on the probe and is defined by the user's local settings or DHCP.
-This command provides 2 different ways to provide the dns resolver:
-Using the --resolver argument. For example:
-  dns jsdelivr.com from Berlin --resolver 1.1.1.1
-Using the dig format @resolver. For example:
-  dns jsdelivr.com @1.1.1.1 from Berlin
+		Short:   "Resolve DNS records, similar to the dig command.",
+		Long: `The dns command (similar to the "dig" command) performs DNS lookups and displays the responses from the queried name servers, helping you troubleshoot DNS-related issues.
+Note that a probe's local settings or DHCP determine the default nameserver the command uses. To specify a DNS resolver, use the --resolver argument or @resolver format: 
+- dns jsdelivr.com from Berlin --resolver 1.1.1.1
+- dns jsdelivr.com @1.1.1.1 from Berlin
 
   Examples:
-  # Resolve google.com from 2 probes in New York
+  # Resolve google.com from 2 probes in New York.
   dns google.com from New York --limit 2
 
-  # Resolve google.com using probes from previous measurement
+  # Resolve google.com using probes from a previous measurement by using its ID.
   dns google.com from rvasVvKnj48cxNjC
 
-  # Resolve google.com using probes from first measurement in session
+  # Resolve google.com using the same probes from the first measurement in this session.
   dns google.com from @1
 
-  # Resolve google.com using probes from last measurement in session
+  # Resolve google.com using the same probes from the last measurement in this session.
   dns google.com from last
 
-  # Resolve google.com using probes from second to last measurement in session
+  # Resolve google.com using the same probes from the second-to-last measurement in this session.
   dns google.com from @-2
 
-  # Resolve google.com from 2 probes from London or Belgium with trace enabled
+  # Resolve google.com from 2 probes from London or Belgium with trace enabled.
   dns google.com from London,Belgium --limit 2 --trace
 
-  # Resolve google.com from a probe in Paris using the TCP protocol
+  # Resolve google.com from a probe in Paris using the TCP protocol.
   dns google.com from Paris --protocol tcp
 
-  # Resolve jsdelivr.com from a probe in Berlin using the type MX and the resolver 1.1.1.1 in CI mode
+  # Resolve the MX records for jsdelivr.com from a probe in Berlin with the resolver 1.1.1.1 and enable CI mode.
   dns jsdelivr.com from Berlin --type MX --resolver 1.1.1.1 --ci
 
-  # Resolve jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
+  # Resolve jsdelivr.com from a probe on the AWS network located in Montreal and display only latency information.
   dns jsdelivr.com from aws+montreal --latency
 
-  # Resolve jsdelivr.com from a probe in ASN 123 with json output
-  dns jsdelivr.com from 123 --json`,
+  # Resolve jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
+  dns jsdelivr.com from 123 --json
+  
+  # Resolve jsdelivr.com from a non-data center probe in Europe and add a link to view the results online..
+  dns jsdelivr.com from europe+eyeball --share`,
 	}
 
 	// dns specific flags
 	flags := dnsCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol to use for the DNS query (TCP or UDP) (default \"udp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Send the query to a non-standard port on the server (default 53)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Resolver is the hostname or IP address of the name server to use (default empty)")
-	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "Specifies the type of DNS query to perform (default \"A\")")
-	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "Toggle tracing of the delegation path from the root name servers (default false)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use for the DNS query: TCP or UDP. (default \"udp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify a non-standard port on the server to send the query to. (default 53)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specify the hostname or IP address of the name server to use as the resolver. (default defined by the probe)")
+	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "Specify the type of DNS query to perform. (default \"A\")")
+	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "Enable tracing of the delegation path from the root name servers. (default false)")
 
 	r.Cmd.AddCommand(dnsCmd)
 }

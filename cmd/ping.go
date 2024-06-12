@@ -15,42 +15,45 @@ func (r *Root) initPing() {
 		RunE:    r.RunPing,
 		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Run a ping test",
-		Long: `The ping command allows sending ping requests to a target. Often used to test the network latency and stability.
+		Short:   "Perform a ping test.",
+		Long: `The ping command checks a target's reachability by sending small data packets. Use it to test network latency and stability, as well as obtain information about packet loss and round-trip times.
 
 Examples:
-  # Ping google.com from 2 probes in New York
+  # Ping google.com from 2 probes in New York.
   ping google.com from New York --limit 2
 
-  # Ping google.com using probes from previous measurement
+  # Ping google.com using probes from a previous measurement by using its ID.
   ping google.com from rvasVvKnj48cxNjC
 
-  # Ping google.com using probes from first measurement in session
+  # Ping google.com using the same probes from the first measurement in this session.
   ping google.com from @1
 
-  # Ping google.com using probes from last measurement in session
+  # Ping google.com using the same probes from the last measurement in this session.
   ping google.com from last
 
-  # Ping google.com using probes from second to last measurement in session
+  # Ping google.com using the same probes from the second-to-last measurement in this session.
   ping google.com from @-2
 
-  # Ping 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
+  # Ping 1.1.1.1 from 2 probes in the USA or Belgium. Send 10 packets and enable CI mode.
   ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 
-  # Ping jsdelivr.com from a probe that is from the AWS network and is located in Montreal with latency output
+  # Ping jsdelivr.com from a probe on the AWS network located in Montreal and display only latency information.
   ping jsdelivr.com from aws+montreal --latency
 
-  # Ping jsdelivr.com from a probe in ASN 123 with json output
+  # Ping jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
   ping jsdelivr.com from 123 --json
 
-  # Continuously ping google.com from New York
+  # Ping jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
+  ping jsdelivr.com from europe+eyeball --share
+
+  # Start a continuous ping to google.com from a probe in New York.
   ping google.com from New York --infinite`,
 	}
 
 	// ping specific flags
 	flags := pingCmd.Flags()
-	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the desired amount of ECHO_REQUEST packets to be sent (default 3)")
-	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "Keep pinging the target continuously until stopped (default false)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specify the number of ECHO_REQUEST packets to send. (default 3)")
+	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "Enable continuous pinging of the target until manually stopped. (default false)")
 
 	r.Cmd.AddCommand(pingCmd)
 }

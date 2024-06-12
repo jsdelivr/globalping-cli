@@ -13,40 +13,43 @@ func (r *Root) initMTR() {
 		RunE:    r.RunMTR,
 		Use:     "mtr [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Run an MTR test, similar to traceroute",
-		Long: `mtr combines the functionality of the traceroute and ping programs in a single network diagnostic tool.
+		Short:   "Run a MTR test, which combines traceroute and ping.",
+		Long: `The MTR command combines the functionalities of traceroute and ping, providing real-time insights into the sent packets' routes. Use it to diagnose network issues such as packet loss, latency, and route instability.
 
 Examples:
-  # MTR google.com from 2 probes in New York
+  # MTR google.com from 2 probes in New York.
   mtr google.com from New York --limit 2
 
-  # MTR google.com using probes from previous measurement
+  # MTR google.com using probes from a previous measurement by using its ID.
   mtr google.com from rvasVvKnj48cxNjC
 
-  # MTR google.com using probes from first measurement in session
+  # MTR google.com using the same probes from the first measurement in this session.
   mtr google.com from @1
 
-  # MTR google.com using probes from last measurement in session
+  # MTR google.com using the same probes from the last measurement in this session.
   mtr google.com from last
 
-  # MTR google.com using probes from second to last measurement in session
+  # MTR google.com using the same probes from the second-to-last measurement in this session.
   mtr google.com from @-2
 
-  # MTR 1.1.1.1 from 2 probes from USA or Belgium with 10 packets in CI mode
+  # MTR 1.1.1.1 from 2 probes in the USA or Belgium. Send 10 packets and enable CI mode.
   mtr 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 
-  # MTR jsdelivr.com from a probe that is from the AWS network and is located in Montreal using the TCP protocol and port 453
+  # MTR jsdelivr.com from a probe on the AWS network located in Montreal using the TCP protocol and port 453.
   mtr jsdelivr.com from aws+montreal --protocol tcp --port 453
 
-  # MTR jsdelivr.com from a probe in ASN 123 with json output
-  mtr jsdelivr.com from 123 --json`,
+  # MTR jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
+  mtr jsdelivr.com from 123 --json
+  
+  # MTR jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
+  mtr jsdelivr.com from europe+eyeball --share `,
 	}
 
 	// mtr specific flags
 	flags := mtrCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the protocol used (ICMP, TCP or UDP) (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use. Only applicable for TCP protocol (default 53)")
-	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specifies the number of packets to send to each hop (default 3)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use for MTR: ICMP, TCP, or UDP. (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify the port to use for MTR. Only applicable for the TCP protocol. (default 53)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specify the number of packets to send to each hop. (default 3)")
 
 	r.Cmd.AddCommand(mtrCmd)
 }
