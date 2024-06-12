@@ -95,7 +95,7 @@ rtt min/avg/max/mdev = -/-/-/- ms
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputSummary()
 
-		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s+%s\n", measurementID1, measurementID2)
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s.%s\n", measurementID1, measurementID2)
 		assert.Equal(t, expectedOutput, w.String())
 	})
 
