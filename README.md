@@ -76,7 +76,7 @@ After installing, verify the Globalping CLI is working by running:
 
 The result shows how to use the CLI and which commands and flags are available:
 
-```bash
+```
 Usage:
   globalping [command]
 
