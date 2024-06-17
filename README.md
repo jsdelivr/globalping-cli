@@ -76,36 +76,39 @@ After installing, verify the Globalping CLI is working by running:
 
 The result shows how to use the CLI and which commands and flags are available:
 
-```bash
-Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
-The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.
-
+```
 Usage:
   globalping [command]
 
 Measurement Commands:
-  dns           Resolve a DNS record similarly to dig
+  dns           Resolve DNS records, similar to the dig command
   http          Perform a HEAD or GET request to a host
-  mtr           Run an MTR test, similar to traceroute
-  ping          Run a ping test
+  mtr           Run a MTR test, which combines traceroute and ping
+  ping          Perform a ping test
   traceroute    Run a traceroute test
 
 Additional Commands:
   completion    Generate the autocompletion script for the specified shell
   help          Help about any command
-  history       Show the history of your measurements in your current session
-  install-probe Join the community powered Globalping platform by running a Docker container.
-  version       Print the version number of Globalping CLI
+  history       Display the measurement history of your current session
+  install-probe Join the Globalping network by running a probe
+  version       Display the version of your installed Globalping CLI
 
 Flags:
-  -C, --ci            Disable realtime terminal updates and color suitable for CI and scripting (default false)
-  -F, --from string   Comma-separated list of location values to match against or a measurement ID
-                      For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-                      Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements. (default "world")
+  -C, --ci            disable real-time terminal updates and colors, suitable for CI and scripting
+                      (default false)
+  -F, --from string   specify the probe locations as a comma-separated list; you may use:
+                       - names of continents, regions, countries, US states, cities, or networks
+                       - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from
+                      previous measurements in this session
+                       - an ID of a previous measurement to run with its probes
+                       (default "world")
   -h, --help          help for globalping
-  -J, --json          Output results in JSON format (default false)
-      --latency       Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands
-  -L, --limit int     Limit the number of probes to use (default 1)
+  -J, --json          output results in JSON format (default false)
+      --latency       output only the latency stats; applicable only to dns, http, and ping commands
+                      (default false)
+  -L, --limit int     define the number of probes to use (default 1)
+      --share         print a link at the end of the results to visualize them online (default false)
 
 Use "globalping [command] --help" for more information about a command.
 ```
