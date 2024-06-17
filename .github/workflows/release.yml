@@ -60,6 +60,15 @@ jobs:
       PACKAGECLOUD_REPO: globalping
       PACKAGECLOUD_APIKEY: ${{ secrets.PACKAGECLOUD_APIKEY }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ">=1.22"
+          cache: true
+
       - uses: actions/download-artifact@v3
         with:
           name: goreleaser-deb
