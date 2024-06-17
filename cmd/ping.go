@@ -98,7 +98,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 
 func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	if r.ctx.Limit > 5 {
-		return fmt.Errorf("continous mode is currently limited to 5 probes")
+		return fmt.Errorf("continuous mode is currently limited to 5 probes")
 	}
 
 	var err error

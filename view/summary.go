@@ -11,7 +11,7 @@ func (v *viewer) OutputSummary() {
 	}
 
 	if len(v.ctx.AggregatedStats) == 1 {
-		stats := v.aggregateConcurentStats(v.ctx.AggregatedStats[0], 0, "")
+		stats := v.aggregateConcurrentStats(v.ctx.AggregatedStats[0], 0, "")
 
 		v.printer.Printf("\n--- %s ping statistics ---\n", v.ctx.Hostname)
 		v.printer.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",

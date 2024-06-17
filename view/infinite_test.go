@@ -268,7 +268,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 	assert.Equal(t, expectedOutput, w.String())
 }
 
-func Test_OutputInfinite_MultipleProbes_MultipleConcurentCalls(t *testing.T) {
+func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
