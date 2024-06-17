@@ -17,7 +17,7 @@ Note that a probe's local settings or DHCP determine the default nameserver the 
 - dns jsdelivr.com from Berlin --resolver 1.1.1.1
 - dns jsdelivr.com @1.1.1.1 from Berlin
 
-  Examples:
+Examples:
   # Resolve google.com from 2 probes in New York.
   dns google.com from New York --limit 2
 

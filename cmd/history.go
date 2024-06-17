@@ -36,6 +36,7 @@ func (r *Root) initHistory() {
 		Use:   "history",
 		Short: "Display the measurement history of your current session",
 		Long: `Display the measurement history of your current session.
+
 Examples:
   # Display all measurements of the current session.
   history

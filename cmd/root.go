@@ -72,7 +72,6 @@ func NewRoot(
 		Use:   "globalping",
 		Short: "A global network of probes to perform network tests such as ping, traceroute, and DNS resolution",
 		Long: `The Globalping platform allows anyone to run networking commands such as ping, traceroute, dig, and mtr on probes distributed around the globe.
-The CLI tool provides access to the Globalping API, enabling you to troubleshoot networking issues and script automated tests and benchmarks in a straightforward and user-friendly way.
 For more information about the platform, tips, and best practices, visit our GitHub repository at https://github.com/jsdelivr/globalping.`,
 	}
 
@@ -85,11 +84,15 @@ For more information about the platform, tips, and best practices, visit our Git
 
 	// Global flags
 	flags := root.Cmd.PersistentFlags()
-	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe location; provide a comma-separated list of location values, such as continents, regions, countries, US states, cities, or networks or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements`)
+	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe locations as a comma-separated list; you may use:
+ - names of continents, regions, countries, US states, cities, or networks
+ - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements in this session
+ - an ID of a previous measurement to run with its probes
+`)
 	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
 	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
-	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and color, suitable for CI and scripting (default false)")
-	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the stats of a measurement; applicable only to dns, http, and ping commands (default false)")
+	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and colors, suitable for CI and scripting (default false)")
+	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
 	flags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
