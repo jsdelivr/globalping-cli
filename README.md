@@ -95,20 +95,22 @@ Additional Commands:
   version       Display the version of your installed Globalping CLI
 
 Flags:
-  -C, --ci            disable real-time terminal updates and colors, suitable for CI and scripting
-                      (default false)
+  -C, --ci            disable real-time terminal updates and colors, suitable for CI and
+                      scripting (default false)
   -F, --from string   specify the probe locations as a comma-separated list; you may use:
-                       - names of continents, regions, countries, US states, cities, or networks
-                       - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from
-                      previous measurements in this session
+                       - names of continents, regions, countries, US states, cities, or
+                      networks
+                       - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes
+                      from previous measurements in this session
                        - an ID of a previous measurement to run with its probes
                        (default "world")
   -h, --help          help for globalping
   -J, --json          output results in JSON format (default false)
-      --latency       output only the latency stats; applicable only to dns, http, and ping commands
-                      (default false)
+      --latency       output only the latency stats; applicable only to dns, http, and ping
+                      commands (default false)
   -L, --limit int     define the number of probes to use (default 1)
-      --share         print a link at the end of the results to visualize them online (default false)
+      --share         print a link at the end of the results to visualize them online (default
+                      false)
 
 Use "globalping [command] --help" for more information about a command.
 ```
