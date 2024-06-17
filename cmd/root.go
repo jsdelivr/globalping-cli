@@ -91,7 +91,7 @@ The CLI tool allows you to interact with the API in a simple and human-friendly 
 	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "Output results in JSON format (default false)")
 	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
 	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
-	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Prints a link at the end the results, allowing to vizualize the results online (default false)")
+	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Prints a link at the end the results, allowing to visualize the results online (default false)")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 

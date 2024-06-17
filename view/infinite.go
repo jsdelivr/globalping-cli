@@ -45,8 +45,8 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	probeMeasurement := &m.Results[0]
 	hm := v.ctx.History.Find(m.ID)
 	if probeMeasurement.Result.RawOutput != "" {
-		concurentStats := v.aggregateConcurentStats(v.ctx.AggregatedStats[0], 0, m.ID)
-		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, concurentStats.Sent)
+		concurrentStats := v.aggregateConcurrentStats(v.ctx.AggregatedStats[0], 0, m.ID)
+		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, concurrentStats.Sent)
 		if len(hm.Stats) == 0 {
 			hm.Stats = make([]*MeasurementStats, 1)
 		}
@@ -134,7 +134,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
 		newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
 		newStats[i] = parsedOutput.Stats
-		row := getRowValues(v.aggregateConcurentStats(newAggregatedStats[i], i, m.ID))
+		row := getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
 		rowWidth := 0
 		for j := 1; j < len(row); j++ {
 			rowWidth += len(row[j]) + len(colSeparator)
@@ -188,7 +188,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	return &output, newStats, newAggregatedStats
 }
 
-func (v *viewer) aggregateConcurentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
+func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
 	inProgressStats := v.ctx.History.FilterByStatus(globalping.StatusInProgress)
 	for i := range inProgressStats {
 		if inProgressStats[i].Id == excludeId {
