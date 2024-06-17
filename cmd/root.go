@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/spf13/pflag"
+	"golang.org/x/term"
 	"os"
 	"os/signal"
 	"syscall"
@@ -76,6 +78,11 @@ For more information about the platform, tips, and best practices, visit our Git
 
 	root.Cmd.SetOut(printer.OutWriter)
 	root.Cmd.SetErr(printer.ErrWriter)
+
+	cobra.AddTemplateFunc("wrappedFlagUsages", wrappedFlagUsages)
+	root.Cmd.SetUsageTemplate(usageTemplate)
+	root.Cmd.SetHelpTemplate(helpTemplate)
+
 	// Global flags
 	flags := root.Cmd.PersistentFlags()
 	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe location; provide a comma-separated list of location values, such as continents, regions, countries, US states, cities, or networks or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements`)
@@ -98,3 +105,48 @@ For more information about the platform, tips, and best practices, visit our Git
 
 	return root
 }
+
+// Uses the users terminal size or width of 80 if cannot determine users width
+// Based on https://github.com/spf13/cobra/issues/1805#issuecomment-1246192724
+func wrappedFlagUsages(cmd *pflag.FlagSet) string {
+	fd := int(os.Stdout.Fd())
+	width := 80
+
+	// Get the terminal width and dynamically set
+	termWidth, _, err := term.GetSize(fd)
+	if err == nil {
+		width = termWidth
+	}
+
+	return cmd.FlagUsagesWrapped(width - 1)
+}
+
+// Identical to the default cobra usage template,
+// but utilizes wrappedFlagUsages to ensure flag usages don't wrap around
+var usageTemplate = `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+
+Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+Flags:
+{{wrappedFlagUsages .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{wrappedFlagUsages .InheritedFlags | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
+
+var helpTemplate = `
+{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
