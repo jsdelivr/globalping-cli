@@ -70,9 +70,9 @@ func NewRoot(
 	// rootCmd represents the base command when called without any subcommands
 	root.Cmd = &cobra.Command{
 		Use:   "globalping",
-		Short: "A global network of probes to run network tests like ping, traceroute and DNS resolve.",
-		Long: `Globalping is a platform that allows anyone to run networking commands such as ping, traceroute, dig and mtr on probes distributed all around the world.
-The CLI tool allows you to interact with the API in a simple and human-friendly way to debug networking issues like anycast routing and script automated tests and benchmarks.`,
+		Short: "A global network of probes to perform network tests such as ping, traceroute, and DNS resolution",
+		Long: `The Globalping platform allows anyone to run networking commands such as ping, traceroute, dig, and mtr on probes distributed around the globe.
+For more information about the platform, tips, and best practices, visit our GitHub repository at https://github.com/jsdelivr/globalping.`,
 	}
 
 	root.Cmd.SetOut(printer.OutWriter)
@@ -84,14 +84,16 @@ The CLI tool allows you to interact with the API in a simple and human-friendly 
 
 	// Global flags
 	flags := root.Cmd.PersistentFlags()
-	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `Comma-separated list of location values to match against or a measurement ID
-	For example, the partial or full name of a continent, region (e.g eastern europe), country, US state, city or network
-	Or use [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements.`)
-	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "Limit the number of probes to use")
-	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "Output results in JSON format (default false)")
-	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "Disable realtime terminal updates and color suitable for CI and scripting (default false)")
-	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "Output only the stats of a measurement (default false). Only applies to the dns, http and ping commands")
-	flags.BoolVar(&ctx.Share, "share", ctx.Share, "Prints a link at the end the results, allowing to visualize the results online (default false)")
+	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe locations as a comma-separated list; you may use:
+ - names of continents, regions, countries, US states, cities, or networks
+ - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements in this session
+ - an ID of a previous measurement to run with its probes
+`)
+	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
+	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
+	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and colors, suitable for CI and scripting (default false)")
+	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
+	flags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 
@@ -132,10 +134,16 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
 
-Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
+
+Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 Flags:
 {{wrappedFlagUsages .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
@@ -149,5 +157,6 @@ Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
 
-var helpTemplate = `
-{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+var helpTemplate = `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
+
+{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`

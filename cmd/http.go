@@ -19,65 +19,65 @@ func (r *Root) initHTTP() {
 		Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Perform a HEAD or GET request to a host",
-		Long: `The http command sends an HTTP request to a host and can perform HEAD or GET operations. GET is limited to 10KB responses, everything above will be cut by the API. Detailed performance stats as available for every request.
-The tool supports 2 formats for this command:
-When the full url is supplied, the tool autoparses the scheme, host, port, domain, path and query. For example:
-  http https://www.jsdelivr.com:443/package/npm/test?nav=stats
-As an alternative that can be useful for scripting, the scheme, host, port, domain, path and query can be provided as separate command line flags. For example:
-  http jsdelivr.com --host www.jsdelivr.com --protocol https --port 443 --path "/package/npm/test" --query "nav=stats"
+		Long: `The http command sends an HTTP request to a host and can perform either HEAD or GET operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services. 
+Note that GET responses are limited to 10KB, with anything beyond this cut by the API. 
 
-This command also provides 2 different ways to provide the dns resolver:
-Using the --resolver argument. For example:
- http jsdelivr.com from Berlin --resolver 1.1.1.1
-Using the dig format @resolver. For example:
- http jsdelivr.com @1.1.1.1 from Berlin
+The CLI tool supports two formats: 
+1. Full URL: The tool automatically parses the scheme, host, port, domain, path, and query. For example:
+	http https://www.jsdelivr.com:443/package/npm/test?nav=stats
+2. Separate flags: Specify the scheme, host, port, domain, path, and query as separate command line flags, useful for scripting. For example:
+	http jsdelivr.com --host www.jsdelivr.com --protocol https --port 443 --path "/package/npm/test" --query "nav=stats"
+
+Note that a probe's local settings or DHCP determine the default nameserver the command uses. To specify a DNS resolver, use the --resolver argument or @resolver format:  
+- http jsdelivr.com from Berlin --resolver 1.1.1.1
+- http jsdelivr.com @1.1.1.1 from Berlin
 
 Examples:
-  # HTTP HEAD request to jsdelivr.com from 2 probes in New York (protocol, port and path are inferred from the URL)
+  # Perform an HTTP HEAD request to jsdelivr.com from 2 probes in New York. Protocol, port, and path are derived from the URL.
   http https://www.jsdelivr.com:443/package/npm/test?nav=stats from New York --limit 2
 
-  # HTTP GET request to google.com from 2 probes from London or Belgium in CI mode
+  # Perform an HTTP GET request to google.com from 2 probes from London or Belgium and enable CI mode.
   http google.com from London,Belgium --limit 2 --method get --ci
 
-  # HTTP GET request google.com using probes from previous measurement
+  # Perform an HTTP GET request to google.com using probes from a previous measurement by using its ID.
   http google.com from rvasVvKnj48cxNjC --method get
 
-  # HTTP GET request google.com using probes from first measurement in session
+  # Perform an HTTP GET request to google.com using the same probes from the first measurement in this session.
   http google.com from @1 --method get
 
-  # HTTP GET request google.com using probes from last measurement in session
+  # Perform an HTTP GET request to google.com using the same probes from the last measurement in this session.
   http google.com from last --method get
 
-  # HTTP GET request google.com using probes from second to last measurement in session
+  # Perform an HTTP GET request to google.com using the same probes from the second-to-last measurement in this session.
   http google.com from @-2 --method get
 
-  # HTTP GET request to google.com from a probe in London. Returns the full output
+  # Perform an HTTP GET request to google.com from a probe in London and return the full output.
   http google.com from London --method get --full
 
-  # HTTP HEAD request to jsdelivr.com from a probe that is from the AWS network and is located in Montreal using HTTP2. 2 http headers are added to the request.
+  # Perform an HTTP HEAD request to jsdelivr.com from a probe on the AWS network located in Montreal using HTTP2. Include the http headers "Accept-Encoding" and "Accept-Language" to the request.
   http jsdelivr.com from aws+montreal --protocol http2 --header "Accept-Encoding: br,gzip" -H "Accept-Language: *"
 
-  # HTTP HEAD request to jsdelivr.com from a probe that is located in Paris, using the /robots.txt path with "test=1" query string
-  http jsdelivr.com from Paris --path /robots.txt --query "test=1"
+  # Perform an HTTP HEAD request to jsdelivr.com from a non-data center probe in Europe and add the path /robots.txt and query string "test=1" to the request.
+  http jsdelivr.com from europe+eyeball --path /robots.txt --query "test=1"
 
-  # HTTP HEAD request to example.com from a probe that is located in Berlin, specifying a different host example.org in the request headers
+  # Perform an HTTP HEAD request to example.com from a probe in Berlin. Override the "Host" header by specifying a different host (example.org) from the target (example.com).
   http example.com from Berlin --host example.org
 
-  # HTTP GET request google.com from a probe in ASN 123 with a dns resolver 1.1.1.1 and json output
+  # Perform an HTTP GET request to google.com from a probe in ASN 123 using 1.1.1.1 as the DNS resolver and output the results in JSON format.
   http google.com from 123 --resolver 1.1.1.1 --json`,
 	}
 
 	// http specific flags
 	flags := httpCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specifies the query protocol (HTTP, HTTPS, HTTP2) (default \"HTTP\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specifies the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specifies the resolver server used for DNS lookup (default is defined by the probe's network)")
-	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "Specifies the Host header, which is going to be added to the request (default host defined in target)")
-	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "A URL pathname (default \"/\")")
-	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "A query-string")
-	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "Specifies the HTTP method to use (HEAD or GET) (default \"HEAD\")")
-	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "Specifies a HTTP header to be added to the request, in the format \"Key: Value\". Multiple headers can be added by adding multiple flags")
-	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "Full output. Uses an HTTP GET request, and outputs the status, headers and body to the output")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
+	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
+	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
+	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
+	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
+	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
+	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
 
 	r.Cmd.AddCommand(httpCmd)
 }
