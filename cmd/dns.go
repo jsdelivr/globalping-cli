@@ -11,7 +11,7 @@ func (r *Root) initDNS() {
 		RunE:    r.RunDNS,
 		Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Resolve DNS records, similar to the dig command.",
+		Short:   "Resolve DNS records, similar to the dig command",
 		Long: `The dns command (similar to the "dig" command) performs DNS lookups and displays the responses from the queried name servers, helping you troubleshoot DNS-related issues.
 Note that a probe's local settings or DHCP determine the default nameserver the command uses. To specify a DNS resolver, use the --resolver argument or @resolver format: 
 - dns jsdelivr.com from Berlin --resolver 1.1.1.1
@@ -54,11 +54,11 @@ Note that a probe's local settings or DHCP determine the default nameserver the 
 
 	// dns specific flags
 	flags := dnsCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use for the DNS query: TCP or UDP. (default \"udp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify a non-standard port on the server to send the query to. (default 53)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specify the hostname or IP address of the name server to use as the resolver. (default defined by the probe)")
-	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "Specify the type of DNS query to perform. (default \"A\")")
-	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "Enable tracing of the delegation path from the root name servers. (default false)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for the DNS query: TCP or UDP (default \"udp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify a non-standard port on the server to send the query to (default 53)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use as the resolver (default defined by the probe)")
+	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "specify the type of DNS query to perform (default \"A\")")
+	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "enable tracing of the delegation path from the root name servers (default false)")
 
 	r.Cmd.AddCommand(dnsCmd)
 }

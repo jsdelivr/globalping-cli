@@ -13,7 +13,7 @@ func (r *Root) initMTR() {
 		RunE:    r.RunMTR,
 		Use:     "mtr [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Run a MTR test, which combines traceroute and ping.",
+		Short:   "Run a MTR test, which combines traceroute and ping",
 		Long: `The MTR command combines the functionalities of traceroute and ping, providing real-time insights into the sent packets' routes. Use it to diagnose network issues such as packet loss, latency, and route instability.
 
 Examples:
@@ -47,9 +47,9 @@ Examples:
 
 	// mtr specific flags
 	flags := mtrCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use for MTR: ICMP, TCP, or UDP. (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify the port to use for MTR. Only applicable for the TCP protocol. (default 53)")
-	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specify the number of packets to send to each hop. (default 3)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for MTR: ICMP, TCP, or UDP (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for MTR; only applicable for the TCP protocol (default 53)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of packets to send to each hop (default 3)")
 
 	r.Cmd.AddCommand(mtrCmd)
 }

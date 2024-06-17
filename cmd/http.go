@@ -18,7 +18,7 @@ func (r *Root) initHTTP() {
 		RunE:    r.RunHTTP,
 		Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Perform a HEAD or GET request to a host.",
+		Short:   "Perform a HEAD or GET request to a host",
 		Long: `The http command sends an HTTP request to a host and can perform either HEAD or GET operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services. 
 Note that GET responses are limited to 10KB, with anything beyond this cut by the API. 
 
@@ -69,15 +69,15 @@ Examples:
 
 	// http specific flags
 	flags := httpCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use: HTTP, HTTPS, or HTTP2.  (default \"HTTP\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify the port to use. (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "Specify the hostname or IP address of the name server to use for the DNS lookup. (default defined by the probe)")
-	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "Specify the Host header to add to the request. (default host's defined in command target)")
-	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "Specify the URL pathname. (default \"/\")")
-	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "Specify a query string to add.")
-	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "Specify the HTTP method to use: HEAD or GET. (default \"HEAD\")")
-	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "Specify an HTTP header to add to the request in the format \"Key: Value\". You can add multiple headers by providing the flag for each one separately.")
-	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "Enable full output when performing an HTTP GET request to display the status, headers, and body.")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
+	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
+	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
+	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
+	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
+	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
+	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
 
 	r.Cmd.AddCommand(httpCmd)
 }

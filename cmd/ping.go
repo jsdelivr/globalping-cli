@@ -15,7 +15,7 @@ func (r *Root) initPing() {
 		RunE:    r.RunPing,
 		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Perform a ping test.",
+		Short:   "Perform a ping test",
 		Long: `The ping command checks a target's reachability by sending small data packets. Use it to test network latency and stability, as well as obtain information about packet loss and round-trip times.
 
 Examples:
@@ -52,8 +52,8 @@ Examples:
 
 	// ping specific flags
 	flags := pingCmd.Flags()
-	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "Specify the number of ECHO_REQUEST packets to send. (default 3)")
-	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "Enable continuous pinging of the target until manually stopped. (default false)")
+	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
+	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
 
 	r.Cmd.AddCommand(pingCmd)
 }

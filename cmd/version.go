@@ -9,7 +9,7 @@ func (r *Root) initVersion() {
 	r.Cmd.AddCommand(&cobra.Command{
 		Run:   r.RunVersion,
 		Use:   "version",
-		Short: "Display the version number of your installed Globalping CLI.",
+		Short: "Display the version number of your installed Globalping CLI",
 	})
 }
 

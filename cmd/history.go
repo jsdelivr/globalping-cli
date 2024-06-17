@@ -34,7 +34,7 @@ func (r *Root) initHistory() {
 	historyCmd := &cobra.Command{
 		Run:   r.RunHistory,
 		Use:   "history",
-		Short: "Display the measurement history of your current session.",
+		Short: "Display the measurement history of your current session",
 		Long: `Display the measurement history of your current session.
 Examples:
   # Display all measurements of the current session.
@@ -48,8 +48,8 @@ Examples:
 	}
 
 	flags := historyCmd.Flags()
-	flags.UintVar(&r.ctx.Head, "head", r.ctx.Head, "Specify the number of measurements to display from the beginning of the history.")
-	flags.UintVar(&r.ctx.Tail, "tail", r.ctx.Tail, "Specify the number of measurements to display from the end of the history.")
+	flags.UintVar(&r.ctx.Head, "head", r.ctx.Head, "specify the number of measurements to display from the beginning of the history")
+	flags.UintVar(&r.ctx.Tail, "tail", r.ctx.Tail, "specify the number of measurements to display from the end of the history")
 
 	r.Cmd.AddCommand(historyCmd)
 }

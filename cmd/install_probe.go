@@ -10,7 +10,7 @@ import (
 func (r *Root) initInstallProbe() {
 	installProbeCmd := &cobra.Command{
 		Use:   "install-probe",
-		Short: "Join the community-powered Globalping network by running a probe in a Docker container.",
+		Short: "Join the community-powered Globalping network by running a probe in a Docker container",
 		Long:  `The install-probe command downloads and runs the Globalping probe in a Docker container on your machine. Requires you to have Docker installed.`,
 		Run:   r.RunInstallProbe,
 	}

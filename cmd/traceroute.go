@@ -13,7 +13,7 @@ func (r *Root) initTraceroute() {
 		RunE:    r.RunTraceroute,
 		Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Run a traceroute test.",
+		Short:   "Run a traceroute test",
 		Long: `The traceroute command traces the path packets take to reach a target, displaying each hop along the way, including its round-trip time. Use it to troubleshoot network connectivity issues and identify latency problems.
 
 Examples:
@@ -50,8 +50,8 @@ Examples:
 
 	// traceroute specific flags
 	flags := tracerouteCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "Specify the protocol to use for tracerouting: ICMP, TCP, or UDP. (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "Specify the port to use for the traceroute. Only applicable for the TCP protocol. (default 80)")
+	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for tracerouting: ICMP, TCP, or UDP (default \"icmp\")")
+	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for the traceroute; only applicable for the TCP protocol (default 80)")
 
 	r.Cmd.AddCommand(tracerouteCmd)
 }
