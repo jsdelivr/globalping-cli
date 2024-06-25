@@ -79,11 +79,6 @@ jobs:
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: ls -la
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ">=1.22"
-          cache: true
-
       - run: go run packagecloud/main.go "globalping_${{ env.VERSION_NAME }}_linux_amd64.deb" "deb"
       - run: go run packagecloud/main.go "globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm" "rpm"
 
