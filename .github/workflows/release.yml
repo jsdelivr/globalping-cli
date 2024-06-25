@@ -64,11 +64,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ">=1.22"
-          cache: true
-
       - uses: actions/download-artifact@v3
         with:
           name: goreleaser-deb
