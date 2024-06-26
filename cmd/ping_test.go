@@ -417,7 +417,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	assert.NoError(t, err)
 	expectedHistory = createDefaultExpectedHistoryLogItem(
 		"1",
-		measurementID1+"+"+measurementID2+"+"+measurementID3+"+"+measurementID4,
+		measurementID1+"."+measurementID2+"."+measurementID3+"."+measurementID4,
 		"ping jsdelivr.com --infinite from Berlin",
 	)
 	assert.Equal(t, expectedHistory, string(b))

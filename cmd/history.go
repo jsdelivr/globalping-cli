@@ -77,7 +77,7 @@ func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
 }
 
 func (r *Root) UpdateHistory() error {
-	ids := r.ctx.History.ToString("+")
+	ids := r.ctx.History.ToString(".")
 	if ids == "" {
 		return nil
 	}
