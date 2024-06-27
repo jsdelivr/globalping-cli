@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/version"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,8 @@ func TestPostAPI(t *testing.T) {
 	os.Stdout, _ = os.Open(os.DevNull)
 	for scenario, fn := range map[string]func(t *testing.T){
 		"valid":      testPostValid,
+		"authorized": testPostAuthorized,
+		"auth_error": testPostAuthorizedError,
 		"no_probes":  testPostNoProbes,
 		"validation": testPostValidation,
 		"api_error":  testPostInternalError,
@@ -34,7 +37,7 @@ func TestPostAPI(t *testing.T) {
 func testPostValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	res, showHelp, err := client.CreateMeasurement(opts)
@@ -45,6 +48,38 @@ func testPostValid(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func testPostAuthorized(t *testing.T) {
+	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
+	defer server.Close()
+	client := NewClient(&utils.Config{
+		GlobalpingToken:  "secret",
+		GlobalpingAPIURL: server.URL,
+	})
+
+	opts := &MeasurementCreate{}
+	res, showHelp, err := client.CreateMeasurement(opts)
+
+	assert.Equal(t, "abcd", res.ID)
+	assert.Equal(t, 1, res.ProbesCount)
+	assert.False(t, showHelp)
+	assert.NoError(t, err)
+}
+
+func testPostAuthorizedError(t *testing.T) {
+	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
+	defer server.Close()
+	client := NewClient(&utils.Config{
+		GlobalpingAPIURL: server.URL,
+	})
+
+	opts := &MeasurementCreate{}
+	res, showHelp, err := client.CreateMeasurement(opts)
+
+	assert.Nil(t, res)
+	assert.False(t, showHelp)
+	assert.EqualError(t, err, "unauthorized: Unauthorized.")
+}
+
 func testPostNoProbes(t *testing.T) {
 	server := generateServerError(`{
     "error": {
@@ -53,7 +88,7 @@ func testPostNoProbes(t *testing.T) {
     }}`, 422)
 	defer server.Close()
 
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	opts := &MeasurementCreate{}
 	_, showHelp, err := client.CreateMeasurement(opts)
 
@@ -72,7 +107,7 @@ func testPostValidation(t *testing.T) {
         }
     }}`, 400)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	_, showHelp, err := client.CreateMeasurement(opts)
@@ -98,7 +133,7 @@ func testPostInternalError(t *testing.T) {
       "type": "api_error"
     }}`, 500)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	_, showHelp, err := client.CreateMeasurement(opts)
@@ -126,7 +161,7 @@ func TestGetAPI(t *testing.T) {
 func testGetValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
@@ -137,7 +172,7 @@ func testGetValid(t *testing.T) {
 func testGetJson(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	res, err := client.GetMeasurementRaw("abcd")
 	if err != nil {
 		t.Error(err)
@@ -190,7 +225,7 @@ func testGetPing(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -286,7 +321,7 @@ func testGetTraceroute(t *testing.T) {
 	}}]}`)
 	defer server.Close()
 
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -362,7 +397,7 @@ func testGetDns(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -484,7 +519,7 @@ func testGetMtr(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -589,7 +624,7 @@ func testGetHttp(t *testing.T) {
 		}
 	}]}`)
 	defer server.Close()
-	client := NewClient(server.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -663,7 +698,7 @@ func TestFetchWithEtag(t *testing.T) {
 		assert.NoError(t, err)
 	}))
 
-	client := NewClient(s.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: s.URL})
 
 	// first request for id1
 	m, err := client.GetMeasurement(id1)
@@ -709,7 +744,7 @@ func TestFetchWithBrotli(t *testing.T) {
 		assert.NoError(t, err)
 	}))
 
-	client := NewClient(s.URL)
+	client := NewClient(&utils.Config{GlobalpingAPIURL: s.URL})
 
 	m, err := client.GetMeasurement(id)
 	assert.NoError(t, err)
@@ -725,6 +760,22 @@ func TestUserAgent(t *testing.T) {
 // Generate server for testing
 func generateServer(json string) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusAccepted)
+		_, err := w.Write([]byte(json))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	return server
+}
+
+func generateServerAuthorized(json string) *httptest.Server {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer secret" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"error": {"type": "unauthorized", "message": "Unauthorized."}}`))
+			return
+		}
 		w.WriteHeader(http.StatusAccepted)
 		_, err := w.Write([]byte(json))
 		if err != nil {

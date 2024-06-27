@@ -3,6 +3,8 @@ package globalping
 import (
 	"net/http"
 	"time"
+
+	"github.com/jsdelivr/globalping-cli/utils"
 )
 
 type Client interface {
@@ -13,18 +15,18 @@ type Client interface {
 
 type client struct {
 	http   *http.Client
-	apiUrl string // The api url endpoint
+	config *utils.Config
 
 	etags        map[string]string // caches Etags by measurement id
 	measurements map[string][]byte // caches Measurements by ETag
 }
 
-func NewClient(url string) Client {
+func NewClient(config *utils.Config) Client {
 	return &client{
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiUrl:       url,
+		config:       config,
 		etags:        map[string]string{},
 		measurements: map[string][]byte{},
 	}
