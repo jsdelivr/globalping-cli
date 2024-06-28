@@ -97,6 +97,8 @@ For more information about the platform, tips, and best practices, visit our Git
 	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and colors, suitable for CI and scripting (default false)")
 	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
 	flags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
+	flags.BoolVarP(&ctx.Ipv4, "ipv4", "4", ctx.Ipv4, "resolve names to IPv4 addresses")
+	flags.BoolVarP(&ctx.Ipv6, "ipv6", "6", ctx.Ipv6, "resolve names to IPv6 addresses")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 

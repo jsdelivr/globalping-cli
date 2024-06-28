@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,9 +20,11 @@ import (
 )
 
 var (
-	ErrNoPreviousMeasurements = errors.New("no previous measurements found")
-	ErrInvalidIndex           = errors.New("invalid index")
-	ErrIndexOutOfRange        = errors.New("index out of range")
+	ErrNoPreviousMeasurements      = errors.New("no previous measurements found")
+	ErrInvalidIndex                = errors.New("invalid index")
+	ErrIndexOutOfRange             = errors.New("index out of range")
+	ErrTargetIPVersionNotAllowed   = errors.New("ipVersion is not allowed when target is not a domain")
+	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
 var (
 	saveIdToSessionErr = "failed to save measurement ID: %s"
@@ -46,6 +49,15 @@ func (r *Root) updateContext(cmd string, args []string) error {
 
 	if targetQuery.Resolver != "" {
 		r.ctx.Resolver = targetQuery.Resolver
+	}
+
+	if r.ctx.Ipv4 || r.ctx.Ipv6 {
+		if net.ParseIP(r.ctx.Target) != nil {
+			return ErrTargetIPVersionNotAllowed
+		}
+		if r.ctx.Resolver != "" && net.ParseIP(r.ctx.Resolver) != nil {
+			return ErrResolverIPVersionNotAllowed
+		}
 	}
 
 	// Check env for CI
