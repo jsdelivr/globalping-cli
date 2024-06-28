@@ -28,6 +28,8 @@ type Context struct {
 	Trace     bool
 	Full      bool // Full output
 	Infinite  bool // Infinite flag
+	Ipv6      bool // IPv6 flag
+	Ipv4      bool // IPv4 flag
 
 	Head uint // Number of first measurements to show
 	Tail uint // Number of last measurements to show

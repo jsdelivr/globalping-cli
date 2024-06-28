@@ -20,14 +20,22 @@ type RequestOptions struct {
 	Method  string            `json:"method,omitempty"`
 }
 
+type IPVersion int
+
+const (
+	IPVersion4 IPVersion = 4
+	IPVersion6 IPVersion = 6
+)
+
 type MeasurementOptions struct {
-	Query    *QueryOptions   `json:"query,omitempty"`
-	Request  *RequestOptions `json:"request,omitempty"`
-	Protocol string          `json:"protocol,omitempty"`
-	Port     int             `json:"port,omitempty"`
-	Resolver string          `json:"resolver,omitempty"`
-	Trace    bool            `json:"trace,omitempty"`
-	Packets  int             `json:"packets,omitempty"`
+	Query     *QueryOptions   `json:"query,omitempty"`
+	Request   *RequestOptions `json:"request,omitempty"`
+	Protocol  string          `json:"protocol,omitempty"`
+	Port      int             `json:"port,omitempty"`
+	Resolver  string          `json:"resolver,omitempty"`
+	Trace     bool            `json:"trace,omitempty"`
+	Packets   int             `json:"packets,omitempty"`
+	IPVersion IPVersion       `json:"ipVersion,omitempty"`
 }
 
 type MeasurementCreate struct {

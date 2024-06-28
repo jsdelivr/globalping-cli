@@ -10,11 +10,13 @@ import (
 
 func Test_UpdateContext(t *testing.T) {
 	for scenario, fn := range map[string]func(t *testing.T){
-		"no_arg":             test_updateContext_NoArg,
-		"country":            test_updateContext_Country,
-		"country_whitespace": test_updateContext_CountryWhitespace,
-		"no_target":          test_updateContext_NoTarget,
-		"ci_env":             test_uodateContext_CIEnv,
+		"no_arg":                test_updateContext_NoArg,
+		"country":               test_updateContext_Country,
+		"country_whitespace":    test_updateContext_CountryWhitespace,
+		"no_target":             test_updateContext_NoTarget,
+		"ci_env":                test_updateContext_CIEnv,
+		"target_not_hostname":   test_updateContext_TargetIsNotAHostname,
+		"resolver_not_hostname": test_updateContext_ResolverIsNotAHostname,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			fn(t)
@@ -68,7 +70,7 @@ func test_updateContext_NoTarget(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func test_uodateContext_CIEnv(t *testing.T) {
+func test_updateContext_CIEnv(t *testing.T) {
 	oldCI := os.Getenv("CI")
 	t.Setenv("CI", "true")
 	defer t.Setenv("CI", oldCI)
@@ -83,6 +85,36 @@ func test_uodateContext_CIEnv(t *testing.T) {
 	assert.Equal(t, "world", ctx.From)
 	assert.True(t, ctx.CIMode)
 	assert.NoError(t, err)
+}
+
+func test_updateContext_TargetIsNotAHostname(t *testing.T) {
+	ctx := createDefaultContext("ping")
+	ctx.Ipv4 = true
+	printer := view.NewPrinter(nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+
+	err := root.updateContext("ping", []string{"1.1.1.1"})
+	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
+
+	ctx.Ipv4 = false
+	ctx.Ipv6 = true
+	err = root.updateContext("ping", []string{"1.1.1.1"})
+	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
+}
+
+func test_updateContext_ResolverIsNotAHostname(t *testing.T) {
+	ctx := createDefaultContext("dns")
+	ctx.Ipv4 = true
+	printer := view.NewPrinter(nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+
+	err := root.updateContext("dns", []string{"example.com", "@1.1.1.1"})
+	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())
+
+	ctx.Ipv4 = false
+	ctx.Ipv6 = true
+	err = root.updateContext("dns", []string{"example.com", "@1.1.1.1"})
+	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())
 }
 
 func Test_ParseTargetQuery_Simple(t *testing.T) {
