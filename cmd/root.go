@@ -1,11 +1,12 @@
 package cmd
 
 import (
-	"github.com/spf13/pflag"
-	"golang.org/x/term"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/spf13/pflag"
+	"golang.org/x/term"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/globalping/probe"
@@ -30,13 +31,15 @@ type Root struct {
 func Execute() {
 	utime := utils.NewTime()
 	printer := view.NewPrinter(os.Stdin, os.Stdout, os.Stderr)
+	config := utils.NewConfig()
+	config.Load()
 	ctx := &view.Context{
-		APIMinInterval: globalping.API_MIN_INTERVAL,
+		APIMinInterval: config.GlobalpingAPIInterval,
 		History:        view.NewHistoryBuffer(10),
 		From:           "world",
 		Limit:          1,
 	}
-	globalpingClient := globalping.NewClient(globalping.API_URL)
+	globalpingClient := globalping.NewClient(config)
 	globalpingProbe := probe.NewProbe()
 	viewer := view.NewViewer(ctx, printer, utime, globalpingClient)
 	root := NewRoot(printer, ctx, viewer, utime, globalpingClient, globalpingProbe)

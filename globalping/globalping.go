@@ -7,15 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/andybalholm/brotli"
 	"github.com/jsdelivr/globalping-cli/version"
-)
-
-var (
-	API_URL          = "https://api.globalping.io/v1/measurements"
-	API_MIN_INTERVAL = 500 * time.Millisecond
 )
 
 // boolean indicates whether to print CLI help on error
@@ -26,13 +20,17 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 	}
 
 	// Create a new request
-	req, err := http.NewRequest("POST", c.apiUrl, bytes.NewBuffer(postData))
+	req, err := http.NewRequest("POST", c.config.GlobalpingAPIURL+"/measurements", bytes.NewBuffer(postData))
 	if err != nil {
 		return nil, false, errors.New("failed to create request - please report this bug")
 	}
 	req.Header.Set("User-Agent", userAgent())
 	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
+
+	if c.config.GlobalpingToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.config.GlobalpingToken)
+	}
 
 	// Make the request
 	resp, err := c.http.Do(req)
@@ -63,6 +61,11 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 				resErr += fmt.Sprintf(" - %s\n", v)
 			}
 			return nil, true, fmt.Errorf("invalid parameters\n%sPlease check the help for more information", resErr)
+		}
+
+		// 401 error
+		if data.Error.Type == "unauthorized" {
+			return nil, false, fmt.Errorf("unauthorized: %s", data.Error.Message)
 		}
 
 		// 500 error
@@ -107,7 +110,7 @@ func (c *client) GetMeasurement(id string) (*Measurement, error) {
 // GetMeasurementRaw returns the API response's raw json response
 func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	// Create a new request
-	req, err := http.NewRequest("GET", c.apiUrl+"/"+id, nil)
+	req, err := http.NewRequest("GET", c.config.GlobalpingAPIURL+"/measurements/"+id, nil)
 	if err != nil {
 		return nil, errors.New("err: failed to create request")
 	}
