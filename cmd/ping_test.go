@@ -477,3 +477,77 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	)
 	assert.Equal(t, expectedHistory, string(b))
 }
+
+func Test_Execute_Ping_IPv4(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Locations[0].Magic = "world"
+	expectedOpts.Options.IPVersion = globalping.IPVersion4
+	expectedResponse := createDefaultMeasurementCreateResponse()
+
+	gbMock := mocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
+
+	viewerMock := mocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("ping")
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--ipv4"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", w.String())
+
+	expectedCtx := createDefaultExpectedContext("ping")
+	expectedCtx.From = "world"
+	expectedCtx.Ipv4 = true
+	assert.Equal(t, expectedCtx, ctx)
+}
+
+func Test_Execute_Ping_IPv6(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Locations[0].Magic = "world"
+	expectedOpts.Options.IPVersion = globalping.IPVersion6
+	expectedResponse := createDefaultMeasurementCreateResponse()
+
+	gbMock := mocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
+
+	viewerMock := mocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("ping")
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--ipv6"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.NoError(t, err)
+
+	assert.Equal(t, "", w.String())
+
+	expectedCtx := createDefaultExpectedContext("ping")
+	expectedCtx.From = "world"
+	expectedCtx.Ipv6 = true
+	assert.Equal(t, expectedCtx, ctx)
+}

@@ -102,6 +102,12 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if r.ctx.Ipv4 {
+		opts.Options.IPVersion = globalping.IPVersion4
+	} else if r.ctx.Ipv6 {
+		opts.Options.IPVersion = globalping.IPVersion6
+	}
+
 	res, showHelp, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		if !showHelp {

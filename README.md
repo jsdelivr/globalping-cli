@@ -105,6 +105,8 @@ Flags:
                        - an ID of a previous measurement to run with its probes
                        (default "world")
   -h, --help          help for globalping
+  -4, --ipv4          resolve names to IPv4 addresses
+  -6, --ipv6          resolve names to IPv6 addresses
   -J, --json          output results in JSON format (default false)
       --latency       output only the latency stats; applicable only to dns, http, and ping
                       commands (default false)

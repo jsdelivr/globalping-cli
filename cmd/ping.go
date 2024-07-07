@@ -85,6 +85,12 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if r.ctx.Ipv4 {
+		opts.Options.IPVersion = globalping.IPVersion4
+	} else if r.ctx.Ipv6 {
+		opts.Options.IPVersion = globalping.IPVersion6
+	}
+
 	if r.ctx.Infinite {
 		return r.pingInfinite(opts)
 	}
