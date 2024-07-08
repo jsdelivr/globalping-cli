@@ -90,11 +90,9 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		opts.Options.IPVersion = globalping.IPVersion6
 	}
 
-	res, showHelp, err := r.client.CreateMeasurement(opts)
+	res, err := r.client.CreateMeasurement(opts)
 	if err != nil {
-		if !showHelp {
-			cmd.SilenceUsage = true
-		}
+		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		return err
 	}
 

@@ -8,8 +8,17 @@ import (
 )
 
 type Client interface {
-	CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, bool, error)
+	// Creates a new measurement with parameters set in the request body. The measurement runs asynchronously and you can retrieve its current state at the URL returned in the Location header.
+	//
+	// https://www.jsdelivr.com/docs/api.globalping.io#post
+	CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, error)
+	// Returns the status and results of an existing measurement. Measurements are typically available for up to 7 days after creation.
+	//
+	// https://www.jsdelivr.com/docs/api.globalping.io#get
 	GetMeasurement(id string) (*Measurement, error)
+	// Returns the status and results of an existing measurement. Measurements are typically available for up to 7 days after creation.
+	//
+	// https://www.jsdelivr.com/docs/api.globalping.io#get
 	GetMeasurementRaw(id string) ([]byte, error)
 }
 

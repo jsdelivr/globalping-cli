@@ -47,6 +47,15 @@ type MeasurementCreate struct {
 	Options           *MeasurementOptions `json:"measurementOptions,omitempty"`
 }
 
+type MeasurementError struct {
+	Code    int
+	Message string
+}
+
+func (e *MeasurementError) Error() string {
+	return e.Message
+}
+
 type MeasurementCreateResponse struct {
 	ID          string `json:"id"`
 	ProbesCount int    `json:"probesCount"`

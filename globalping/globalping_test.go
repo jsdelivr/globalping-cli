@@ -2,6 +2,7 @@ package globalping
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -20,12 +21,16 @@ func TestPostAPI(t *testing.T) {
 	// Suppress error outputs
 	os.Stdout, _ = os.Open(os.DevNull)
 	for scenario, fn := range map[string]func(t *testing.T){
-		"valid":      testPostValid,
-		"authorized": testPostAuthorized,
-		"auth_error": testPostAuthorizedError,
-		"no_probes":  testPostNoProbes,
-		"validation": testPostValidation,
-		"api_error":  testPostInternalError,
+		"valid":                      testPostValid,
+		"authorized":                 testPostAuthorized,
+		"auth_error":                 testPostAuthorizedError,
+		"more_credits_no_auth_error": testPostMoreCreditsRequiredNoAuthError,
+		"more_credits_auth_error":    testPostMoreCreditsRequiredAuthError,
+		"no_credits_no_auth_error":   testPostNoCreditsNoAuthError,
+		"no_credits_auth_error":      testPostNoCreditsAuthError,
+		"no_probes":                  testPostNoProbes,
+		"validation":                 testPostValidation,
+		"api_error":                  testPostInternalError,
 	} {
 		t.Run(scenario, func(t *testing.T) {
 			fn(t)
@@ -35,16 +40,15 @@ func TestPostAPI(t *testing.T) {
 
 // Test a valid call of PostAPI
 func testPostValid(t *testing.T) {
-	server := generateServer(`{"id":"abcd","probesCount":1}`)
+	server := generateServer(`{"id":"abcd","probesCount":1}`, http.StatusAccepted)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
-	res, showHelp, err := client.CreateMeasurement(opts)
+	res, err := client.CreateMeasurement(opts)
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, 1, res.ProbesCount)
-	assert.False(t, showHelp)
 	assert.NoError(t, err)
 }
 
@@ -57,11 +61,10 @@ func testPostAuthorized(t *testing.T) {
 	})
 
 	opts := &MeasurementCreate{}
-	res, showHelp, err := client.CreateMeasurement(opts)
+	res, err := client.CreateMeasurement(opts)
 
 	assert.Equal(t, "abcd", res.ID)
 	assert.Equal(t, 1, res.ProbesCount)
-	assert.False(t, showHelp)
 	assert.NoError(t, err)
 }
 
@@ -73,15 +76,118 @@ func testPostAuthorizedError(t *testing.T) {
 	})
 
 	opts := &MeasurementCreate{}
-	res, showHelp, err := client.CreateMeasurement(opts)
+	res, err := client.CreateMeasurement(opts)
 
 	assert.Nil(t, res)
-	assert.False(t, showHelp)
 	assert.EqualError(t, err, "unauthorized: Unauthorized.")
 }
 
+func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "1")
+		w.Header().Set("X-RateLimit-Reset", "10")
+		w.Header().Set("X-Credits-Remaining", "1")
+		w.Header().Set("X-Credits-Required", "2")
+		w.WriteHeader(429)
+		_, err := w.Write([]byte(`{
+			"error": {
+			  "message": "API rate limit exceeded.",
+			  "type": "rate_limit_exceeded"
+			}}`))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	opts := &MeasurementCreate{}
+	_, err := client.CreateMeasurement(opts)
+
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, 2, 3, 10))
+}
+
+func testPostMoreCreditsRequiredAuthError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.Header().Set("X-RateLimit-Reset", "10")
+		w.Header().Set("X-Credits-Remaining", "1")
+		w.Header().Set("X-Credits-Required", "2")
+		w.WriteHeader(429)
+		_, err := w.Write([]byte(`{
+			"error": {
+			  "message": "API rate limit exceeded.",
+			  "type": "rate_limit_exceeded"
+			}}`))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(&utils.Config{
+		GlobalpingToken:  "secret",
+		GlobalpingAPIURL: server.URL,
+	})
+	opts := &MeasurementCreate{}
+	_, err := client.CreateMeasurement(opts)
+
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredAuthErr, 1, 2, 10))
+}
+
+func testPostNoCreditsNoAuthError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.Header().Set("X-RateLimit-Reset", "5")
+		w.Header().Set("X-Credits-Remaining", "0")
+		w.WriteHeader(429)
+		_, err := w.Write([]byte(`{
+			"error": {
+			  "message": "API rate limit exceeded.",
+			  "type": "rate_limit_exceeded"
+			}}`))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	opts := &MeasurementCreate{}
+	_, err := client.CreateMeasurement(opts)
+
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, 5))
+}
+
+func testPostNoCreditsAuthError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.Header().Set("X-RateLimit-Reset", "5")
+		w.Header().Set("X-Credits-Remaining", "0")
+		w.WriteHeader(429)
+		_, err := w.Write([]byte(`{
+			"error": {
+			  "message": "API rate limit exceeded.",
+			  "type": "rate_limit_exceeded"
+			}}`))
+		if err != nil {
+			panic(err)
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(&utils.Config{
+		GlobalpingToken:  "secret",
+		GlobalpingAPIURL: server.URL,
+	})
+	opts := &MeasurementCreate{}
+	_, err := client.CreateMeasurement(opts)
+
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, 5))
+}
+
 func testPostNoProbes(t *testing.T) {
-	server := generateServerError(`{
+	server := generateServer(`{
     "error": {
       "message": "No suitable probes found",
       "type": "no_probes_found"
@@ -90,19 +196,20 @@ func testPostNoProbes(t *testing.T) {
 
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	opts := &MeasurementCreate{}
-	_, showHelp, err := client.CreateMeasurement(opts)
+	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, "no suitable probes found - please choose a different location")
-	assert.True(t, showHelp)
+	assert.Equal(t, &MeasurementError{
+		Code:    422,
+		Message: "no suitable probes found - please choose a different location",
+	}, err)
 }
 
 func testPostValidation(t *testing.T) {
-	server := generateServerError(`{
+	server := generateServer(`{
     "error": {
         "message": "Validation Failed",
         "type": "validation_error",
         "params": {
-            "measurement": "\"measurement\" does not match any of the allowed types",
 			"target": "\"target\" does not match any of the allowed types"
         }
     }}`, 400)
@@ -110,24 +217,18 @@ func testPostValidation(t *testing.T) {
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
-	_, showHelp, err := client.CreateMeasurement(opts)
+	_, err := client.CreateMeasurement(opts)
 
-	// Key order is not guaranteed
-	expectedErrV1 := `invalid parameters
- - "measurement" does not match any of the allowed types
+	assert.Equal(t, &MeasurementError{
+		Code: 400,
+		Message: `invalid parameters
  - "target" does not match any of the allowed types
-Please check the help for more information`
-	if err.Error() != expectedErrV1 {
-		assert.EqualError(t, err, `invalid parameters
- - "target" does not match any of the allowed types
- - "measurement" does not match any of the allowed types
-Please check the help for more information`)
-	}
-	assert.True(t, showHelp)
+Please check the help for more information`,
+	}, err)
 }
 
 func testPostInternalError(t *testing.T) {
-	server := generateServerError(`{
+	server := generateServer(`{
     "error": {
       "message": "Internal Server Error",
       "type": "api_error"
@@ -136,9 +237,8 @@ func testPostInternalError(t *testing.T) {
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
 	opts := &MeasurementCreate{}
-	_, showHelp, err := client.CreateMeasurement(opts)
+	_, err := client.CreateMeasurement(opts)
 	assert.EqualError(t, err, "internal server error - please try again later")
-	assert.False(t, showHelp)
 }
 
 // GetAPI tests
@@ -159,7 +259,7 @@ func TestGetAPI(t *testing.T) {
 }
 
 func testGetValid(t *testing.T) {
-	server := generateServer(`{"id":"abcd"}`)
+	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	res, err := client.GetMeasurement("abcd")
@@ -170,7 +270,7 @@ func testGetValid(t *testing.T) {
 }
 
 func testGetJson(t *testing.T) {
-	server := generateServer(`{"id":"abcd"}`)
+	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	res, err := client.GetMeasurementRaw("abcd")
@@ -223,7 +323,7 @@ func testGetPing(t *testing.T) {
 				"drop": 0
 			}
 		}
-	}]}`)
+	}]}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
@@ -318,7 +418,7 @@ func testGetTraceroute(t *testing.T) {
 				]
 			}
 			]
-	}}]}`)
+	}}]}`, http.StatusOK)
 	defer server.Close()
 
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
@@ -395,7 +495,7 @@ func testGetDns(t *testing.T) {
 			},
 			"resolver": "185.31.172.240"
 		}
-	}]}`)
+	}]}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
@@ -517,7 +617,7 @@ func testGetMtr(t *testing.T) {
 			}
 			]
 		}
-	}]}`)
+	}]}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
@@ -622,7 +722,7 @@ func testGetHttp(t *testing.T) {
 			},
 			"rawOutput": "HTTP"
 		}
-	}]}`)
+	}]}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 
@@ -758,9 +858,9 @@ func TestUserAgent(t *testing.T) {
 }
 
 // Generate server for testing
-func generateServer(json string) *httptest.Server {
+func generateServer(json string, statusCode int) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(statusCode)
 		_, err := w.Write([]byte(json))
 		if err != nil {
 			panic(err)
@@ -777,17 +877,6 @@ func generateServerAuthorized(json string) *httptest.Server {
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
-		_, err := w.Write([]byte(json))
-		if err != nil {
-			panic(err)
-		}
-	}))
-	return server
-}
-
-func generateServerError(json string, statusCode int) *httptest.Server {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(statusCode)
 		_, err := w.Write([]byte(json))
 		if err != nil {
 			panic(err)

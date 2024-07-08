@@ -186,11 +186,9 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 }
 
 func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
-	res, showHelp, err := r.client.CreateMeasurement(opts)
+	res, err := r.client.CreateMeasurement(opts)
 	if err != nil {
-		if !showHelp {
-			r.Cmd.SilenceUsage = true
-		}
+		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		return nil, err
 	}
 	r.ctx.MeasurementsCreated++

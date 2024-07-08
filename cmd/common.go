@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -302,4 +303,17 @@ func getMeasurementsPath() string {
 
 func getHistoryPath() string {
 	return filepath.Join(getSessionPath(), "history")
+}
+
+func silenceUsageOnCreateMeasurementError(err error) bool {
+	e, ok := err.(*globalping.MeasurementError)
+	if ok {
+		switch e.Code {
+		case http.StatusBadRequest, http.StatusUnprocessableEntity:
+			return false
+		default:
+			return true
+		}
+	}
+	return true
 }
