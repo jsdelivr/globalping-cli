@@ -9,14 +9,15 @@ import (
 	"strconv"
 
 	"github.com/andybalholm/brotli"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/version"
 )
 
 var (
-	moreCreditsRequiredNoAuthErr = "You only have %d credits remaining, and %d were required. Try requesting fewer probes or wait %d minutes for the limit to reset. You can get higher limits by creating an account. Sign up at https://globalping.io"
-	moreCreditsRequiredAuthErr   = "You only have %d credits remaining, and %d were required. Try requesting fewer probes or wait %d minutes for the limit to reset. You can get higher limits by sponsoring us or hosting probes."
-	noCreditsNoAuthErr           = "You have run out of credits for this session. You can wait %d minutes for the limit to reset or get higher limits by creating an account. Sign up at https://globalping.io"
-	noCreditsAuthErr             = "You have run out of credits for this session. You can wait %d minutes for the limit to reset or get higher limits by sponsoring us or hosting probes."
+	moreCreditsRequiredNoAuthErr = "You only have %s remaining, and %d were required. Try requesting fewer probes or wait %s for the rate limit to reset. You can get higher limits by creating an account. Sign up at https://globalping.io"
+	moreCreditsRequiredAuthErr   = "You only have %s remaining, and %d were required. Try requesting fewer probes or wait %s for the rate limit to reset. You can get higher limits by sponsoring us or hosting probes."
+	noCreditsNoAuthErr           = "You have run out of credits for this session. You can wait %s for the rate limit to reset or get higher limits by creating an account. Sign up at https://globalping.io"
+	noCreditsAuthErr             = "You have run out of credits for this session. You can wait %s for the rate limit to reset or get higher limits by sponsoring us or hosting probes."
 )
 
 func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, error) {
@@ -72,15 +73,15 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 		}
 
 		if resp.StatusCode == http.StatusTooManyRequests {
-			rateLimitRemaining, _ := strconv.Atoi(resp.Header.Get("X-RateLimit-Remaining"))
-			rateLimitReset, _ := strconv.Atoi(resp.Header.Get("X-RateLimit-Reset"))
-			creditsRemaining, _ := strconv.Atoi(resp.Header.Get("X-Credits-Remaining"))
-			creditsRequired, _ := strconv.Atoi(resp.Header.Get("X-Credits-Required"))
+			rateLimitRemaining, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Remaining"), 10, 64)
+			rateLimitReset, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64)
+			creditsRemaining, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Remaining"), 10, 64)
+			creditsRequired, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Required"), 10, 64)
 			remaining := rateLimitRemaining + creditsRemaining
 			required := rateLimitRemaining + creditsRequired
 			if c.config.GlobalpingToken == "" {
 				if remaining > 0 {
-					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, remaining, required, rateLimitReset)
+					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
 				err.Message = fmt.Sprintf(noCreditsNoAuthErr, rateLimitReset)
@@ -88,7 +89,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 
 			} else {
 				if remaining > 0 {
-					err.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, remaining, required, rateLimitReset)
+					err.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
 				err.Message = fmt.Sprintf(noCreditsAuthErr, rateLimitReset)

@@ -83,9 +83,10 @@ func testPostAuthorizedError(t *testing.T) {
 }
 
 func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
+	rateLimitReset := "61"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "1")
-		w.Header().Set("X-RateLimit-Reset", "10")
+		w.Header().Set("X-RateLimit-Reset", rateLimitReset)
 		w.Header().Set("X-Credits-Remaining", "1")
 		w.Header().Set("X-Credits-Required", "2")
 		w.WriteHeader(429)
@@ -103,14 +104,18 @@ func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
 	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, "2 credits", 3, "1 minute"))
 
-	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, 2, 3, 10))
+	rateLimitReset = "100"
+	_, err = client.CreateMeasurement(opts)
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, "2 credits", 3, "2 minutes"))
 }
 
 func testPostMoreCreditsRequiredAuthError(t *testing.T) {
+	rateLimitReset := "40"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
-		w.Header().Set("X-RateLimit-Reset", "10")
+		w.Header().Set("X-RateLimit-Reset", rateLimitReset)
 		w.Header().Set("X-Credits-Remaining", "1")
 		w.Header().Set("X-Credits-Required", "2")
 		w.WriteHeader(429)
@@ -130,9 +135,13 @@ func testPostMoreCreditsRequiredAuthError(t *testing.T) {
 		GlobalpingAPIURL: server.URL,
 	})
 	opts := &MeasurementCreate{}
-	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredAuthErr, 1, 2, 10))
+	_, err := client.CreateMeasurement(opts)
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredAuthErr, "1 credit", 2, "40 seconds"))
+
+	rateLimitReset = "1"
+	_, err = client.CreateMeasurement(opts)
+	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredAuthErr, "1 credit", 2, "1 second"))
 }
 
 func testPostNoCreditsNoAuthError(t *testing.T) {
@@ -156,7 +165,7 @@ func testPostNoCreditsNoAuthError(t *testing.T) {
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, 5))
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, int64(5)))
 }
 
 func testPostNoCreditsAuthError(t *testing.T) {
@@ -183,7 +192,7 @@ func testPostNoCreditsAuthError(t *testing.T) {
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, 5))
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, int64(5)))
 }
 
 func testPostNoProbes(t *testing.T) {
