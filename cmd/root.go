@@ -131,7 +131,11 @@ func wrappedFlagUsages(cmd *pflag.FlagSet) string {
 
 // Identical to the default cobra usage template,
 // but utilizes wrappedFlagUsages to ensure flag usages don't wrap around
-var usageTemplate = `Usage:{{if .Runnable}}
+var usageTemplate = `Run '{{.CommandPath}} --help' for more information.`
+
+var helpTemplate = `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
+
+{{end}}{{if or .Runnable .HasSubCommands}}Usage:{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
@@ -159,9 +163,4 @@ Global Flags:
 Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
   {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
 
-Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
-`
-
-var helpTemplate = `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}
-
-{{end}}{{if or .Runnable .HasSubCommands}}{{.UsageString}}{{end}}`
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}{{end}}`
