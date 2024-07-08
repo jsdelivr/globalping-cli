@@ -9,6 +9,7 @@ type Viewer interface {
 	Output(id string, m *globalping.MeasurementCreate) error
 	OutputInfinite(m *globalping.Measurement) error
 	OutputSummary()
+	OutputShare()
 }
 
 type viewer struct {

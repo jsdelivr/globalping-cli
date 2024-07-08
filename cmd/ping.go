@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"syscall"
 	"time"
 
@@ -117,9 +118,15 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	}()
 	<-r.cancel
 
-	if err == nil {
-		r.viewer.OutputSummary()
+	r.viewer.OutputSummary()
+	if err != nil {
+		e, ok := err.(*globalping.MeasurementError)
+		if ok && e.Code == http.StatusTooManyRequests {
+			r.Cmd.SilenceErrors = true
+			r.printer.Printf("> %s\n", e.Message)
+		}
 	}
+	r.viewer.OutputShare()
 	return err
 }
 
@@ -160,8 +167,9 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 				hm, err := r.createMeasurement(opts)
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
+				} else {
+					mbuf.Append(hm)
 				}
-				mbuf.Append(hm)
 				elapsedTime += r.time.Now().Sub(start)
 			}
 			el = mbuf.Next()

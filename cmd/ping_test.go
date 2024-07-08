@@ -332,6 +332,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	}).After(outputCall6)
 
 	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
 
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
@@ -442,7 +443,8 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).Return(errors.New("error message"))
-	viewerMock.EXPECT().OutputSummary().Times(0)
+	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
 
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
