@@ -777,6 +777,57 @@ no answer yet for icmp_seq=4`,
 	}, res.Stats)
 }
 
+// Happens using --from AS58404
+func Test_ParsePingRawOutput_WithRedirect(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
+
+	ctx := createDefaultContext("ping")
+	v := viewer{ctx: ctx, time: timeMock}
+
+	hm := ctx.History.Find(measurementID1)
+
+	m := &globalping.ProbeMeasurement{
+		Result: globalping.ProbeResult{
+			RawOutput: `PING  (104.18.187.31) 56(84) bytes of data.
+From goldenfast.net (103.102.153.1): icmp_seq=1 Redirect Host(New nexthop: goldenfast.net (43.252.139.2))
+64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=1 ttl=59 time=0.558 ms
+From goldenfast.net (103.102.153.1): icmp_seq=2 Redirect Host(New nexthop: goldenfast.net (43.252.139.2))
+64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=2 ttl=59 time=0.705 ms`,
+		},
+	}
+	res := v.parsePingRawOutput(hm, m, 0)
+	assert.Equal(t, "104.18.187.31", res.Address)
+	assert.Equal(t, "56(84)", res.BytesOfData)
+	assert.Equal(t, []string{
+		"From goldenfast.net (103.102.153.1): icmp_seq=1 Redirect Host(New nexthop: goldenfast.net (43.252.139.2))",
+		"64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=1 ttl=59 time=0.558 ms",
+		"From goldenfast.net (103.102.153.1): icmp_seq=2 Redirect Host(New nexthop: goldenfast.net (43.252.139.2))",
+		"64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=2 ttl=59 time=0.705 ms",
+	}, res.RawPacketLines)
+	assert.Equal(t, []globalping.PingTiming{
+		{RTT: 0.558, TTL: 59},
+		{RTT: 0.705, TTL: 59},
+	}, res.Timings)
+	assertMeasurementStats(t, &MeasurementStats{
+		Sent:  2,
+		Rcv:   2,
+		Lost:  0,
+		Loss:  0,
+		Last:  0.705,
+		Min:   0.558,
+		Avg:   0.6315,
+		Max:   0.705,
+		Tsum:  1.263,
+		Tsum2: 0.8083,
+		Mdev:  0.0735,
+		Time:  100,
+	}, res.Stats)
+}
+
 func Test_ComputeMdev(t *testing.T) {
 	rtt1 := 10.0
 	rtt2 := 10.0
