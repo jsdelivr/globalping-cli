@@ -88,7 +88,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
-				err.Message = fmt.Sprintf(noCreditsNoAuthErr, rateLimitReset)
+				err.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
 				return nil, err
 
 			} else {
@@ -96,7 +96,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 					err.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
-				err.Message = fmt.Sprintf(noCreditsAuthErr, rateLimitReset)
+				err.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
 				return nil, err
 			}
 		}

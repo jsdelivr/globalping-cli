@@ -165,7 +165,7 @@ func testPostNoCreditsNoAuthError(t *testing.T) {
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, int64(5)))
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, "5 seconds"))
 }
 
 func testPostNoCreditsAuthError(t *testing.T) {
@@ -192,7 +192,7 @@ func testPostNoCreditsAuthError(t *testing.T) {
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
-	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, int64(5)))
+	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, "5 seconds"))
 }
 
 func testPostNoProbes(t *testing.T) {
