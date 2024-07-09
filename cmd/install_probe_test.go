@@ -41,9 +41,10 @@ Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping
 `, w.String())
 
 	expectedCtx := &view.Context{
-		History: view.NewHistoryBuffer(1),
-		From:    "world",
-		Limit:   1,
+		History:             view.NewHistoryBuffer(1),
+		From:                "world",
+		Limit:               1,
+		RunSessionStartedAt: defaultCurrentTime,
 	}
 	assert.Equal(t, expectedCtx, ctx)
 }

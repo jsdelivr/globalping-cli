@@ -91,9 +91,10 @@ func createDefaultMeasurement_MultipleProbes(cmd string, status globalping.Measu
 
 func createDefaultContext(_ string) *view.Context {
 	ctx := &view.Context{
-		History: view.NewHistoryBuffer(1),
-		From:    "world",
-		Limit:   1,
+		History:             view.NewHistoryBuffer(1),
+		From:                "world",
+		Limit:               1,
+		RunSessionStartedAt: defaultCurrentTime,
 	}
 	return ctx
 }
@@ -107,6 +108,7 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		CIMode:              true,
 		History:             view.NewHistoryBuffer(1),
 		MeasurementsCreated: 1,
+		RunSessionStartedAt: defaultCurrentTime,
 	}
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,

@@ -133,6 +133,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
+	r.ctx.RunSessionStartedAt = r.time.Now()
 	for {
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)

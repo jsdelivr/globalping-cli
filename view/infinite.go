@@ -9,12 +9,16 @@ import (
 	"strings"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/mattn/go-runewidth"
 )
 
-// Table defaults
 var (
+	// Table defaults
 	colSeparator = " | "
+
+	apiCreditInfo            = "> This infinite ping will consume 1 API credit for every 16 packets until stopped.\n"
+	apiCreditConsumptionInfo = "Currently consuming ~%s/minute.\n"
 )
 
 func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
@@ -41,6 +45,7 @@ func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
+		v.printer.Print(apiCreditInfo)
 	}
 	probeMeasurement := &m.Results[0]
 	hm := v.ctx.History.Find(m.ID)
@@ -84,7 +89,12 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 	width, _ := v.printer.GetSize()
 	o, newStats, newAggregatedStats := v.generateTable(hm, m, width-2)
 	hm.Stats = newStats
-	v.printer.AreaUpdate(o)
+	creditsInfo := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(v.calculateAPICreditConsumption(), "API credit"))
+	if len(creditsInfo) > width-4 {
+		creditsInfo = creditsInfo[:width-5] + "..."
+	}
+	output := *o + creditsInfo
+	v.printer.AreaUpdate(&output)
 	if m.Status != globalping.StatusInProgress {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
@@ -380,4 +390,9 @@ func computeMdev(tsum float64, tsum2 float64, rcv int, avg float64) float64 {
 		return math.Sqrt((tsum2 - ((tsum * tsum) / float64(rcv))) / float64(rcv))
 	}
 	return math.Sqrt(tsum2/float64(rcv) - avg*avg)
+}
+
+func (v *viewer) calculateAPICreditConsumption() int64 {
+	elapsedMinutes := v.time.Now().Sub(v.ctx.RunSessionStartedAt).Minutes()
+	return int64(math.Ceil(float64(v.ctx.MeasurementsCreated*len(v.ctx.AggregatedStats)) / elapsedMinutes))
 }

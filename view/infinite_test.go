@@ -34,7 +34,8 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+		apiCreditInfo+
+			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 `,
 		w.String(),
@@ -47,7 +48,8 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+		apiCreditInfo+
+			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 `,
@@ -62,7 +64,8 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+		apiCreditInfo+
+			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -89,7 +92,8 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+		apiCreditInfo+
+			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -112,7 +116,8 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	assert.NoError(t, err)
 
 	assert.Equal(t,
-		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+		apiCreditInfo+
+			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
 PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -157,7 +162,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	defer ctrl.Finish()
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.StatusInProgress
@@ -174,6 +179,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    0 |   0.00% |        - |        - |        - |        -
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 	err := viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
@@ -192,11 +198,12 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 no answer yet for icmp_seq=2`
 
 	// Call 2
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement)
@@ -219,11 +226,12 @@ no answer yet for icmp_seq=2
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 
 	// Call 3
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement)
@@ -259,11 +267,12 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 }
@@ -273,7 +282,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	defer ctrl.Finish()
 
 	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(1 * time.Millisecond)).AnyTimes()
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	// Call 1
 	measurement1 := createPingMeasurement_MultipleProbes(measurementID1)
@@ -295,6 +304,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    0 |   0.00% |        - |        - |        - |        -
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err := viewer.OutputInfinite(measurement1)
@@ -314,11 +324,12 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
 	})
 
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement2)
@@ -329,11 +340,12 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
 
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -361,11 +373,12 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 rtt min/avg/max/mdev = 20/25/30/5 ms`
 	hm1.Status = globalping.StatusFinished
 
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -385,11 +398,12 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 	err = viewer.OutputInfinite(measurement2)
 	assert.NoError(t, err)
 
-	expectedOutput += "\033[4A\033[0J" +
+	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 }
@@ -400,9 +414,12 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
+
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
-	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+	v := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
 	err := v.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
@@ -411,6 +428,7 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
+Currently consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 	assert.Equal(t,

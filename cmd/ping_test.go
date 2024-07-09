@@ -365,6 +365,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Infinite:            true,
 		CIMode:              true,
 		MeasurementsCreated: 4,
+		RunSessionStartedAt: defaultCurrentTime,
 	}
 	expectedCtx.History = &view.HistoryBuffer{
 		Index: 4,
@@ -476,6 +477,72 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 		"1",
 		measurementID1,
 		"ping jsdelivr.com --infinite from Berlin",
+	)
+	assert.Equal(t, expectedHistory, string(b))
+}
+
+func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts1 := createDefaultMeasurementCreate("ping")
+	expectedOpts1.Options.Packets = 16
+	expectedOpts2 := createDefaultMeasurementCreate("ping")
+	expectedOpts2.Options.Packets = 16
+	expectedOpts2.Locations[0].Magic = measurementID1
+
+	expectedResponse1 := createDefaultMeasurementCreateResponse()
+
+	gbMock := mocks.NewMockClient(ctrl)
+	createCall1 := gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts2).Return(nil, &globalping.MeasurementError{
+		Code:    429,
+		Message: "too many requests",
+	}).After(createCall1)
+
+	expectedMeasurement := createDefaultMeasurement("ping")
+	gbMock.EXPECT().GetMeasurement(measurementID1).Return(expectedMeasurement, nil)
+
+	viewerMock := mocks.NewMockViewer(ctrl)
+	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(waitFn)
+
+	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("ping")
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin", "--infinite", "--share"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Equal(t, "too many requests", err.Error())
+
+	assert.Equal(t, "> too many requests\n", w.String())
+
+	expectedCtx := createDefaultExpectedContext("ping")
+	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished
+	expectedCtx.Packets = 16
+	expectedCtx.Infinite = true
+	expectedCtx.Share = true
+	assert.Equal(t, expectedCtx, ctx)
+
+	b, err := os.ReadFile(getMeasurementsPath())
+	assert.NoError(t, err)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
+		measurementID1,
+		"ping jsdelivr.com from Berlin --infinite --share",
 	)
 	assert.Equal(t, expectedHistory, string(b))
 }
