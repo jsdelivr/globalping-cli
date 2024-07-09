@@ -231,8 +231,7 @@ func testPostValidation(t *testing.T) {
 	assert.Equal(t, &MeasurementError{
 		Code: 400,
 		Message: `invalid parameters
- - "target" does not match any of the allowed types
-Please check the help for more information`,
+ - "target" does not match any of the allowed types`,
 	}, err)
 }
 

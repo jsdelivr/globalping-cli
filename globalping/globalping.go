@@ -58,7 +58,11 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			for _, v := range data.Error.Params {
 				resErr += fmt.Sprintf(" - %s\n", v)
 			}
-			err.Message = fmt.Sprintf("invalid parameters\n%sPlease check the help for more information", resErr)
+			// Remove the last \n
+			if len(resErr) > 0 {
+				resErr = resErr[:len(resErr)-1]
+			}
+			err.Message = fmt.Sprintf("invalid parameters\n%s", resErr)
 			return nil, err
 		}
 
