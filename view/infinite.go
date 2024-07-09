@@ -17,8 +17,8 @@ var (
 	// Table defaults
 	colSeparator = " | "
 
-	apiCreditInfo            = "> This infinite ping will consume 1 API credit for every 16 packets until stopped.\n"
-	apiCreditConsumptionInfo = "Currently consuming ~%s/minute.\n"
+	apiCreditInfo            = "Consuming 1 API credit for every 16 packets until stopped.\n"
+	apiCreditConsumptionInfo = "Consuming ~%s/minute.\n"
 )
 
 func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
