@@ -179,7 +179,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    0 |   0.00% |        - |        - |        - |        -
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 	err := viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
@@ -203,7 +203,7 @@ no answer yet for icmp_seq=2`
 London, GB, EU, OVH SAS (AS0)                  |    2 |  50.00% |  17.6 ms |  17.6 ms |  17.6 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement)
@@ -231,7 +231,7 @@ rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement)
@@ -272,7 +272,7 @@ Currently consuming ~360 API credits/minute.
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  17.0 ms |  17.0 ms |  17.3 ms |  17.6 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    2 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 }
@@ -304,7 +304,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    0 |   0.00% |        - |        - |        - |        -
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err := viewer.OutputInfinite(measurement1)
@@ -329,7 +329,7 @@ Currently consuming ~360 API credits/minute.
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement2)
@@ -345,7 +345,7 @@ Currently consuming ~360 API credits/minute.
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -378,7 +378,7 @@ rtt min/avg/max/mdev = 20/25/30/5 ms`
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -403,7 +403,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 }
@@ -428,7 +428,7 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Currently consuming ~360 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 	assert.Equal(t,
