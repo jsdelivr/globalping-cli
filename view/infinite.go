@@ -17,8 +17,10 @@ var (
 	// Table defaults
 	colSeparator = " | "
 
-	apiCreditInfo            = "Consuming 1 API credit for every 16 packets until stopped.\n"
-	apiCreditConsumptionInfo = "Consuming ~%s/minute.\n"
+	apiCreditInfo                 = "Consuming 1 API credit for every 16 packets until stopped.\n"
+	apiCreditConsumptionInfo      = "Consuming ~%s/minute.\n"
+	apiCreditLastConsumptionInfo  = ""
+	apiCreditLastMeasurementCount = 0
 )
 
 func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
@@ -45,7 +47,7 @@ func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
-		v.printer.Print(apiCreditInfo)
+		v.printer.Print(v.getAPICreditInfo())
 	}
 	probeMeasurement := &m.Results[0]
 	hm := v.ctx.History.Find(m.ID)
@@ -89,11 +91,7 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 	width, _ := v.printer.GetSize()
 	o, newStats, newAggregatedStats := v.generateTable(hm, m, width-2)
 	hm.Stats = newStats
-	creditsInfo := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(v.calculateAPICreditConsumption(), "API credit"))
-	if len(creditsInfo) > width-4 {
-		creditsInfo = creditsInfo[:width-5] + "..."
-	}
-	output := *o + creditsInfo
+	output := *o + v.getAPICreditConsumptionInfo(width)
 	v.printer.AreaUpdate(&output)
 	if m.Status != globalping.StatusInProgress {
 		v.ctx.AggregatedStats = newAggregatedStats
@@ -392,7 +390,31 @@ func computeMdev(tsum float64, tsum2 float64, rcv int, avg float64) float64 {
 	return math.Sqrt(tsum2/float64(rcv) - avg*avg)
 }
 
-func (v *viewer) calculateAPICreditConsumption() int64 {
+func (v *viewer) getAPICreditInfo() string {
+	if v.ctx.CIMode {
+		return apiCreditInfo
+	}
+	return v.printer.Color(apiCreditInfo, ColorLightYellow)
+}
+
+func (v *viewer) getAPICreditConsumptionInfo(width int) string {
+	if v.ctx.MeasurementsCreated < 2 {
+		return ""
+	}
+	if v.ctx.MeasurementsCreated == apiCreditLastMeasurementCount {
+		return apiCreditLastConsumptionInfo
+	}
+	apiCreditLastMeasurementCount = v.ctx.MeasurementsCreated
 	elapsedMinutes := v.time.Now().Sub(v.ctx.RunSessionStartedAt).Minutes()
-	return int64(math.Ceil(float64(v.ctx.MeasurementsCreated*len(v.ctx.AggregatedStats)) / elapsedMinutes))
+	consumption := int64(math.Ceil(float64(apiCreditLastMeasurementCount*len(v.ctx.AggregatedStats)) / elapsedMinutes))
+	info := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(consumption, "API credit"))
+	if len(info) > width-4 {
+		info = info[:width-5] + "..."
+	}
+	if v.ctx.CIMode {
+		apiCreditLastConsumptionInfo = info
+	} else {
+		apiCreditLastConsumptionInfo = v.printer.Color(info, ColorLightYellow)
+	}
+	return apiCreditLastConsumptionInfo
 }

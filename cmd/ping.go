@@ -119,11 +119,15 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	<-r.cancel
 
 	r.viewer.OutputSummary()
-	if err != nil {
+	if err != nil && r.ctx.MeasurementsCreated > 0 {
 		e, ok := err.(*globalping.MeasurementError)
 		if ok && e.Code == http.StatusTooManyRequests {
 			r.Cmd.SilenceErrors = true
-			r.printer.Printf("> %s\n", e.Message)
+			if r.ctx.CIMode {
+				r.printer.Printf("> %s\n", e.Message)
+			} else {
+				r.printer.Printf(r.printer.Color("> "+e.Message, view.ColorLightYellow) + "\n")
+			}
 		}
 	}
 	r.viewer.OutputShare()
