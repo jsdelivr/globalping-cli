@@ -67,6 +67,18 @@ func (mr *MockViewerMockRecorder) OutputInfinite(m any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputInfinite", reflect.TypeOf((*MockViewer)(nil).OutputInfinite), m)
 }
 
+// OutputShare mocks base method.
+func (m *MockViewer) OutputShare() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OutputShare")
+}
+
+// OutputShare indicates an expected call of OutputShare.
+func (mr *MockViewerMockRecorder) OutputShare() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputShare", reflect.TypeOf((*MockViewer)(nil).OutputShare))
+}
+
 // OutputSummary mocks base method.
 func (m *MockViewer) OutputSummary() {
 	m.ctrl.T.Helper()

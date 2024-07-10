@@ -13,9 +13,10 @@ import (
 type Color string
 
 const (
-	ColorNone      Color = ""
-	ColorLightCyan Color = "96"
-	ColorHighlight Color = "38;2;23;212;167"
+	ColorNone        Color = ""
+	ColorLightYellow Color = "93"
+	ColorLightCyan   Color = "96"
+	ColorHighlight   Color = "38;2;23;212;167"
 )
 
 type Printer struct {

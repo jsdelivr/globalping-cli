@@ -27,7 +27,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
@@ -77,7 +77,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	totalCalls := 10
 	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(totalCalls).Return(expectedResponse, false, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(totalCalls).Return(expectedResponse, nil)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	c1 := viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(4).Return(nil)
@@ -294,10 +294,10 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedResponse4.ID = measurementID4
 
 	gbMock := mocks.NewMockClient(ctrl)
-	createCall1 := gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, false, nil)
-	createCall2 := gbMock.EXPECT().CreateMeasurement(expectedOpts2).Return(expectedResponse2, false, nil).After(createCall1)
-	createCall3 := gbMock.EXPECT().CreateMeasurement(expectedOpts3).Return(expectedResponse3, false, nil).After(createCall2)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts4).Return(expectedResponse4, false, nil).After(createCall3)
+	createCall1 := gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, nil)
+	createCall2 := gbMock.EXPECT().CreateMeasurement(expectedOpts2).Return(expectedResponse2, nil).After(createCall1)
+	createCall3 := gbMock.EXPECT().CreateMeasurement(expectedOpts3).Return(expectedResponse3, nil).After(createCall2)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts4).Return(expectedResponse4, nil).After(createCall3)
 
 	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusFinished)
 	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusInProgress)
@@ -332,6 +332,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	}).After(outputCall6)
 
 	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
 
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
@@ -364,6 +365,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Infinite:            true,
 		CIMode:              true,
 		MeasurementsCreated: 4,
+		RunSessionStartedAt: defaultCurrentTime,
 	}
 	expectedCtx.History = &view.HistoryBuffer{
 		Index: 4,
@@ -435,14 +437,15 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, false, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, nil)
 
 	expectedMeasurement := createDefaultMeasurement("ping")
 	gbMock.EXPECT().GetMeasurement(measurementID1).Return(expectedMeasurement, nil)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).Return(errors.New("error message"))
-	viewerMock.EXPECT().OutputSummary().Times(0)
+	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
 
 	timeMock := mocks.NewMockTime(ctrl)
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
@@ -478,6 +481,72 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	assert.Equal(t, expectedHistory, string(b))
 }
 
+func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts1 := createDefaultMeasurementCreate("ping")
+	expectedOpts1.Options.Packets = 16
+	expectedOpts2 := createDefaultMeasurementCreate("ping")
+	expectedOpts2.Options.Packets = 16
+	expectedOpts2.Locations[0].Magic = measurementID1
+
+	expectedResponse1 := createDefaultMeasurementCreateResponse()
+
+	gbMock := mocks.NewMockClient(ctrl)
+	createCall1 := gbMock.EXPECT().CreateMeasurement(expectedOpts1).Return(expectedResponse1, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts2).Return(nil, &globalping.MeasurementError{
+		Code:    429,
+		Message: "too many requests",
+	}).After(createCall1)
+
+	expectedMeasurement := createDefaultMeasurement("ping")
+	gbMock.EXPECT().GetMeasurement(measurementID1).Return(expectedMeasurement, nil)
+
+	viewerMock := mocks.NewMockViewer(ctrl)
+	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(waitFn)
+
+	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
+
+	timeMock := mocks.NewMockTime(ctrl)
+	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("ping")
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin", "--infinite", "--share"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Equal(t, "too many requests", err.Error())
+
+	assert.Equal(t, "> too many requests\n", w.String())
+
+	expectedCtx := createDefaultExpectedContext("ping")
+	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished
+	expectedCtx.Packets = 16
+	expectedCtx.Infinite = true
+	expectedCtx.Share = true
+	assert.Equal(t, expectedCtx, ctx)
+
+	b, err := os.ReadFile(getMeasurementsPath())
+	assert.NoError(t, err)
+	expectedHistory := measurementID1 + "\n"
+	assert.Equal(t, expectedHistory, string(b))
+
+	b, err = os.ReadFile(getHistoryPath())
+	assert.NoError(t, err)
+	expectedHistory = createDefaultExpectedHistoryLogItem(
+		"1",
+		measurementID1,
+		"ping jsdelivr.com from Berlin --infinite --share",
+	)
+	assert.Equal(t, expectedHistory, string(b))
+}
+
 func Test_Execute_Ping_IPv4(t *testing.T) {
 	t.Cleanup(sessionCleanup)
 
@@ -490,7 +559,7 @@ func Test_Execute_Ping_IPv4(t *testing.T) {
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
@@ -527,7 +596,7 @@ func Test_Execute_Ping_IPv6(t *testing.T) {
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, false, nil)
+	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
 
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)

@@ -44,6 +44,7 @@ type Context struct {
 	AggregatedStats     []*MeasurementStats
 	MeasurementsCreated int
 	History             *HistoryBuffer // History of measurements
+	RunSessionStartedAt time.Time
 }
 
 type MeasurementStats struct {

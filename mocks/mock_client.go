@@ -40,13 +40,12 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // CreateMeasurement mocks base method.
-func (m *MockClient) CreateMeasurement(measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, bool, error) {
+func (m *MockClient) CreateMeasurement(measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateMeasurement", measurement)
 	ret0, _ := ret[0].(*globalping.MeasurementCreateResponse)
-	ret1, _ := ret[1].(bool)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateMeasurement indicates an expected call of CreateMeasurement.

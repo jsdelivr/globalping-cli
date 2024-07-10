@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"syscall"
 	"time"
 
@@ -117,15 +118,26 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	}()
 	<-r.cancel
 
-	if err == nil {
-		r.viewer.OutputSummary()
+	r.viewer.OutputSummary()
+	if err != nil && r.ctx.MeasurementsCreated > 0 {
+		e, ok := err.(*globalping.MeasurementError)
+		if ok && e.Code == http.StatusTooManyRequests {
+			r.Cmd.SilenceErrors = true
+			if r.ctx.CIMode {
+				r.printer.Printf("> %s\n", e.Message)
+			} else {
+				r.printer.Printf(r.printer.Color("> "+e.Message, view.ColorLightYellow) + "\n")
+			}
+		}
 	}
+	r.viewer.OutputShare()
 	return err
 }
 
 func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
+	r.ctx.RunSessionStartedAt = r.time.Now()
 	for {
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
@@ -160,8 +172,9 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 				hm, err := r.createMeasurement(opts)
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
+				} else {
+					mbuf.Append(hm)
 				}
-				mbuf.Append(hm)
 				elapsedTime += r.time.Now().Sub(start)
 			}
 			el = mbuf.Next()
@@ -186,11 +199,9 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 }
 
 func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
-	res, showHelp, err := r.client.CreateMeasurement(opts)
+	res, err := r.client.CreateMeasurement(opts)
 	if err != nil {
-		if !showHelp {
-			r.Cmd.SilenceUsage = true
-		}
+		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		return nil, err
 	}
 	r.ctx.MeasurementsCreated++
