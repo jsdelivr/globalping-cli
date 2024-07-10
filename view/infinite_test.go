@@ -325,7 +325,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  20.0 ms |  20.0 ms |  20.0 ms |  20.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Consuming ~720 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement2)
@@ -341,7 +341,7 @@ Consuming ~720 API credits/minute.
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    3 |   0.00% |  20.0 ms |  20.0 ms |  21.7 ms |  25.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Consuming ~720 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -374,7 +374,7 @@ rtt min/avg/max/mdev = 20/25/30/5 ms`
 London, GB, EU, OVH SAS (AS0)                  |    3 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Consuming ~720 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 
 	err = viewer.OutputInfinite(measurement1)
@@ -399,7 +399,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 London, GB, EU, OVH SAS (AS0)                  |    6 |   0.00% |  25.0 ms |  10.0 ms |  16.7 ms |  25.0 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    4 |   0.00% |  20.0 ms |  20.0 ms |  23.8 ms |  30.0 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
-Consuming ~720 API credits/minute.
+Consuming ~360 API credits/minute.
 `
 	assert.Equal(t, expectedOutput, w.String())
 }
