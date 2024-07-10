@@ -409,7 +409,7 @@ func (v *viewer) getAPICreditConsumptionInfo(width int) string {
 	consumption := int64(math.Ceil(float64(apiCreditLastMeasurementCount*len(v.ctx.AggregatedStats)) / elapsedMinutes))
 	info := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(consumption, "API credit"))
 	if len(info) > width-4 {
-		info = info[:width-5] + "..."
+		info = info[:max(width-5, 0)] + "..."
 	}
 	if v.ctx.CIMode {
 		apiCreditLastConsumptionInfo = info
