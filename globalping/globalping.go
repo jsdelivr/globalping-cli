@@ -26,7 +26,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 		return nil, &MeasurementError{Message: "failed to marshal post data - please report this bug"}
 	}
 
-	req, err := http.NewRequest("POST", c.config.GlobalpingAPIURL+"/measurements", bytes.NewBuffer(postData))
+	req, err := http.NewRequest("POST", c.apiURL+"/measurements", bytes.NewBuffer(postData))
 	if err != nil {
 		return nil, &MeasurementError{Message: "failed to create request - please report this bug"}
 	}
@@ -34,8 +34,8 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
 
-	if c.config.GlobalpingToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.config.GlobalpingToken)
+	if c.apiToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	}
 
 	resp, err := c.http.Do(req)
@@ -83,7 +83,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			creditsRequired, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Required"), 10, 64)
 			remaining := rateLimitRemaining + creditsRemaining
 			required := rateLimitRemaining + creditsRequired
-			if c.config.GlobalpingToken == "" {
+			if c.apiToken == "" {
 				if remaining > 0 {
 					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
 					return nil, err
@@ -142,7 +142,7 @@ func (c *client) GetMeasurement(id string) (*Measurement, error) {
 }
 
 func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
-	req, err := http.NewRequest("GET", c.config.GlobalpingAPIURL+"/measurements/"+id, nil)
+	req, err := http.NewRequest("GET", c.apiURL+"/measurements/"+id, nil)
 	if err != nil {
 		return nil, &MeasurementError{Message: "failed to create request"}
 	}
@@ -150,7 +150,7 @@ func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	req.Header.Set("User-Agent", userAgent())
 	req.Header.Set("Accept-Encoding", "br")
 
-	etag := c.etags[id]
+	etag := c.getETag(id)
 	if etag != "" {
 		req.Header.Set("If-None-Match", etag)
 	}
@@ -179,7 +179,7 @@ func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	}
 
 	if resp.StatusCode == http.StatusNotModified {
-		respBytes := c.measurements[etag]
+		respBytes := c.getCachedResponse(id)
 		if respBytes == nil {
 			return nil, &MeasurementError{Message: "response not found in etags cache"}
 		}
@@ -199,9 +199,7 @@ func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	}
 
 	// save etag and response to cache
-	etag = resp.Header.Get("ETag")
-	c.etags[id] = etag
-	c.measurements[etag] = respBytes
+	c.cacheResponse(id, resp.Header.Get("ETag"), respBytes)
 
 	return respBytes, nil
 }
