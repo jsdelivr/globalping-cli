@@ -80,12 +80,11 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			rateLimitRemaining, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Remaining"), 10, 64)
 			rateLimitReset, _ := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64)
 			creditsRemaining, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Remaining"), 10, 64)
-			creditsRequired, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Required"), 10, 64)
+			requestCost, _ := strconv.ParseInt(resp.Header.Get("X-Request-Cost"), 10, 64)
 			remaining := rateLimitRemaining + creditsRemaining
-			required := rateLimitRemaining + creditsRequired
 			if c.config.GlobalpingToken == "" {
 				if remaining > 0 {
-					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
+					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
 				err.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
@@ -93,7 +92,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 
 			} else {
 				if remaining > 0 {
-					err.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), required, utils.FormatSeconds(rateLimitReset))
+					err.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
 					return nil, err
 				}
 				err.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))

@@ -88,7 +88,7 @@ func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
 		w.Header().Set("X-RateLimit-Remaining", "1")
 		w.Header().Set("X-RateLimit-Reset", rateLimitReset)
 		w.Header().Set("X-Credits-Remaining", "1")
-		w.Header().Set("X-Credits-Required", "2")
+		w.Header().Set("X-Request-Cost", "3")
 		w.WriteHeader(429)
 		_, err := w.Write([]byte(`{
 			"error": {
@@ -117,7 +117,7 @@ func testPostMoreCreditsRequiredAuthError(t *testing.T) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
 		w.Header().Set("X-RateLimit-Reset", rateLimitReset)
 		w.Header().Set("X-Credits-Remaining", "1")
-		w.Header().Set("X-Credits-Required", "2")
+		w.Header().Set("X-Request-Cost", "2")
 		w.WriteHeader(429)
 		_, err := w.Write([]byte(`{
 			"error": {
