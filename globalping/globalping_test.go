@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
-	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/version"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestPostAPI(t *testing.T) {
 func testPostValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd","probesCount":1}`, http.StatusAccepted)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	res, err := client.CreateMeasurement(opts)
@@ -55,9 +54,9 @@ func testPostValid(t *testing.T) {
 func testPostAuthorized(t *testing.T) {
 	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
-	client := NewClient(&utils.Config{
-		GlobalpingToken:  "secret",
-		GlobalpingAPIURL: server.URL,
+	client := NewClient(Config{
+		APIToken: "secret",
+		APIURL:   server.URL,
 	})
 
 	opts := &MeasurementCreate{}
@@ -71,8 +70,8 @@ func testPostAuthorized(t *testing.T) {
 func testPostAuthorizedError(t *testing.T) {
 	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
-	client := NewClient(&utils.Config{
-		GlobalpingAPIURL: server.URL,
+	client := NewClient(Config{
+		APIURL: server.URL,
 	})
 
 	opts := &MeasurementCreate{}
@@ -101,7 +100,7 @@ func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, "2 credits", 3, "1 minute"))
@@ -130,9 +129,9 @@ func testPostMoreCreditsRequiredAuthError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(&utils.Config{
-		GlobalpingToken:  "secret",
-		GlobalpingAPIURL: server.URL,
+	client := NewClient(Config{
+		APIToken: "secret",
+		APIURL:   server.URL,
 	})
 	opts := &MeasurementCreate{}
 
@@ -161,7 +160,7 @@ func testPostNoCreditsNoAuthError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
@@ -185,9 +184,9 @@ func testPostNoCreditsAuthError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewClient(&utils.Config{
-		GlobalpingToken:  "secret",
-		GlobalpingAPIURL: server.URL,
+	client := NewClient(Config{
+		APIToken: "secret",
+		APIURL:   server.URL,
 	})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
@@ -203,7 +202,7 @@ func testPostNoProbes(t *testing.T) {
     }}`, 422)
 	defer server.Close()
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
 
@@ -223,7 +222,7 @@ func testPostValidation(t *testing.T) {
         }
     }}`, 400)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
@@ -242,7 +241,7 @@ func testPostInternalError(t *testing.T) {
       "type": "api_error"
     }}`, 500)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)
@@ -269,7 +268,7 @@ func TestGetAPI(t *testing.T) {
 func testGetValid(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
 		t.Error(err)
@@ -280,7 +279,7 @@ func testGetValid(t *testing.T) {
 func testGetJson(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 	res, err := client.GetMeasurementRaw("abcd")
 	if err != nil {
 		t.Error(err)
@@ -333,7 +332,7 @@ func testGetPing(t *testing.T) {
 		}
 	}]}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -429,7 +428,7 @@ func testGetTraceroute(t *testing.T) {
 	}}]}`, http.StatusOK)
 	defer server.Close()
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -505,7 +504,7 @@ func testGetDns(t *testing.T) {
 		}
 	}]}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -627,7 +626,7 @@ func testGetMtr(t *testing.T) {
 		}
 	}]}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -732,7 +731,7 @@ func testGetHttp(t *testing.T) {
 		}
 	}]}`, http.StatusOK)
 	defer server.Close()
-	client := NewClient(&utils.Config{GlobalpingAPIURL: server.URL})
+	client := NewClient(Config{APIURL: server.URL})
 
 	res, err := client.GetMeasurement("abcd")
 	if err != nil {
@@ -806,7 +805,7 @@ func TestFetchWithEtag(t *testing.T) {
 		assert.NoError(t, err)
 	}))
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: s.URL})
+	client := NewClient(Config{APIURL: s.URL})
 
 	// first request for id1
 	m, err := client.GetMeasurement(id1)
@@ -852,7 +851,7 @@ func TestFetchWithBrotli(t *testing.T) {
 		assert.NoError(t, err)
 	}))
 
-	client := NewClient(&utils.Config{GlobalpingAPIURL: s.URL})
+	client := NewClient(Config{APIURL: s.URL})
 
 	m, err := client.GetMeasurement(id)
 	assert.NoError(t, err)

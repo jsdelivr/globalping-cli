@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
@@ -39,7 +40,11 @@ func Execute() {
 		From:           "world",
 		Limit:          1,
 	}
-	globalpingClient := globalping.NewClient(config)
+	t := time.NewTicker(10 * time.Second)
+	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
+		APIURL:   config.GlobalpingAPIURL,
+		APIToken: config.GlobalpingToken,
+	}, t, 30)
 	globalpingProbe := probe.NewProbe()
 	viewer := view.NewViewer(ctx, printer, utime, globalpingClient)
 	root := NewRoot(printer, ctx, viewer, utime, globalpingClient, globalpingProbe)
