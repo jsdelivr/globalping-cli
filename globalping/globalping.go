@@ -203,24 +203,6 @@ func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 	return respBytes, nil
 }
 
-func DecodeDNSTimings(timings json.RawMessage) (*DNSTimings, error) {
-	t := &DNSTimings{}
-	err := json.Unmarshal(timings, t)
-	if err != nil {
-		return nil, &MeasurementError{Message: "invalid timings format returned (other)"}
-	}
-	return t, nil
-}
-
-func DecodeHTTPTimings(timings json.RawMessage) (*HTTPTimings, error) {
-	t := &HTTPTimings{}
-	err := json.Unmarshal(timings, t)
-	if err != nil {
-		return nil, &MeasurementError{Message: "invalid timings format returned (other)"}
-	}
-	return t, nil
-}
-
 func DecodePingTimings(timings json.RawMessage) ([]PingTiming, error) {
 	t := []PingTiming{}
 	err := json.Unmarshal(timings, &t)
@@ -237,6 +219,78 @@ func DecodePingStats(stats json.RawMessage) (*PingStats, error) {
 		return nil, &MeasurementError{Message: "invalid stats format returned"}
 	}
 	return s, nil
+}
+
+func DecodeTracerouteHops(hops json.RawMessage) ([]TracerouteHop, error) {
+	t := []TracerouteHop{}
+	err := json.Unmarshal(hops, &t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid hops format returned"}
+	}
+	return t, nil
+}
+
+func DecodeDNSAnswers(answers json.RawMessage) ([]DNSAnswer, error) {
+	a := []DNSAnswer{}
+	err := json.Unmarshal(answers, &a)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid answers format returned"}
+	}
+	return a, nil
+}
+
+func DecodeTraceDNSHops(hops json.RawMessage) ([]TraceDNSHop, error) {
+	t := []TraceDNSHop{}
+	err := json.Unmarshal(hops, &t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid hops format returned"}
+	}
+	return t, nil
+}
+
+func DecodeDNSTimings(timings json.RawMessage) (*DNSTimings, error) {
+	t := &DNSTimings{}
+	err := json.Unmarshal(timings, t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid timings format returned (other)"}
+	}
+	return t, nil
+}
+
+func DecodeMTRHops(hops json.RawMessage) ([]MTRHop, error) {
+	t := []MTRHop{}
+	err := json.Unmarshal(hops, &t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid hops format returned"}
+	}
+	return t, nil
+}
+
+func DecodeHTTPHeaders(headers json.RawMessage) (map[string]string, error) {
+	h := map[string]string{}
+	err := json.Unmarshal(headers, &h)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid headers format returned"}
+	}
+	return h, nil
+}
+
+func DecodeHTTPTimings(timings json.RawMessage) (*HTTPTimings, error) {
+	t := &HTTPTimings{}
+	err := json.Unmarshal(timings, t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid timings format returned (other)"}
+	}
+	return t, nil
+}
+
+func DecodeHTTPTLS(tls json.RawMessage) (*HTTPTLSCertificate, error) {
+	t := &HTTPTLSCertificate{}
+	err := json.Unmarshal(tls, t)
+	if err != nil {
+		return nil, &MeasurementError{Message: "invalid tls format returned"}
+	}
+	return t, nil
 }
 
 func userAgent() string {
