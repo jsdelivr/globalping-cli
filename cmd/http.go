@@ -40,7 +40,7 @@ Examples:
   http google.com from London,Belgium --limit 2 --method get --ci
 
   # Perform an HTTP GET request to google.com using probes from a previous measurement by using its ID.
-  http google.com from rvasVvKnj48cxNjC -X get
+  http google.com from rvasVvKnj48cxNjC --method get
 
   # Perform an HTTP GET request to google.com using the same probes from the first measurement in this session.
   http google.com from @1 --method get
