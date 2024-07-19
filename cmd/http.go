@@ -40,7 +40,7 @@ Examples:
   http google.com from London,Belgium --limit 2 --method get --ci
 
   # Perform an HTTP GET request to google.com using probes from a previous measurement by using its ID.
-  http google.com from rvasVvKnj48cxNjC --method get
+  http google.com from rvasVvKnj48cxNjC -X get
 
   # Perform an HTTP GET request to google.com using the same probes from the first measurement in this session.
   http google.com from @1 --method get
@@ -75,7 +75,7 @@ Examples:
 	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
 	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
 	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
-	flags.StringVar(&r.ctx.Method, "method", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
+	flags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
 	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
 	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
 
