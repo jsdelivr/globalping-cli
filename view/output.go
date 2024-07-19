@@ -135,18 +135,11 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 			}
 		}
 	}
-	if v.ctx.CIMode {
-		return output.String()
-	}
 	return v.printer.BoldWithColor(output.String(), ColorHighlight)
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	m := fmt.Sprintf("> View the results online: %s%s", ShareURL, id)
-	if v.ctx.CIMode {
-		return m
-	}
-	return v.printer.BoldWithColor(m, ColorHighlight)
+	return v.printer.BoldWithColor(fmt.Sprintf("> View the results online: %s%s", ShareURL, id), ColorHighlight)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {

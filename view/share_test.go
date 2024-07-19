@@ -33,9 +33,10 @@ func Test_OutputShare(t *testing.T) {
 		}
 		ctx.History.Push(&HistoryItem{Id: measurementID2})
 		ctx.Share = true
-		ctx.CIMode = true
 		w := new(bytes.Buffer)
-		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+		printer := NewPrinter(nil, w, w)
+		printer.DisableStyling()
+		viewer := NewViewer(ctx, printer, nil, nil)
 		viewer.OutputShare()
 
 		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s.%s\n", measurementID1, measurementID2)
@@ -52,12 +53,13 @@ func Test_OutputShare(t *testing.T) {
 			},
 			History:             history,
 			Share:               true,
-			CIMode:              true,
 			MeasurementsCreated: 2,
 			Packets:             16,
 		}
 		w := new(bytes.Buffer)
-		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+		printer := NewPrinter(nil, w, w)
+		printer.DisableStyling()
+		viewer := NewViewer(ctx, printer, nil, nil)
 		viewer.OutputShare()
 
 		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s", measurementID2) +

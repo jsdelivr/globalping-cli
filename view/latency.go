@@ -58,9 +58,5 @@ func (v *viewer) OutputLatency(id string, data *globalping.Measurement) error {
 }
 
 func (v *viewer) latencyStatHeader(title string) string {
-	text := fmt.Sprintf("%s: ", title)
-	if v.ctx.CIMode {
-		return text
-	}
-	return v.printer.Bold(text)
+	return v.printer.Bold(fmt.Sprintf("%s: ", title))
 }

@@ -62,10 +62,12 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	}
 
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, NewPrinter(nil, w, w), nil, gbMock)
+	}, printer, nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 
@@ -127,11 +129,13 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
 		Share:  true,
-	}, NewPrinter(nil, w, w), nil, gbMock)
+	}, printer, nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 
@@ -193,11 +197,13 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
 		Full:   true,
-	}, NewPrinter(nil, w, w), nil, gbMock)
+	}, printer, nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 
@@ -259,10 +265,12 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, NewPrinter(nil, w, w), nil, gbMock)
+	}, printer, nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 
@@ -314,10 +322,12 @@ func Test_Output_Default_Ping(t *testing.T) {
 
 	m := &globalping.MeasurementCreate{}
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "ping",
 		CIMode: true,
-	}, NewPrinter(nil, w, w), nil, gbMock)
+	}, printer, nil, gbMock)
 
 	viewer.Output(measurementID1, m)
 

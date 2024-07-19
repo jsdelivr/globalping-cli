@@ -161,7 +161,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 		table[i][0] = strings.ReplaceAll(table[i][0], "\t", "  ") // Replace tabs with spaces
 		lines := strings.Split(table[i][0], "\n")                 // Split first column into lines
 		color := ColorNone                                        // No color
-		if i == 0 && !v.ctx.CIMode {
+		if i == 0 {
 			color = ColorLightCyan
 		}
 		for k := range lines {
@@ -391,9 +391,6 @@ func computeMdev(tsum float64, tsum2 float64, rcv int, avg float64) float64 {
 }
 
 func (v *viewer) getAPICreditInfo() string {
-	if v.ctx.CIMode {
-		return apiCreditInfo
-	}
 	return v.printer.Color(apiCreditInfo, ColorLightYellow)
 }
 
@@ -411,10 +408,7 @@ func (v *viewer) getAPICreditConsumptionInfo(width int) string {
 	if len(info) > width-4 {
 		info = info[:max(width-5, 0)] + "..."
 	}
-	if v.ctx.CIMode {
-		apiCreditLastConsumptionInfo = info
-	} else {
-		apiCreditLastConsumptionInfo = v.printer.Color(info, ColorLightYellow)
-	}
+
+	apiCreditLastConsumptionInfo = v.printer.Color(info, ColorLightYellow)
 	return apiCreditLastConsumptionInfo
 }
