@@ -20,7 +20,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
 		viewer.OutputShare()
 
-		expectedOutput := fmt.Sprintf("\033[1;38;2;23;212;167m> View the results online: https://www.jsdelivr.com/globalping?measurement=%s\033[0m\n", measurementID1)
+		expectedOutput := fmt.Sprintf("\033[1;38;5;43m> View the results online: https://www.jsdelivr.com/globalping?measurement=%s\033[0m\n", measurementID1)
 
 		assert.Equal(t, expectedOutput, w.String())
 	})

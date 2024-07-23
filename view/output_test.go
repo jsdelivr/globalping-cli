@@ -27,7 +27,7 @@ func Test_HeadersBase(t *testing.T) {
 		ctx:     &Context{},
 		printer: NewPrinter(nil, nil, nil),
 	}
-	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345)\033[0m", v.getProbeInfo(&testResult))
+	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345)\033[0m", v.getProbeInfo(&testResult))
 }
 
 func Test_HeadersTags(t *testing.T) {

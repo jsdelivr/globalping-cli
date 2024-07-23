@@ -13,10 +13,39 @@ import (
 type Color string
 
 const (
-	ColorNone        Color = ""
-	ColorLightYellow Color = "93"
-	ColorLightCyan   Color = "96"
-	ColorHighlight   Color = "38;2;23;212;167"
+	ColorNone       Color = ""
+	FGBlack         Color = "30"
+	FGRed           Color = "31"
+	FGGreen         Color = "32"
+	FGYellow        Color = "33"
+	FGBlue          Color = "34"
+	FGMagenta       Color = "35"
+	FGCyan          Color = "36"
+	FGWhite         Color = "37"
+	FGBrightBlack   Color = "90"
+	FGBrightRed     Color = "91"
+	FGBrightGreen   Color = "92"
+	FGBrightYellow  Color = "93"
+	FGBrightBlue    Color = "94"
+	FGBrightMagenta Color = "95"
+	FGBrightCyan    Color = "96"
+	FGBrightWhite   Color = "97"
+	BGBlack         Color = "40"
+	BGRed           Color = "41"
+	BGGreen         Color = "42"
+	BGYellow        Color = "43"
+	BGBlue          Color = "44"
+	BGMagenta       Color = "45"
+	BGCyan          Color = "46"
+	BGWhite         Color = "47"
+	BGBrightBlack   Color = "100"
+	BGBrightRed     Color = "101"
+	BGBrightGreen   Color = "102"
+	BGBrightYellow  Color = "103"
+	BGBrightBlue    Color = "104"
+	BGBrightMagenta Color = "105"
+	BGBrightCyan    Color = "106"
+	BGBrightWhite   Color = "107"
 )
 
 type Printer struct {
@@ -93,6 +122,20 @@ func (p *Printer) Color(s string, color Color) string {
 	return fmt.Sprintf("\033[%sm%s\033[0m", color, s)
 }
 
+func (p *Printer) ColorForeground(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
+	return fmt.Sprintf("\033[38;5;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) ColorBackground(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
+	return fmt.Sprintf("\033[48;5;%sm%s\033[0m", color, s)
+}
+
 func (p *Printer) Bold(s string) string {
 	if p.disableStyling {
 		return s
@@ -100,11 +143,25 @@ func (p *Printer) Bold(s string) string {
 	return fmt.Sprintf("\033[1m%s\033[0m", s)
 }
 
-func (p *Printer) BoldWithColor(s string, color Color) string {
+func (p *Printer) BoldColor(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
 	return fmt.Sprintf("\033[1;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) BoldForeground(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
+	return fmt.Sprintf("\033[1;38;5;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) BoldBackground(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
+	return fmt.Sprintf("\033[1;48;5;%sm%s\033[0m", color, s)
 }
 
 func (p *Printer) GetSize() (width, height int) {

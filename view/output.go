@@ -135,11 +135,11 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 			}
 		}
 	}
-	return v.printer.BoldWithColor(output.String(), ColorHighlight)
+	return v.printer.BoldForeground(output.String(), BGYellow)
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	return v.printer.BoldWithColor(fmt.Sprintf("> View the results online: %s%s", ShareURL, id), ColorHighlight)
+	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s%s", ShareURL, id), BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
