@@ -11,7 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
+func Test_Output_Latency_Ping(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -75,7 +75,7 @@ func Test_Output_Latency_Ping_Not_CI(t *testing.T) {
 		"\033[1mAvg: \033[0m15.00 ms\n\n", w.String())
 }
 
-func Test_Output_Latency_Ping_CI(t *testing.T) {
+func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -102,13 +102,14 @@ func Test_Output_Latency_Ping_CI(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "ping",
 			ToLatency: true,
-			CIMode:    true,
 		},
-		NewPrinter(nil, w, w),
+		printer,
 		nil,
 		gbMock,
 	)
@@ -124,7 +125,7 @@ Avg: 12.00 ms
 `, w.String())
 }
 
-func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
+func Test_Output_Latency_DNS(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -168,7 +169,7 @@ func Test_Output_Latency_DNS_Not_CI(t *testing.T) {
 		"\033[1mTotal: \033[0m44 ms\n\n", w.String())
 }
 
-func Test_Output_Latency_DNS_CI(t *testing.T) {
+func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -195,13 +196,14 @@ func Test_Output_Latency_DNS_CI(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "dns",
 			ToLatency: true,
-			CIMode:    true,
 		},
-		NewPrinter(nil, w, w),
+		printer,
 		nil,
 		gbMock,
 	)
@@ -215,7 +217,7 @@ Total: 44 ms
 `, w.String())
 }
 
-func Test_Output_Latency_Http_Not_CI(t *testing.T) {
+func Test_Output_Latency_Http(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -264,7 +266,7 @@ func Test_Output_Latency_Http_Not_CI(t *testing.T) {
 		"\033[1mTCP: \033[0m4 ms\n\n", w.String())
 }
 
-func Test_Output_Latency_Http_CI(t *testing.T) {
+func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -291,13 +293,14 @@ func Test_Output_Latency_Http_CI(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "http",
 			ToLatency: true,
-			CIMode:    true,
 		},
-		NewPrinter(nil, w, w),
+		printer,
 		nil,
 		gbMock,
 	)

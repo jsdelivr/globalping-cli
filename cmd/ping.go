@@ -123,11 +123,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 		e, ok := err.(*globalping.MeasurementError)
 		if ok && e.Code == http.StatusTooManyRequests {
 			r.Cmd.SilenceErrors = true
-			if r.ctx.CIMode {
-				r.printer.Printf("> %s\n", e.Message)
-			} else {
-				r.printer.Printf(r.printer.Color("> "+e.Message, view.ColorLightYellow) + "\n")
-			}
+			r.printer.Printf(r.printer.Color("> "+e.Message, view.ColorLightYellow) + "\n")
 		}
 	}
 	r.viewer.OutputShare()

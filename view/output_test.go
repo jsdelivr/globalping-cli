@@ -24,9 +24,8 @@ var (
 
 func Test_HeadersBase(t *testing.T) {
 	v := viewer{
-		ctx: &Context{
-			CIMode: false,
-		},
+		ctx:     &Context{},
+		printer: NewPrinter(nil, nil, nil),
 	}
 	assert.Equal(t, "\033[1;38;2;23;212;167m> City (State), Country, Continent, Network (AS12345)\033[0m", v.getProbeInfo(&testResult))
 }
@@ -34,10 +33,11 @@ func Test_HeadersBase(t *testing.T) {
 func Test_HeadersTags(t *testing.T) {
 	newResult := testResult
 	newResult.Probe.Tags = []string{"tag1", "tag2"}
+	printer := NewPrinter(nil, nil, nil)
+	printer.DisableStyling()
 	v := viewer{
-		ctx: &Context{
-			CIMode: true,
-		},
+		ctx:     &Context{},
+		printer: printer,
 	}
 
 	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345) (tag1)", v.getProbeInfo(&newResult))

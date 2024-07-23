@@ -82,6 +82,10 @@ func (r *Root) updateContext(cmd string, args []string) error {
 		r.ctx.CIMode = true
 	}
 
+	if r.ctx.CIMode {
+		r.printer.DisableStyling()
+	}
+
 	return nil
 }
 

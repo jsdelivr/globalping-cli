@@ -23,13 +23,14 @@ func Test_Output_Json(t *testing.T) {
 	gbMock.EXPECT().GetMeasurementRaw(measurementID1).Times(1).Return(b, nil)
 
 	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
 	viewer := NewViewer(
 		&Context{
 			ToJSON: true,
 			Share:  true,
-			CIMode: true,
 		},
-		NewPrinter(nil, w, w),
+		printer,
 		nil,
 		gbMock,
 	)

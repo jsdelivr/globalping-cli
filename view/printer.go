@@ -20,10 +20,12 @@ const (
 )
 
 type Printer struct {
-	InReader   io.Reader
-	OutWriter  io.Writer
-	ErrWriter  io.Writer
-	areaHeight int
+	InReader  io.Reader
+	OutWriter io.Writer
+	ErrWriter io.Writer
+
+	areaHeight     int
+	disableStyling bool
 }
 
 func NewPrinter(
@@ -68,7 +70,7 @@ func (p *Printer) FillLeftAndColor(s string, w int, color Color) string {
 	if len(s) < w {
 		s = strings.Repeat(" ", w-len(s)) + s
 	}
-	if color == ColorNone {
+	if p.disableStyling || color == ColorNone {
 		return s
 	}
 	return p.Color(s, color)
@@ -78,21 +80,30 @@ func (p *Printer) FillRightAndColor(s string, w int, color Color) string {
 	if len(s) < w {
 		s += strings.Repeat(" ", w-len(s))
 	}
-	if color == ColorNone {
+	if p.disableStyling || color == ColorNone {
 		return s
 	}
 	return p.Color(s, color)
 }
 
 func (p *Printer) Color(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
 	return fmt.Sprintf("\033[%sm%s\033[0m", color, s)
 }
 
 func (p *Printer) Bold(s string) string {
+	if p.disableStyling {
+		return s
+	}
 	return fmt.Sprintf("\033[1m%s\033[0m", s)
 }
 
 func (p *Printer) BoldWithColor(s string, color Color) string {
+	if p.disableStyling {
+		return s
+	}
 	return fmt.Sprintf("\033[1;%sm%s\033[0m", color, s)
 }
 
@@ -123,4 +134,8 @@ func (p *Printer) AreaClear() {
 	}
 	fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
 	p.areaHeight = 0
+}
+
+func (p *Printer) DisableStyling() {
+	p.disableStyling = true
 }

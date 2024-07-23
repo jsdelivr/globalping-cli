@@ -20,10 +20,11 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
 
 	ctx := createDefaultContext("ping")
-	ctx.CIMode = true
 	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, timeMock, nil)
 
 	measurement := createPingMeasurement(measurementID1)
 	measurement.Status = globalping.StatusInProgress
@@ -141,9 +142,10 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 
 	ctx := createDefaultContext("ping")
-	ctx.CIMode = true
 	w := new(bytes.Buffer)
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil, nil)
 	err := viewer.OutputInfinite(measurement)
 	assert.Equal(t, "all probes failed", err.Error())
 
@@ -170,9 +172,10 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
 
 	ctx := createDefaultContext("ping")
-	ctx.CIMode = true
 	w := new(bytes.Buffer)
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, timeMock, nil)
 
 	// Call 1
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -292,9 +295,10 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	hm1 := ctx.History.Find(measurementID1)
 	hm1.Status = globalping.StatusInProgress
-	ctx.CIMode = true
 	w := new(bytes.Buffer)
-	viewer := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, timeMock, nil)
 
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
@@ -445,9 +449,10 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	}
 
 	ctx := createDefaultContext("ping")
-	ctx.CIMode = true
 	w := new(bytes.Buffer)
-	v := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	v := NewViewer(ctx, printer, nil, nil)
 	err := v.OutputInfinite(measurement)
 
 	assert.Equal(t, "all probes failed", err.Error())
@@ -479,7 +484,9 @@ func Test_GenerateTable_Full(t *testing.T) {
 		NewMeasurementStats(),
 	}
 	hm := ctx.History.Find(measurementID1)
-	viewer := &viewer{ctx: ctx}
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	viewer := &viewer{ctx: ctx, printer: printer}
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
 
@@ -488,7 +495,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 		"Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
-
+	assert.Equal(t, "", w.String())
 	assert.Equal(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
@@ -496,7 +503,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 	}, stats)
 }
 
-func Test_GenerateTable_CIMode(t *testing.T) {
+func Test_GenerateTable_StylingDisabled(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.CIMode = true
 	ctx.AggregatedStats = []*MeasurementStats{
@@ -505,7 +512,10 @@ func Test_GenerateTable_CIMode(t *testing.T) {
 		NewMeasurementStats(),
 	}
 	hm := ctx.History.Find(measurementID1)
-	viewer := &viewer{ctx: ctx}
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 500)
@@ -516,7 +526,7 @@ Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 	assert.Equal(t, expectedTable, *table)
-
+	assert.Equal(t, "", w.String())
 	assert.Equal(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
@@ -532,7 +542,8 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 		NewMeasurementStats(),
 	}
 	hm := ctx.History.Find(measurementID1)
-	viewer := &viewer{ctx: ctx}
+	printer := NewPrinter(nil, nil, nil)
+	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
@@ -559,7 +570,8 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 		NewMeasurementStats(),
 	}
 	hm := ctx.History.Find(measurementID1)
-	viewer := &viewer{ctx: ctx}
+	printer := NewPrinter(nil, nil, nil)
+	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
@@ -588,7 +600,8 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 		NewMeasurementStats(),
 	}
 	hm := ctx.History.Find(measurementID1)
-	viewer := &viewer{ctx: ctx}
+	printer := NewPrinter(nil, nil, nil)
+	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	table, _, stats := viewer.generateTable(hm, measurement, 0)
