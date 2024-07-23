@@ -102,7 +102,6 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	expectedOpts.Options.IPVersion = globalping.IPVersion4
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
-		Host:    "jsdelivr.com",
 	}
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
@@ -146,7 +145,6 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	expectedOpts.Options.IPVersion = globalping.IPVersion6
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
-		Host:    "jsdelivr.com",
 	}
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
@@ -273,7 +271,7 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
-				Host:    "example.com",
+				Host:    "",
 				Query:   "x=123&yz=abc",
 				Method:  "GET",
 			},
@@ -304,7 +302,7 @@ func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
-				Host:    "example.com",
+				Host:    "",
 				Query:   "x=123&yz=abc",
 			},
 		},
