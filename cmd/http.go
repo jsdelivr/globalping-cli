@@ -162,7 +162,7 @@ func (r *Root) buildHttpMeasurementRequest() (*globalping.MeasurementCreate, err
 		Request: &globalping.RequestOptions{
 			Path:    overrideOpt(urlData.Path, r.ctx.Path),
 			Query:   overrideOpt(urlData.Query, r.ctx.Query),
-			Host:    overrideOpt(urlData.Host, r.ctx.Host),
+			Host:    r.ctx.Host,
 			Headers: headers,
 			Method:  method,
 		},
