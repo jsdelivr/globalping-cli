@@ -22,7 +22,8 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(ctx, printer, timeMock, nil)
 
@@ -34,10 +35,9 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	err := viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
-	assert.Equal(t,
-		apiCreditInfo+
-			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	assert.Equal(t, apiCreditInfo+
+		"> Berlin, DE, EU, Deutsche Telekom AG (AS3320)\n", errW.String())
+	assert.Equal(t, `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 `,
 		w.String(),
 	)
@@ -48,10 +48,9 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	err = viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
-	assert.Equal(t,
-		apiCreditInfo+
-			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	assert.Equal(t, apiCreditInfo+
+		"> Berlin, DE, EU, Deutsche Telekom AG (AS3320)\n", errW.String())
+	assert.Equal(t, `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 `,
 		w.String(),
@@ -64,10 +63,9 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	err = viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
-	assert.Equal(t,
-		apiCreditInfo+
-			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	assert.Equal(t, apiCreditInfo+
+		"> Berlin, DE, EU, Deutsche Telekom AG (AS3320)\n", errW.String())
+	assert.Equal(t, `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
 `,
@@ -92,10 +90,9 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 	err = viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
-	assert.Equal(t,
-		apiCreditInfo+
-			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+	assert.Equal(t, apiCreditInfo+
+		"> Berlin, DE, EU, Deutsche Telekom AG (AS3320)\n", errW.String())
+	assert.Equal(t, `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=56 time=13.0 ms
@@ -116,10 +113,10 @@ PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 	err = viewer.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
+	assert.Equal(t, apiCreditInfo+
+		"> Berlin, DE, EU, Deutsche Telekom AG (AS3320)\n", errW.String())
 	assert.Equal(t,
-		apiCreditInfo+
-			`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
-PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
+		`PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=3 ttl=56 time=13.0 ms

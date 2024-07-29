@@ -9,7 +9,7 @@ func (v *viewer) OutputJson(id string) error {
 	v.printer.Println(string(output))
 
 	if v.ctx.Share {
-		v.printer.Println(v.getShareMessage(id))
+		v.printer.ErrPrintln(v.getShareMessage(id))
 	}
 	v.printer.Println()
 

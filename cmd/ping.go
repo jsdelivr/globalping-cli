@@ -123,7 +123,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 		e, ok := err.(*globalping.MeasurementError)
 		if ok && e.Code == http.StatusTooManyRequests {
 			r.Cmd.SilenceErrors = true
-			r.printer.Printf(r.printer.Color("> "+e.Message, view.FGBrightYellow) + "\n")
+			r.printer.ErrPrintf(r.printer.Color("> "+e.Message, view.FGBrightYellow) + "\n")
 		}
 	}
 	r.viewer.OutputShare()
@@ -211,7 +211,7 @@ func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.Hist
 		r.ctx.RecordToSession = false
 		err := saveIdToSession(res.ID)
 		if err != nil {
-			r.printer.Printf("Warning: %s\n", err)
+			r.printer.ErrPrintf("Warning: %s\n", err)
 		}
 	}
 	return hm, nil

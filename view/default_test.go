@@ -129,7 +129,8 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
@@ -140,12 +141,14 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 	viewer.Output(measurementID1, m)
 
 	assert.Equal(t, fmt.Sprintf(`> Berlin, DE, EU, Network 1 (AS123)
-Body 1
-
 > New York (NY), US, NA, Network 2 (AS567)
-Body 2
 > View the results online: https://www.jsdelivr.com/globalping?measurement=%s
-`, measurementID1), w.String())
+`, measurementID1), errW.String())
+
+	assert.Equal(t, `Body 1
+
+Body 2
+`, w.String())
 }
 
 func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
@@ -163,7 +166,7 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 					Network:   "Network 1",
 				},
 				Result: globalping.ProbeResult{
-					RawOutput:  "Headers 1\nBody 1",
+					RawOutput:  "HTTP/1.1 301\nHeaders 1\nBody 1",
 					RawHeaders: "Headers 1",
 					RawBody:    "Body 1",
 				},
@@ -178,7 +181,7 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 					Network:   "Network 2",
 				},
 				Result: globalping.ProbeResult{
-					RawOutput:  "Headers 2\nBody 2",
+					RawOutput:  "HTTP/1.1 301\nHeaders 2\nBody 2",
 					RawHeaders: "Headers 2",
 					RawBody:    "Body 2",
 				},
@@ -197,7 +200,8 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
@@ -208,11 +212,14 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 	viewer.Output(measurementID1, m)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
+HTTP/1.1 301
 Headers 1
-Body 1
-
 > New York (NY), US, NA, Network 2 (AS567)
+HTTP/1.1 301
 Headers 2
+`, errW.String())
+	assert.Equal(t, `Body 1
+
 Body 2
 `, w.String())
 }
@@ -265,7 +272,8 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 		},
 	}
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
@@ -275,9 +283,10 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	viewer.Output(measurementID1, m)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
-Headers 1
-
 > New York (NY), US, NA, Network 2 (AS567)
+`, errW.String())
+	assert.Equal(t, `Headers 1
+
 Headers 2
 `, w.String())
 }
@@ -322,7 +331,8 @@ func Test_Output_Default_Ping(t *testing.T) {
 
 	m := &globalping.MeasurementCreate{}
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(&Context{
 		Cmd:    "ping",
@@ -332,9 +342,10 @@ func Test_Output_Default_Ping(t *testing.T) {
 	viewer.Output(measurementID1, m)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
-Ping Results 1
-
 > New York (NY), US, NA, Network 2 (AS567)
+`, errW.String())
+	assert.Equal(t, `Ping Results 1
+
 Ping Results 2
 `, w.String())
 }

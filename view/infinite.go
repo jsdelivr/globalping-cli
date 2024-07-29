@@ -47,7 +47,7 @@ func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
-		v.printer.Print(v.getAPICreditInfo())
+		v.printer.ErrPrint(v.getAPICreditInfo())
 	}
 	probeMeasurement := &m.Results[0]
 	hm := v.ctx.History.Find(m.ID)
@@ -60,7 +60,7 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 		hm.Stats[0] = parsedOutput.Stats
 		if !v.ctx.IsHeaderPrinted {
 			v.ctx.Hostname = parsedOutput.Hostname
-			v.printer.Println(v.getProbeInfo(probeMeasurement))
+			v.printer.ErrPrintln(v.getProbeInfo(probeMeasurement))
 			v.printer.Printf("PING %s (%s) %s bytes of data.\n",
 				parsedOutput.Hostname,
 				parsedOutput.Address,
@@ -101,7 +101,7 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
-		v.printer.Println(v.getProbeInfo(&m.Results[i]))
+		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
 	return errors.New("all probes failed")
