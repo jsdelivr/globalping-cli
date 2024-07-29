@@ -291,9 +291,6 @@ Avg: 7.359 ms
 
 Use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS. Although it appears as a single measurement, the Globalping API combines multiple measurements from the same probes into one output.  As a result, the test will stop once you reach your [test limit](https://github.com/jsdelivr/globalping?tab=readme-ov-file#limits--wip).
 
-> [!TIP]
-> Stop the infinite ping by pressing CTRL+C on your keyboard.
-
 Here's an example of running an infinite ping from a single probe:
 
 ```bash
@@ -318,12 +315,12 @@ Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 
 ^C
 ```
 
+> [!TIP]
+> Stop the infinite ping by pressing CTRL+C on your keyboard.
+
 #### View your measurement history
 
 You can view the history of your current session's measurements by running the `history` command.
-
-> [!TIP]
-> Use this command to get the measurement IDs needed to run a new measurement, [reusing the probes](#reselect-probes) from a previous measurement.
 
 ```bash
 globalping history
@@ -338,6 +335,9 @@ globalping history
 4 | 2024-03-27 11:57:52 | http google.com from London,Belgium --limit 2 --method get --ci
 > https://www.jsdelivr.com/globalping?measurement=eclwFSYX0zgU10Cs
 ```
+
+> [!TIP]
+> Use this command to get the measurement IDs needed to run a new measurement, [reusing the probes](#reselect-probes) from a previous measurement.
 
 #### Learn about available flags
 
