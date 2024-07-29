@@ -289,7 +289,7 @@ Avg: 7.359 ms
 > [!IMPORTANT]
 > Currently, this feature is limited to the ping command.
 
-Use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS. Although it appears as a single measurement, the Globalping API combines multiple measurements from the same probes into one output.  As a result, the test will stop once you reach your [test limit](https://github.com/jsdelivr/globalping?tab=readme-ov-file#limits--wip).
+Use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS. Although it appears as a single measurement, the Globalping API combines multiple measurements from the same probes into one output. As a result, the test will stop once you run out of credits.
 
 Here's an example of running an infinite ping from a single probe:
 
