@@ -337,7 +337,7 @@ globalping history
 ```
 
 > [!TIP]
-> Use this command to get the measurement IDs needed to run a new measurement, [reusing the probes](#reselect-probes) from a previous measurement.
+> Use this command to get the measurement IDs needed to run a new measurement, which [reuses the probes](#reselect-probes) from a previous one.
 
 #### Learn about available flags
 
