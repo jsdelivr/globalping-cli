@@ -284,14 +284,14 @@ Max: 7.413 ms
 Avg: 7.359 ms
 ```
 
-#### Continuous non-stop measurements
+#### Run continuous non-stop measurements
 
 > [!IMPORTANT]
-> Currently this feature is limited to the ping command
+> Currently, this feature is limited to the ping command.
 
-You can use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS.
-Note that while it looks like a single measurement, in actuality its multiple measurements from the same probes combined into a single output.
-This means that eventually you will run out of credits and the test will stop.
+Use the `--infinite` flag to continuously ping a host, just like on Linux or MacOS. Although it appears as a single measurement, the Globalping API combines multiple measurements from the same probes into one output. As a result, the test will stop once you run out of credits.
+
+Here's an example of running an infinite ping from a single probe:
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --infinite
@@ -302,7 +302,7 @@ PING cdn.jsdelivr.net (151.101.1.229) 56(84) bytes of data.
 ^C
 ```
 
-If you select multiple probes when using `--infinite` the output will change to a summary comparison table.
+If you define multiple probes to perform your infinite ping, the CLI output switches to summary mode, letting you compare the result data collected from all probes:
 
 ```bash
 globalping ping cdn.jsdelivr.net from Europe --limit 5 --infinite
@@ -315,9 +315,12 @@ Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 
 ^C
 ```
 
-#### History
+> [!TIP]
+> Stop the infinite ping by pressing CTRL+C on your keyboard.
 
-You can view the history of your measurements by running the `history` command.
+#### View your measurement history
+
+You can view the history of your current session's measurements by running the `history` command.
 
 ```bash
 globalping history
@@ -332,6 +335,9 @@ globalping history
 4 | 2024-03-27 11:57:52 | http google.com from London,Belgium --limit 2 --method get --ci
 > https://www.jsdelivr.com/globalping?measurement=eclwFSYX0zgU10Cs
 ```
+
+> [!TIP]
+> Use this command to get the measurement IDs needed to run a new measurement, which [reuses the probes](#reselect-probes) from a previous one.
 
 #### Learn about available flags
 
