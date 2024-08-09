@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/jsdelivr/globalping-cli/version"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/stretchr/testify/assert"
 )
@@ -199,4 +200,9 @@ func Test_FindAndRemoveResolver_ResolverOnly(t *testing.T) {
 
 	assert.Equal(t, "1.1.1.1", resolver)
 	assert.Equal(t, []string{"example.com"}, argsWithoutResolver)
+}
+
+func TestUserAgent(t *testing.T) {
+	version.Version = "x.y.z"
+	assert.Equal(t, "globalping-cli/vx.y.z (https://github.com/jsdelivr/globalping-cli)", getUserAgent())
 }

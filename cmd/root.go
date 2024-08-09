@@ -42,8 +42,9 @@ func Execute() {
 	}
 	t := time.NewTicker(10 * time.Second)
 	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
-		APIURL:   config.GlobalpingAPIURL,
-		APIToken: config.GlobalpingToken,
+		APIURL:    config.GlobalpingAPIURL,
+		APIToken:  config.GlobalpingToken,
+		UserAgent: getUserAgent(),
 	}, t, 30)
 	globalpingProbe := probe.NewProbe()
 	viewer := view.NewViewer(ctx, printer, utime, globalpingClient)

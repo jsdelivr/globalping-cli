@@ -10,7 +10,6 @@ import (
 
 	"github.com/andybalholm/brotli"
 	"github.com/jsdelivr/globalping-cli/utils"
-	"github.com/jsdelivr/globalping-cli/version"
 )
 
 var (
@@ -30,7 +29,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 	if err != nil {
 		return nil, &MeasurementError{Message: "failed to create request - please report this bug"}
 	}
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -146,7 +145,7 @@ func (c *client) GetMeasurementRaw(id string) ([]byte, error) {
 		return nil, &MeasurementError{Message: "failed to create request"}
 	}
 
-	req.Header.Set("User-Agent", userAgent())
+	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("Accept-Encoding", "br")
 
 	etag := c.getETag(id)
@@ -291,8 +290,4 @@ func DecodeHTTPTLS(tls json.RawMessage) (*HTTPTLSCertificate, error) {
 		return nil, &MeasurementError{Message: "invalid tls format returned"}
 	}
 	return t, nil
-}
-
-func userAgent() string {
-	return fmt.Sprintf("globalping-cli/v%s (https://github.com/jsdelivr/globalping-cli)", version.Version)
 }
