@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/andybalholm/brotli"
-	"github.com/jsdelivr/globalping-cli/version"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -857,11 +856,6 @@ func TestFetchWithBrotli(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, id, m.ID)
-}
-
-func TestUserAgent(t *testing.T) {
-	version.Version = "x.y.z"
-	assert.Equal(t, "globalping-cli/vx.y.z (https://github.com/jsdelivr/globalping-cli)", userAgent())
 }
 
 // Generate server for testing

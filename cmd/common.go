@@ -17,6 +17,7 @@ import (
 
 	"github.com/icza/backscanner"
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/version"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -320,4 +321,8 @@ func silenceUsageOnCreateMeasurementError(err error) bool {
 		}
 	}
 	return true
+}
+
+func getUserAgent() string {
+	return fmt.Sprintf("globalping-cli/v%s (https://github.com/jsdelivr/globalping-cli)", version.Version)
 }

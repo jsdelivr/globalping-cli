@@ -22,8 +22,9 @@ type Client interface {
 }
 
 type Config struct {
-	APIURL   string
-	APIToken string
+	APIURL    string
+	APIToken  string
+	UserAgent string
 }
 
 type CacheEntry struct {
@@ -40,6 +41,7 @@ type client struct {
 	apiURL                        string
 	apiToken                      string
 	apiResponseCacheExpireSeconds int64
+	userAgent                     string
 }
 
 // NewClient creates a new client with the given configuration.
@@ -50,9 +52,10 @@ func NewClient(config Config) Client {
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiURL:   config.APIURL,
-		apiToken: config.APIToken,
-		cache:    map[string]*CacheEntry{},
+		apiURL:    config.APIURL,
+		apiToken:  config.APIToken,
+		userAgent: config.UserAgent,
+		cache:     map[string]*CacheEntry{},
 	}
 }
 
