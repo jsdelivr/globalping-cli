@@ -52,12 +52,13 @@ func Test_Output_Latency_Ping(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
+	errW := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
 			Cmd:       "ping",
 			ToLatency: true,
 		},
-		NewPrinter(nil, w, w),
+		NewPrinter(nil, w, errW),
 		nil,
 		gbMock,
 	)
@@ -66,10 +67,10 @@ func Test_Output_Latency_Ping(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345) (tag-1)\033[0m\n"+
-		"\033[1mMin: \033[0m8.00 ms\n"+
+		"\033[1;38;5;43m> City B (State B), Country B, Continent B, Network B (AS12349)\033[0m\n", errW.String())
+	assert.Equal(t, "\033[1mMin: \033[0m8.00 ms\n"+
 		"\033[1mMax: \033[0m20.00 ms\n"+
 		"\033[1mAvg: \033[0m12.00 ms\n\n"+
-		"\033[1;38;5;43m> City B (State B), Country B, Continent B, Network B (AS12349)\033[0m\n"+
 		"\033[1mMin: \033[0m9.00 ms\n"+
 		"\033[1mMax: \033[0m22.00 ms\n"+
 		"\033[1mAvg: \033[0m15.00 ms\n\n", w.String())
@@ -293,7 +294,8 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
-	printer := NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
 	viewer := NewViewer(
 		&Context{
@@ -309,7 +311,8 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
-Total: 44 ms
+`, errW.String())
+	assert.Equal(t, `Total: 44 ms
 Download: 11 ms
 First byte: 20 ms
 DNS: 5 ms

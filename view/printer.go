@@ -81,6 +81,18 @@ func (p *Printer) Printf(format string, a ...any) {
 	fmt.Fprintf(p.OutWriter, format, a...)
 }
 
+func (p *Printer) ErrPrint(a ...any) {
+	fmt.Fprint(p.ErrWriter, a...)
+}
+
+func (p *Printer) ErrPrintln(a ...any) {
+	fmt.Fprintln(p.ErrWriter, a...)
+}
+
+func (p *Printer) ErrPrintf(format string, a ...any) {
+	fmt.Fprintf(p.ErrWriter, format, a...)
+}
+
 func (p *Printer) FillLeft(s string, w int) string {
 	if len(s) >= w {
 		return s

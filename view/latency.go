@@ -16,7 +16,7 @@ func (v *viewer) OutputLatency(id string, data *globalping.Measurement) error {
 			v.printer.Println()
 		}
 
-		v.printer.Println(v.getProbeInfo(&result))
+		v.printer.ErrPrintln(v.getProbeInfo(&result))
 
 		switch v.ctx.Cmd {
 		case "ping":
@@ -50,7 +50,7 @@ func (v *viewer) OutputLatency(id string, data *globalping.Measurement) error {
 	}
 
 	if v.ctx.Share {
-		v.printer.Println(v.getShareMessage(id))
+		v.printer.ErrPrintln(v.getShareMessage(id))
 	}
 	v.printer.Println()
 

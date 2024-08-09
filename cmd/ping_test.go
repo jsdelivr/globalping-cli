@@ -516,14 +516,16 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
-	printer := view.NewPrinter(nil, w, w)
+	errW := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, errW)
 	ctx := createDefaultContext("ping")
 	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin", "--infinite", "--share"}
 	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.Equal(t, "too many requests", err.Error())
 
-	assert.Equal(t, "> too many requests\n", w.String())
+	assert.Equal(t, "> too many requests\n", errW.String())
+	assert.Equal(t, "", w.String())
 
 	expectedCtx := createDefaultExpectedContext("ping")
 	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished

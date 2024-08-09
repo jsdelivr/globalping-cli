@@ -15,17 +15,27 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 			v.printer.Println()
 		}
 
-		// Output slightly different format if state is available
-		v.printer.Println(v.getProbeInfo(result))
+		v.printer.ErrPrintln(v.getProbeInfo(result))
 
-		if v.isBodyOnlyHttpGet(m) {
-			v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+		if v.ctx.Cmd == "http" {
+			if v.ctx.Full {
+				firstLineEnd := strings.Index(result.Result.RawOutput, "\n")
+				if firstLineEnd > 0 {
+					v.printer.ErrPrintln(result.Result.RawOutput[:firstLineEnd])
+				}
+				v.printer.ErrPrintln(result.Result.RawHeaders)
+				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+			} else if m.Options.Request.Method == "GET" {
+				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+			} else {
+				v.printer.Println(strings.TrimSpace(result.Result.RawOutput))
+			}
 		} else {
 			v.printer.Println(strings.TrimSpace(result.Result.RawOutput))
 		}
 	}
 
 	if v.ctx.Share {
-		v.printer.Println(v.getShareMessage(id))
+		v.printer.ErrPrintln(v.getShareMessage(id))
 	}
 }
