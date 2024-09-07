@@ -39,7 +39,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
 		"--limit", "2",
@@ -98,7 +98,7 @@ func Test_Execute_MTR_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -137,7 +137,7 @@ func Test_Execute_MTR_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",

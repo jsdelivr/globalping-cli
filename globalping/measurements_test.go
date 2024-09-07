@@ -54,8 +54,8 @@ func testPostAuthorized(t *testing.T) {
 	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
 	client := NewClient(Config{
-		APIToken: "secret",
-		APIURL:   server.URL,
+		AuthAccessToken: "secret",
+		APIURL:          server.URL,
 	})
 
 	opts := &MeasurementCreate{}
@@ -129,8 +129,8 @@ func testPostMoreCreditsRequiredAuthError(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{
-		APIToken: "secret",
-		APIURL:   server.URL,
+		AuthAccessToken: "secret",
+		APIURL:          server.URL,
 	})
 	opts := &MeasurementCreate{}
 
@@ -184,8 +184,8 @@ func testPostNoCreditsAuthError(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{
-		APIToken: "secret",
-		APIURL:   server.URL,
+		AuthAccessToken: "secret",
+		APIURL:          server.URL,
 	})
 	opts := &MeasurementCreate{}
 	_, err := client.CreateMeasurement(opts)

@@ -26,7 +26,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	root := NewRoot(printer, ctx, nil, timeMock, nil, nil)
+	root := NewRoot(printer, ctx, nil, timeMock, nil, nil, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 
 	ctx.History.Push(&view.HistoryItem{

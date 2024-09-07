@@ -1,6 +1,7 @@
 package view
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -174,6 +175,17 @@ func (p *Printer) BoldBackground(s string, color Color) string {
 		return s
 	}
 	return fmt.Sprintf("\033[1;48;5;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) ReadPassword() (string, error) {
+	if p.InReader == nil {
+		return "", errors.New("no input reader")
+	}
+	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", err
+	}
+	return string(bytePassword), nil
 }
 
 func (p *Printer) GetSize() (width, height int) {

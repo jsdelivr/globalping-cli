@@ -43,7 +43,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
@@ -107,7 +107,7 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
@@ -147,7 +147,7 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",

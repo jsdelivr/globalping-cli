@@ -38,7 +38,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--limit", "2",
@@ -94,7 +94,7 @@ func Test_Execute_Traceroute_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -132,7 +132,7 @@ func Test_Execute_Traceroute_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",

@@ -45,7 +45,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--protocol", "HTTPS",
@@ -118,7 +118,7 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -161,7 +161,7 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",
@@ -251,7 +251,7 @@ func Test_ParseHttpHeaders_Invalid(t *testing.T) {
 func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 	ctx := createDefaultContext("http")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	ctx.Target = "https://example.com/my/path?x=123&yz=abc"
 	ctx.From = "london"
@@ -284,7 +284,7 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	ctx := createDefaultContext("http")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	ctx.Target = "https://example.com/my/path?x=123&yz=abc"
 	ctx.From = "london"

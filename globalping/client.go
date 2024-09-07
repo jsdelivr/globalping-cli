@@ -1,9 +1,13 @@
 package globalping
 
 import (
+	"context"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/oauth2"
 )
 
 type Client interface {
@@ -19,11 +23,31 @@ type Client interface {
 	//
 	// https://www.jsdelivr.com/docs/api.globalping.io#get-/v1/measurements/-id-
 	GetMeasurementRaw(id string) ([]byte, error)
+	// Returns a link to be used for authorization.
+	//
+	// onTokenRefresh will be called if the authorization is successful.
+	Authorize(callback func(error)) string
+	// Returns the introspection response for the token.
+	//
+	// If the token is empty, the client's current token will be used.
+	TokenIntrospection(token string) (*IntrospectionResponse, error)
+	// Removes the current token from the client. It also revokes the tokens if the refresh token is available.
+	//
+	// onTokenRefresh will be called if the token is successfully removed.
+	Logout() error
 }
 
 type Config struct {
-	APIURL    string
-	APIToken  string
+	APIURL       string
+	DashboardURL string
+
+	AuthURL          string
+	AuthClientID     string
+	AuthClientSecret string
+	AuthAccessToken  string // If set, this token will be used for API requests
+	AuthToken        *Token
+	OnTokenRefresh   func(*Token)
+
 	UserAgent string
 }
 
@@ -34,12 +58,18 @@ type CacheEntry struct {
 }
 
 type client struct {
-	sync.RWMutex
+	mu    sync.RWMutex
 	http  *http.Client
 	cache map[string]*CacheEntry
 
+	oauth2         *oauth2.Config
+	token          atomic.Pointer[oauth2.Token]
+	tokenSource    oauth2.TokenSource
+	onTokenRefresh func(*Token)
+
 	apiURL                        string
-	apiToken                      string
+	authURL                       string
+	dashboardURL                  string
 	apiResponseCacheExpireSeconds int64
 	userAgent                     string
 }
@@ -48,15 +78,45 @@ type client struct {
 // The client will not have a cache cleanup goroutine, therefore cached responses will never be removed.
 // If you want a cache cleanup goroutine, use NewClientWithCacheCleanup.
 func NewClient(config Config) Client {
-	return &client{
+	c := &client{
+		mu: sync.RWMutex{},
 		http: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		apiURL:    config.APIURL,
-		apiToken:  config.APIToken,
-		userAgent: config.UserAgent,
-		cache:     map[string]*CacheEntry{},
+		oauth2: &oauth2.Config{
+			ClientID:     config.AuthClientID,
+			ClientSecret: config.AuthClientSecret,
+			Scopes:       []string{"measurements"},
+			Endpoint: oauth2.Endpoint{
+				AuthURL:   config.AuthURL + "/oauth/authorize",
+				TokenURL:  config.AuthURL + "/oauth/token",
+				AuthStyle: oauth2.AuthStyleInParams,
+			},
+		},
+		onTokenRefresh: config.OnTokenRefresh,
+		apiURL:         config.APIURL,
+		authURL:        config.AuthURL,
+		dashboardURL:   config.DashboardURL,
+		userAgent:      config.UserAgent,
+		cache:          map[string]*CacheEntry{},
 	}
+	if config.AuthAccessToken != "" {
+		c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthAccessToken})
+	} else if config.AuthToken != nil {
+		t := &oauth2.Token{
+			AccessToken:  config.AuthToken.AccessToken,
+			TokenType:    config.AuthToken.TokenType,
+			RefreshToken: config.AuthToken.RefreshToken,
+			Expiry:       config.AuthToken.Expiry,
+		}
+		c.token.Store(t)
+		if config.AuthToken.RefreshToken == "" {
+			c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthToken.AccessToken})
+		} else {
+			c.tokenSource = c.oauth2.TokenSource(context.Background(), t)
+		}
+	}
+	return c
 }
 
 // NewClientWithCacheCleanup creates a new client with a cache cleanup goroutine that runs every t.
@@ -74,8 +134,8 @@ func NewClientWithCacheCleanup(config Config, t *time.Ticker, cacheExpireSeconds
 }
 
 func (c *client) getETag(id string) string {
-	c.RLock()
-	defer c.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	e, ok := c.cache[id]
 	if !ok {
 		return ""
@@ -84,8 +144,8 @@ func (c *client) getETag(id string) string {
 }
 
 func (c *client) getCachedResponse(id string) []byte {
-	c.RLock()
-	defer c.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	e, ok := c.cache[id]
 	if !ok {
 		return nil
@@ -94,8 +154,8 @@ func (c *client) getCachedResponse(id string) []byte {
 }
 
 func (c *client) cacheResponse(id string, etag string, resp []byte) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	var expires int64
 	if c.apiResponseCacheExpireSeconds != 0 {
 		expires = time.Now().Unix() + c.apiResponseCacheExpireSeconds
@@ -115,8 +175,8 @@ func (c *client) cacheResponse(id string, etag string, resp []byte) {
 }
 
 func (c *client) cleanupCache() {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	now := time.Now().Unix()
 	for k, v := range c.cache {
 		if v.ExpireAt > 0 && v.ExpireAt < now {
