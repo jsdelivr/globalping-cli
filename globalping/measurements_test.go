@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
@@ -14,30 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// PostAPI tests
-func TestPostAPI(t *testing.T) {
-	// Suppress error outputs
-	os.Stdout, _ = os.Open(os.DevNull)
-	for scenario, fn := range map[string]func(t *testing.T){
-		"valid":                      testPostValid,
-		"authorized":                 testPostAuthorized,
-		"auth_error":                 testPostAuthorizedError,
-		"more_credits_no_auth_error": testPostMoreCreditsRequiredNoAuthError,
-		"more_credits_auth_error":    testPostMoreCreditsRequiredAuthError,
-		"no_credits_no_auth_error":   testPostNoCreditsNoAuthError,
-		"no_credits_auth_error":      testPostNoCreditsAuthError,
-		"no_probes":                  testPostNoProbes,
-		"validation":                 testPostValidation,
-		"api_error":                  testPostInternalError,
-	} {
-		t.Run(scenario, func(t *testing.T) {
-			fn(t)
-		})
-	}
-}
-
-// Test a valid call of PostAPI
-func testPostValid(t *testing.T) {
+func Test_CreateMeasurement_Valid(t *testing.T) {
 	server := generateServer(`{"id":"abcd","probesCount":1}`, http.StatusAccepted)
 	defer server.Close()
 	client := NewClient(Config{APIURL: server.URL})
@@ -50,7 +26,7 @@ func testPostValid(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func testPostAuthorized(t *testing.T) {
+func Test_CreateMeasurement_Authorized(t *testing.T) {
 	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
 	client := NewClient(Config{
@@ -66,7 +42,7 @@ func testPostAuthorized(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func testPostAuthorizedError(t *testing.T) {
+func Test_CreateMeasurement_AuthorizedError(t *testing.T) {
 	server := generateServerAuthorized(`{"id":"abcd","probesCount":1}`)
 	defer server.Close()
 	client := NewClient(Config{
@@ -80,7 +56,7 @@ func testPostAuthorizedError(t *testing.T) {
 	assert.EqualError(t, err, "unauthorized: Unauthorized.")
 }
 
-func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
+func Test_CreateMeasurement_MoreCreditsRequiredNoAuthError(t *testing.T) {
 	rateLimitReset := "61"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "1")
@@ -109,7 +85,7 @@ func testPostMoreCreditsRequiredNoAuthError(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredNoAuthErr, "2 credits", 3, "2 minutes"))
 }
 
-func testPostMoreCreditsRequiredAuthError(t *testing.T) {
+func Test_CreateMeasurement_MoreCreditsRequiredAuthError(t *testing.T) {
 	rateLimitReset := "40"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
@@ -142,7 +118,7 @@ func testPostMoreCreditsRequiredAuthError(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf(moreCreditsRequiredAuthErr, "1 credit", 2, "1 second"))
 }
 
-func testPostNoCreditsNoAuthError(t *testing.T) {
+func Test_CreateMeasurement_NoCreditsNoAuthError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
 		w.Header().Set("X-RateLimit-Reset", "5")
@@ -166,7 +142,7 @@ func testPostNoCreditsNoAuthError(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf(noCreditsNoAuthErr, "5 seconds"))
 }
 
-func testPostNoCreditsAuthError(t *testing.T) {
+func Test_CreateMeasurement_NoCreditsAuthError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
 		w.Header().Set("X-RateLimit-Reset", "5")
@@ -193,7 +169,7 @@ func testPostNoCreditsAuthError(t *testing.T) {
 	assert.EqualError(t, err, fmt.Sprintf(noCreditsAuthErr, "5 seconds"))
 }
 
-func testPostNoProbes(t *testing.T) {
+func Test_CreateMeasurement_NoProbes(t *testing.T) {
 	server := generateServer(`{
     "error": {
       "message": "No suitable probes found",
@@ -211,7 +187,7 @@ func testPostNoProbes(t *testing.T) {
 	}, err)
 }
 
-func testPostValidation(t *testing.T) {
+func Test_CreateMeasurement_Validation(t *testing.T) {
 	server := generateServer(`{
     "error": {
         "message": "Validation Failed",
@@ -233,7 +209,7 @@ func testPostValidation(t *testing.T) {
 	}, err)
 }
 
-func testPostInternalError(t *testing.T) {
+func Test_CreateMeasurement_InternalError(t *testing.T) {
 	server := generateServer(`{
     "error": {
       "message": "Internal Server Error",
@@ -247,24 +223,7 @@ func testPostInternalError(t *testing.T) {
 	assert.EqualError(t, err, "internal server error - please try again later")
 }
 
-// GetAPI tests
-func TestGetAPI(t *testing.T) {
-	for scenario, fn := range map[string]func(t *testing.T){
-		"valid":      testGetValid,
-		"json":       testGetJson,
-		"ping":       testGetPing,
-		"traceroute": testGetTraceroute,
-		"dns":        testGetDns,
-		"mtr":        testGetMtr,
-		"http":       testGetHttp,
-	} {
-		t.Run(scenario, func(t *testing.T) {
-			fn(t)
-		})
-	}
-}
-
-func testGetValid(t *testing.T) {
+func Test_GetMeasurement_Valid(t *testing.T) {
 	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
 	defer server.Close()
 	client := NewClient(Config{APIURL: server.URL})
@@ -275,19 +234,7 @@ func testGetValid(t *testing.T) {
 	assert.Equal(t, "abcd", res.ID)
 }
 
-func testGetJson(t *testing.T) {
-	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
-	defer server.Close()
-	client := NewClient(Config{APIURL: server.URL})
-	res, err := client.GetMeasurementRaw("abcd")
-	if err != nil {
-		t.Error(err)
-	}
-
-	assert.Equal(t, `{"id":"abcd"}`, string(res))
-}
-
-func testGetPing(t *testing.T) {
+func Test_GetMeasurement_Ping(t *testing.T) {
 	server := generateServer(`{
 	"id": "abcd",
 	"type": "ping",
@@ -368,7 +315,7 @@ func testGetPing(t *testing.T) {
 	assert.Equal(t, float64(0), stats.Loss)
 }
 
-func testGetTraceroute(t *testing.T) {
+func Test_GetMeasurement_Traceroute(t *testing.T) {
 	server := generateServer(`{
 	"id": "abcd",
 	"type": "traceroute",
@@ -456,7 +403,7 @@ func testGetTraceroute(t *testing.T) {
 	assert.Equal(t, "1.1.1.1", res.Results[0].Result.ResolvedHostname)
 }
 
-func testGetDns(t *testing.T) {
+func Test_GetMeasurement_Dns(t *testing.T) {
 	server := generateServer(`{
 	"id": "abcd",
 	"type": "dns",
@@ -536,7 +483,7 @@ func testGetDns(t *testing.T) {
 	assert.Equal(t, float64(15), timings.Total)
 }
 
-func testGetMtr(t *testing.T) {
+func Test_GetMeasurement_Mtr(t *testing.T) {
 	server := generateServer(`{
 	"id": "abcd",
 	"type": "mtr",
@@ -654,7 +601,7 @@ func testGetMtr(t *testing.T) {
 	assert.IsType(t, json.RawMessage{}, res.Results[0].Result.TimingsRaw)
 }
 
-func testGetHttp(t *testing.T) {
+func Test_GetMeasurement_Http(t *testing.T) {
 	server := generateServer(`{
 	"id": "abcd",
 	"type": "http",
@@ -768,7 +715,7 @@ func testGetHttp(t *testing.T) {
 	assert.Equal(t, 19, timings.TCP)
 }
 
-func TestFetchWithEtag(t *testing.T) {
+func Test_GetMeasurement_WithEtag(t *testing.T) {
 	id1 := "123abc"
 	id2 := "567xyz"
 
@@ -828,7 +775,7 @@ func TestFetchWithEtag(t *testing.T) {
 	assert.Equal(t, 2, cacheMissCount)
 }
 
-func TestFetchWithBrotli(t *testing.T) {
+func Test_GetMeasurement_WithBrotli(t *testing.T) {
 	id := "123abc"
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -858,7 +805,18 @@ func TestFetchWithBrotli(t *testing.T) {
 	assert.Equal(t, id, m.ID)
 }
 
-// Generate server for testing
+func Test_GetMeasurementRaw_Json(t *testing.T) {
+	server := generateServer(`{"id":"abcd"}`, http.StatusOK)
+	defer server.Close()
+	client := NewClient(Config{APIURL: server.URL})
+	res, err := client.GetMeasurementRaw("abcd")
+	if err != nil {
+		t.Error(err)
+	}
+
+	assert.Equal(t, `{"id":"abcd"}`, string(res))
+}
+
 func generateServer(json string, statusCode int) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)

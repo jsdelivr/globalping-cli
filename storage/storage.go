@@ -99,6 +99,14 @@ func (s *LocalStorage) GetProfile() *Profile {
 	return p
 }
 
+func (s *LocalStorage) Remove() error {
+	homeDir, err := s.joinHomeDir("")
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(homeDir)
+}
+
 func (s *LocalStorage) joinHomeDir(name string) (string, error) {
 	dir, err := os.UserHomeDir()
 	if err != nil {

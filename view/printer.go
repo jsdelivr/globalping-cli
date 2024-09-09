@@ -1,6 +1,7 @@
 package view
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -181,9 +182,17 @@ func (p *Printer) ReadPassword() (string, error) {
 	if p.InReader == nil {
 		return "", errors.New("no input reader")
 	}
-	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	f, ok := p.InReader.(*os.File)
+	if !ok {
+		scanner := bufio.NewScanner(p.InReader)
+		scanner.Scan()
+		return scanner.Text(), scanner.Err()
+	}
+	bytePassword, err := term.ReadPassword(int(f.Fd()))
 	if err != nil {
-		return "", err
+		scanner := bufio.NewScanner(p.InReader)
+		scanner.Scan()
+		return scanner.Text(), scanner.Err()
 	}
 	return string(bytePassword), nil
 }
