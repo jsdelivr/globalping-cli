@@ -38,6 +38,8 @@ type Client interface {
 }
 
 type Config struct {
+	HTTPClient *http.Client // If set, this client will be used for API requests and authorization
+
 	APIURL       string
 	DashboardURL string
 
@@ -80,9 +82,6 @@ type client struct {
 func NewClient(config Config) Client {
 	c := &client{
 		mu: sync.RWMutex{},
-		http: &http.Client{
-			Timeout: 30 * time.Second,
-		},
 		oauth2: &oauth2.Config{
 			ClientID:     config.AuthClientID,
 			ClientSecret: config.AuthClientSecret,
@@ -100,6 +99,13 @@ func NewClient(config Config) Client {
 		userAgent:      config.UserAgent,
 		cache:          map[string]*CacheEntry{},
 	}
+	if config.HTTPClient != nil {
+		c.http = config.HTTPClient
+	} else {
+		c.http = &http.Client{
+			Timeout: 30 * time.Second,
+		}
+	}
 	if config.AuthAccessToken != "" {
 		c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthAccessToken})
 	} else if config.AuthToken != nil {
@@ -113,7 +119,8 @@ func NewClient(config Config) Client {
 		if config.AuthToken.RefreshToken == "" {
 			c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthToken.AccessToken})
 		} else {
-			c.tokenSource = c.oauth2.TokenSource(context.Background(), t)
+			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.http)
+			c.tokenSource = c.oauth2.TokenSource(ctx, t)
 		}
 	}
 	return c
