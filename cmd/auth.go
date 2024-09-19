@@ -11,31 +11,32 @@ import (
 func (r *Root) initAuth() {
 	authCmd := &cobra.Command{
 		Use:   "auth",
-		Short: "Auth commands for the Globalping API",
+		Short: "Authenticate with the Globalping API",
+		Long:  "Authenticate with the Globalping API for higher measurements limits.",
 	}
 
 	loginCmd := &cobra.Command{
 		RunE:  r.RunAuthLogin,
 		Use:   "login",
-		Short: "Authenticate with the Globalping API",
-		Long:  `Authenticate with the Globalping API`,
+		Short: "Log in to your Globalping account",
+		Long:  `Log in to your Globalping account for higher measurements limits.`,
 	}
 
 	loginFlags := loginCmd.Flags()
-	loginFlags.Bool("with-token", false, "Authenticate with a token via stdin")
+	loginFlags.Bool("with-token", false, "authenticate with a token read from stdin instead of the default browser-based flow")
 
 	statusCmd := &cobra.Command{
 		RunE:  r.RunAuthStatus,
 		Use:   "status",
-		Short: "Check the authentication status",
-		Long:  `Check the authentication status`,
+		Short: "Check the current authentication status",
+		Long:  `Check the current authentication status.`,
 	}
 
 	logoutCmd := &cobra.Command{
 		RunE:  r.RunAuthLogout,
 		Use:   "logout",
-		Short: "Logout from the Globalping API",
-		Long:  `Logout from the Globalping API`,
+		Short: "Log out from your Globalping account",
+		Long:  `Log out from your Globalping account.`,
 	}
 
 	authCmd.AddCommand(loginCmd)
