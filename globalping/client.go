@@ -35,6 +35,9 @@ type Client interface {
 	//
 	// onTokenRefresh will be called if the token is successfully removed.
 	Logout() error
+
+	// Revokes the token.
+	RevokeToken(token string) error
 }
 
 type Config struct {

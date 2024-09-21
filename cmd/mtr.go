@@ -93,6 +93,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	res, err := r.client.CreateMeasurement(opts)
 	if err != nil {
 		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
+		r.evaluateError(err)
 		return err
 	}
 
@@ -100,7 +101,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	hm := &view.HistoryItem{
 		Id:        res.ID,
 		Status:    globalping.StatusInProgress,
-		StartedAt: r.time.Now(),
+		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {

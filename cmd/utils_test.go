@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/view"
 )
 
@@ -26,13 +25,6 @@ func sessionCleanup() {
 	err := os.RemoveAll(sessionPath)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		panic("Failed to remove session path: " + err.Error())
-	}
-}
-
-func storageCleanup(storage *storage.LocalStorage) {
-	err := storage.Remove()
-	if err != nil {
-		panic("Failed to remove storage: " + err.Error())
 	}
 }
 

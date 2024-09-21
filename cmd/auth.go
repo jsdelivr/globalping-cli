@@ -48,9 +48,17 @@ func (r *Root) initAuth() {
 
 func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 	var err error
+	oldToken := r.storage.GetProfile().Token
 	withToken := cmd.Flags().Changed("with-token")
 	if withToken {
-		return r.loginWithToken()
+		err := r.loginWithToken()
+		if err != nil {
+			return err
+		}
+		if oldToken != nil {
+			r.client.RevokeToken(oldToken.RefreshToken)
+		}
+		return nil
 	}
 	url := r.client.Authorize(func(e error) {
 		defer func() {
@@ -60,10 +68,14 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 			err = e
 			return
 		}
+		if oldToken != nil {
+			r.client.RevokeToken(oldToken.RefreshToken)
+		}
 		r.printer.Println("You are now authenticated")
 	})
 	r.printer.Println("Please visit the following URL to authenticate:")
 	r.printer.Println(url)
+	r.utils.OpenBrowser(url)
 	<-r.cancel
 	return err
 }
@@ -71,6 +83,11 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 	res, err := r.client.TokenIntrospection("")
 	if err != nil {
+		e, ok := err.(*globalping.AuthorizeError)
+		if ok && e.ErrorType == "not_authorized" {
+			r.printer.Println("Not logged in.")
+			return nil
+		}
 		return err
 	}
 	if res.Active {

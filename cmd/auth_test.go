@@ -34,12 +34,18 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	_storage.GetProfile().Token = &globalping.Token{
+		AccessToken:  "oldToken",
+		RefreshToken: "oldRefreshToken",
+	}
+
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, _storage)
 
 	gbMock.EXPECT().TokenIntrospection("token").Return(&globalping.IntrospectionResponse{
 		Active:   true,
 		Username: "test",
 	}, nil)
+	gbMock.EXPECT().RevokeToken("oldRefreshToken").Return(nil)
 
 	os.Args = []string{"globalping", "auth", "login", "--with-token"}
 	err = root.Cmd.ExecuteContext(context.TODO())
@@ -64,18 +70,31 @@ func Test_Auth_Login(t *testing.T) {
 	defer ctrl.Finish()
 
 	gbMock := mocks.NewMockClient(ctrl)
+	utilsMock := mocks.NewMockUtils(ctrl)
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("")
-	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
+	_storage := storage.NewLocalStorage(".test_globalping-cli")
+	defer _storage.Remove()
+	err := _storage.Init()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_storage.GetProfile().Token = &globalping.Token{
+		AccessToken:  "oldToken",
+		RefreshToken: "oldRefreshToken",
+	}
+
+	root := NewRoot(printer, ctx, nil, utilsMock, gbMock, nil, _storage)
 
 	gbMock.EXPECT().Authorize(gomock.Any()).Do(func(_ any) {
 		root.cancel <- syscall.SIGINT
 	}).Return("http://localhost")
+	utilsMock.EXPECT().OpenBrowser("http://localhost").Return(nil)
 
 	os.Args = []string{"globalping", "auth", "login"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 
 	assert.Equal(t, `Please visit the following URL to authenticate:

@@ -18,6 +18,7 @@ import (
 	"github.com/icza/backscanner"
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/version"
+	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -112,6 +113,26 @@ func (r *Root) getLocations() ([]globalping.Locations, error) {
 		}
 	}
 	return locations, nil
+}
+
+func (r *Root) evaluateError(err error) {
+	if err == nil {
+		return
+	}
+	e, ok := err.(*globalping.MeasurementError)
+	if !ok {
+		return
+	}
+	if e.Code == globalping.StatusUnauthorizedWithTokenRefreshed {
+		r.Cmd.SilenceErrors = true
+		r.printer.ErrPrintln("Access token successfully refreshed. Try repeating the measurement.")
+		return
+	}
+	if e.Code == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
+		r.Cmd.SilenceErrors = true
+		r.printer.ErrPrintln(r.printer.Color("> "+e.Message, view.FGBrightYellow))
+		return
+	}
 }
 
 type TargetQuery struct {

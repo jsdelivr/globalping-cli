@@ -112,6 +112,20 @@ func (mr *MockClientMockRecorder) Logout() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockClient)(nil).Logout))
 }
 
+// RevokeToken mocks base method.
+func (m *MockClient) RevokeToken(token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeToken", token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeToken indicates an expected call of RevokeToken.
+func (mr *MockClientMockRecorder) RevokeToken(token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeToken", reflect.TypeOf((*MockClient)(nil).RevokeToken), token)
+}
+
 // TokenIntrospection mocks base method.
 func (m *MockClient) TokenIntrospection(token string) (*globalping.IntrospectionResponse, error) {
 	m.ctrl.T.Helper()

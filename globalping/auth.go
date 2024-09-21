@@ -36,13 +36,13 @@ type Token struct {
 }
 
 type AuthorizeError struct {
-	Code        int
-	ErrorCode   string
-	Description string
+	Code        int    `json:"-"`
+	ErrorType   string `json:"error"`
+	Description string `json:"error_description"`
 }
 
 func (e *AuthorizeError) Error() string {
-	return fmt.Sprintf("%s: %s", e.ErrorCode, e.Description)
+	return e.ErrorType + ": " + e.Description
 }
 
 func (c *client) Authorize(callback func(error)) string {
@@ -84,7 +84,7 @@ func (c *client) Authorize(callback func(error)) string {
 			if err == http.ErrServerClosed {
 				return
 			}
-			callback(&AuthorizeError{ErrorCode: "failed to start server", Description: err.Error()})
+			callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
 		}
 	}()
 	return c.oauth2.AuthCodeURL("", oauth2.S256ChallengeOption(pkce))
@@ -96,14 +96,14 @@ func (c *client) TokenIntrospection(token string) (*IntrospectionResponse, error
 		token, _, err = c.accessToken()
 		if err != nil {
 			return nil, &AuthorizeError{
-				ErrorCode:   "not_authorized",
-				Description: "client is not authorized: " + err.Error(),
+				ErrorType:   "not_authorized",
+				Description: err.Error(),
 			}
 		}
 	}
 	if token == "" {
 		return nil, &AuthorizeError{
-			ErrorCode:   "not_authorized",
+			ErrorType:   "not_authorized",
 			Description: "client is not authorized",
 		}
 	}
@@ -115,11 +115,9 @@ func (c *client) Logout() error {
 	if t == nil {
 		return nil
 	}
-	if t.RefreshToken != "" {
-		err := c.revoke(t.RefreshToken)
-		if err != nil {
-			return err
-		}
+	err := c.RevokeToken(t.RefreshToken)
+	if err != nil {
+		return err
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -134,14 +132,14 @@ func (c *client) Logout() error {
 func (c *client) exchange(form url.Values, pkce string, redirect string) (*oauth2.Token, error) {
 	if form.Get("error") != "" {
 		return nil, &AuthorizeError{
-			ErrorCode:   form.Get("error"),
+			ErrorType:   form.Get("error"),
 			Description: form.Get("error_description"),
 		}
 	}
 	code := form.Get("code")
 	if code == "" {
 		return nil, &AuthorizeError{
-			ErrorCode:   "missing_code",
+			ErrorType:   "missing_code",
 			Description: "missing code in response",
 		}
 	}
@@ -196,12 +194,12 @@ type IntrospectionResponse struct {
 	Jti       string `json:"jti"` // JWT ID
 }
 
-func (c *client) introspection(token string) (*IntrospectionResponse, error) {
+func (c *client) introspection(token string) (*IntrospectionResponse, *AuthorizeError) {
 	form := url.Values{"token": {token}}.Encode()
 	req, err := http.NewRequest("POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
 	if err != nil {
 		return nil, &AuthorizeError{
-			ErrorCode:   "introspection_failed",
+			ErrorType:   "introspection_failed",
 			Description: err.Error(),
 		}
 	}
@@ -210,14 +208,14 @@ func (c *client) introspection(token string) (*IntrospectionResponse, error) {
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, &AuthorizeError{
-			ErrorCode:   "introspection_failed",
+			ErrorType:   "introspection_failed",
 			Description: err.Error(),
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
-			ErrorCode:   "introspection_failed",
+			ErrorType:   "introspection_failed",
 			Description: resp.Status,
 		}
 		json.NewDecoder(resp.Body).Decode(err)
@@ -225,15 +223,24 @@ func (c *client) introspection(token string) (*IntrospectionResponse, error) {
 	}
 	ires := &IntrospectionResponse{}
 	err = json.NewDecoder(resp.Body).Decode(ires)
-	return ires, err
+	if err != nil {
+		return nil, &AuthorizeError{
+			ErrorType:   "introspection_failed",
+			Description: err.Error(),
+		}
+	}
+	return ires, nil
 }
 
-func (c *client) revoke(refreshToken string) error {
-	form := url.Values{"token": {refreshToken}}.Encode()
+func (c *client) RevokeToken(token string) error {
+	if token == "" {
+		return nil
+	}
+	form := url.Values{"token": {token}}.Encode()
 	req, err := http.NewRequest("POST", c.authURL+"/oauth/token/revoke", strings.NewReader(form))
 	if err != nil {
 		return &AuthorizeError{
-			ErrorCode:   "revoke_failed",
+			ErrorType:   "revoke_failed",
 			Description: err.Error(),
 		}
 	}
@@ -242,14 +249,14 @@ func (c *client) revoke(refreshToken string) error {
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return &AuthorizeError{
-			ErrorCode:   "revoke_failed",
+			ErrorType:   "revoke_failed",
 			Description: err.Error(),
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
-			ErrorCode:   "revoke_failed",
+			ErrorType:   "revoke_failed",
 			Description: resp.Status,
 		}
 		json.NewDecoder(resp.Body).Decode(err)

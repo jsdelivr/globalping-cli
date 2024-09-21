@@ -39,13 +39,13 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--protocol", "HTTPS",
@@ -112,13 +112,13 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -155,13 +155,13 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",

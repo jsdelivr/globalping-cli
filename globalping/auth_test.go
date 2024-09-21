@@ -135,9 +135,7 @@ func Test_TokenIntrospection(t *testing.T) {
 		},
 	})
 	res, err := client.TokenIntrospection("")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
 
 	assert.False(t, onTokenRefreshCalled)
@@ -212,9 +210,7 @@ func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
 		},
 	})
 	res, err := client.TokenIntrospection("")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
 
 	assert.Equal(t, &Token{
@@ -273,17 +269,17 @@ func Test_TokenIntrospection_With_Token(t *testing.T) {
 		},
 	})
 	res, err := client.TokenIntrospection("tok3n")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
 
 	assert.False(t, onTokenRefreshCalled)
 }
 
 func Test_Logout(t *testing.T) {
+	isCalled := false
 	now := time.Now()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isCalled = true
 		if r.URL.Path == "/oauth/token/revoke" {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
@@ -319,7 +315,38 @@ func Test_Logout(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.True(t, isCalled)
 	assert.True(t, onTokenRefreshCalled)
+}
+
+func Test_RevokeToken(t *testing.T) {
+	isCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isCalled = true
+		if r.URL.Path == "/oauth/token/revoke" {
+			if r.Method != http.MethodPost {
+				t.Fatalf("expected POST request, got %s", r.Method)
+			}
+			err := r.ParseForm()
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, "refresh_tok3n", r.Form.Get("token"))
+			return
+		}
+		t.Fatalf("unexpected request to %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		AuthClientID:     "<client_id>",
+		AuthClientSecret: "<client_secret>",
+		AuthURL:          server.URL,
+		DashboardURL:     server.URL,
+	})
+	err := client.RevokeToken("refresh_tok3n")
+	assert.Nil(t, err)
+	assert.True(t, isCalled)
 }
 
 func Test_Logout_No_RefreshToken(t *testing.T) {

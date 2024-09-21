@@ -20,13 +20,13 @@ func Test_Execute_History_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	root := NewRoot(printer, ctx, nil, timeMock, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, nil)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 
 	ctx.History.Push(&view.HistoryItem{

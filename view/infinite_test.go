@@ -16,8 +16,8 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
 
 	ctx := createDefaultContext("ping")
 	hm := ctx.History.Find(measurementID1)
@@ -25,7 +25,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, timeMock, nil)
+	viewer := NewViewer(ctx, printer, utilsMock, nil)
 
 	measurement := createPingMeasurement(measurementID1)
 	measurement.Status = globalping.StatusInProgress
@@ -160,8 +160,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.StatusInProgress
@@ -172,7 +172,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, timeMock, nil)
+	viewer := NewViewer(ctx, printer, utilsMock, nil)
 
 	// Call 1
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -277,8 +277,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	// Call 1
 	measurement1 := createPingMeasurement_MultipleProbes(measurementID1)
@@ -295,7 +295,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, timeMock, nil)
+	viewer := NewViewer(ctx, printer, utilsMock, nil)
 
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
@@ -411,12 +411,12 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
-	v := NewViewer(ctx, NewPrinter(nil, w, w), timeMock, nil)
+	v := NewViewer(ctx, NewPrinter(nil, w, w), utilsMock, nil)
 	err := v.OutputInfinite(measurement)
 	assert.NoError(t, err)
 
@@ -701,11 +701,11 @@ func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
-	v := viewer{ctx: ctx, time: timeMock}
+	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 
@@ -749,11 +749,11 @@ func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
-	v := viewer{ctx: ctx, time: timeMock}
+	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 
@@ -805,11 +805,11 @@ func Test_ParsePingRawOutput_WithRedirect(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
-	v := viewer{ctx: ctx, time: timeMock}
+	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 

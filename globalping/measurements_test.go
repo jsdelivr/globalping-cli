@@ -183,6 +183,7 @@ func Test_CreateMeasurement_NoProbes(t *testing.T) {
 
 	assert.Equal(t, &MeasurementError{
 		Code:    422,
+		Type:    "no_probes_found",
 		Message: "no suitable probes found - please choose a different location",
 	}, err)
 }
@@ -204,8 +205,12 @@ func Test_CreateMeasurement_Validation(t *testing.T) {
 
 	assert.Equal(t, &MeasurementError{
 		Code: 400,
+		Type: "validation_error",
 		Message: `invalid parameters
  - "target" does not match any of the allowed types`,
+		Params: map[string]interface{}{
+			"target": "\"target\" does not match any of the allowed types",
+		},
 	}, err)
 }
 

@@ -23,7 +23,7 @@ type Root struct {
 	viewer  view.Viewer
 	client  globalping.Client
 	probe   probe.Probe
-	time    utils.Time
+	utils   utils.Utils
 	storage *storage.LocalStorage
 	Cmd     *cobra.Command
 	cancel  chan os.Signal
@@ -32,7 +32,7 @@ type Root struct {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	utime := utils.NewTime()
+	_utils := utils.NewUtils()
 	printer := view.NewPrinter(os.Stdin, os.Stdout, os.Stderr)
 	config := utils.NewConfig()
 	config.Load()
@@ -68,8 +68,8 @@ func Execute() {
 		UserAgent:        getUserAgent(),
 	}, t, 30)
 	globalpingProbe := probe.NewProbe()
-	viewer := view.NewViewer(ctx, printer, utime, globalpingClient)
-	root := NewRoot(printer, ctx, viewer, utime, globalpingClient, globalpingProbe, localStorage)
+	viewer := view.NewViewer(ctx, printer, _utils, globalpingClient)
+	root := NewRoot(printer, ctx, viewer, _utils, globalpingClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()
 	if err != nil {
@@ -81,7 +81,7 @@ func NewRoot(
 	printer *view.Printer,
 	ctx *view.Context,
 	viewer view.Viewer,
-	time utils.Time,
+	utils utils.Utils,
 	globalpingClient globalping.Client,
 	globalpingProbe probe.Probe,
 	localStorage *storage.LocalStorage,
@@ -90,7 +90,7 @@ func NewRoot(
 		printer: printer,
 		ctx:     ctx,
 		viewer:  viewer,
-		time:    time,
+		utils:   utils,
 		client:  globalpingClient,
 		probe:   globalpingProbe,
 		storage: localStorage,
