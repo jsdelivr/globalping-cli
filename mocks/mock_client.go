@@ -40,11 +40,12 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // Authorize mocks base method.
-func (m *MockClient) Authorize(callback func(error)) string {
+func (m *MockClient) Authorize(callback func(error)) (*globalping.AuthorizeResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Authorize", callback)
-	ret0, _ := ret[0].(string)
-	return ret0
+	ret0, _ := ret[0].(*globalping.AuthorizeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Authorize indicates an expected call of Authorize.

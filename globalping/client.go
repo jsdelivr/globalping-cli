@@ -23,10 +23,10 @@ type Client interface {
 	//
 	// https://www.jsdelivr.com/docs/api.globalping.io#get-/v1/measurements/-id-
 	GetMeasurementRaw(id string) ([]byte, error)
-	// Returns a link to be used for authorization.
+	// Returns a link to be used for authorization and listens for the authorization callback.
 	//
 	// onTokenRefresh will be called if the authorization is successful.
-	Authorize(callback func(error)) string
+	Authorize(callback func(error)) (*AuthorizeResponse, error)
 	// Returns the introspection response for the token.
 	//
 	// If the token is empty, the client's current token will be used.

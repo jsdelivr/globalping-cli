@@ -60,7 +60,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 		}
 		return nil
 	}
-	url := r.client.Authorize(func(e error) {
+	res, err := r.client.Authorize(func(e error) {
 		defer func() {
 			r.cancel <- syscall.SIGINT
 		}()
@@ -73,9 +73,12 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 		}
 		r.printer.Println("You are now authenticated")
 	})
+	if err != nil {
+		return err
+	}
 	r.printer.Println("Please visit the following URL to authenticate:")
-	r.printer.Println(url)
-	r.utils.OpenBrowser(url)
+	r.printer.Println(res.AuthorizeURL)
+	r.utils.OpenBrowser(res.AuthorizeURL)
 	<-r.cancel
 	return err
 }

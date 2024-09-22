@@ -90,7 +90,9 @@ func Test_Auth_Login(t *testing.T) {
 
 	gbMock.EXPECT().Authorize(gomock.Any()).Do(func(_ any) {
 		root.cancel <- syscall.SIGINT
-	}).Return("http://localhost")
+	}).Return(&globalping.AuthorizeResponse{
+		AuthorizeURL: "http://localhost",
+	}, nil)
 	utilsMock.EXPECT().OpenBrowser("http://localhost").Return(nil)
 
 	os.Args = []string{"globalping", "auth", "login"}

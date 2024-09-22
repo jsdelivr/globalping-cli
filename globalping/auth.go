@@ -3,7 +3,7 @@ package globalping
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -45,15 +45,21 @@ func (e *AuthorizeError) Error() string {
 	return e.ErrorType + ": " + e.Description
 }
 
-func (c *client) Authorize(callback func(error)) string {
+type AuthorizeResponse struct {
+	AuthorizeURL string
+	CallbackURL  string
+}
+
+func (c *client) Authorize(callback func(error)) (*AuthorizeResponse, error) {
 	pkce := oauth2.GenerateVerifier()
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Handler: mux,
 	}
+	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
 		req.ParseForm()
-		token, err := c.exchange(req.Form, pkce, "http://"+server.Addr+"/callback")
+		token, err := c.exchange(req.Form, pkce, callbackURL)
 		if err != nil {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/error", http.StatusFound)
 		} else {
@@ -70,24 +76,31 @@ func (c *client) Authorize(callback func(error)) string {
 			callback(err)
 		}()
 	})
-	go func() {
-		ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
-		var err error
-		for _, port := range ports {
-			server.Addr = fmt.Sprintf("localhost:%d", port)
-			err = server.ListenAndServe()
-			if err == nil {
-				break
-			}
+	var err error
+	var ln net.Listener
+	ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
+	port := ""
+	for i := range ports {
+		port = strconv.Itoa(ports[i])
+		ln, err = net.Listen("tcp", ":"+port)
+		if err == nil {
+			break
 		}
-		if err != nil {
-			if err == http.ErrServerClosed {
-				return
-			}
+	}
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		err := server.Serve(ln)
+		if err != nil && err != http.ErrServerClosed {
 			callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
 		}
 	}()
-	return c.oauth2.AuthCodeURL("", oauth2.S256ChallengeOption(pkce))
+	callbackURL = "http://localhost:" + port + "/callback"
+	return &AuthorizeResponse{
+		AuthorizeURL: c.oauth2.AuthCodeURL("", oauth2.S256ChallengeOption(pkce)),
+		CallbackURL:  callbackURL,
+	}, nil
 }
 
 func (c *client) TokenIntrospection(token string) (*IntrospectionResponse, error) {
@@ -194,7 +207,7 @@ type IntrospectionResponse struct {
 	Jti       string `json:"jti"` // JWT ID
 }
 
-func (c *client) introspection(token string) (*IntrospectionResponse, *AuthorizeError) {
+func (c *client) introspection(token string) (*IntrospectionResponse, error) {
 	form := url.Values{"token": {token}}.Encode()
 	req, err := http.NewRequest("POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
 	if err != nil {

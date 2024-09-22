@@ -13,6 +13,7 @@ import (
 
 func Test_Authorize(t *testing.T) {
 	succesCalled := false
+	expectedRedirectURI := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/authorize/error" {
 			t.Fatalf("unexpected request to %s", r.URL.Path)
@@ -34,7 +35,7 @@ func Test_Authorize(t *testing.T) {
 			assert.Equal(t, "<client_secret>", r.Form.Get("client_secret"))
 			assert.Equal(t, "authorization_code", r.Form.Get("grant_type"))
 			assert.Equal(t, "cod3", r.Form.Get("code"))
-			assert.Equal(t, "http://localhost:60000/callback", r.Form.Get("redirect_uri"))
+			assert.Equal(t, expectedRedirectURI, r.Form.Get("redirect_uri"))
 			assert.Equal(t, 43, len(r.Form.Get("code_verifier")))
 
 			w.Header().Set("Content-Type", "application/json")
@@ -57,12 +58,12 @@ func Test_Authorize(t *testing.T) {
 			token = _token
 		},
 	})
-	_url := client.Authorize(func(err error) {
-		if err != nil {
-			t.Fatal(err)
-		}
+	res, err := client.Authorize(func(err error) {
+		assert.Nil(t, err)
 	})
-	u, err := url.Parse(_url)
+	assert.Nil(t, err)
+	expectedRedirectURI = res.CallbackURL
+	u, err := url.Parse(res.AuthorizeURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +74,7 @@ func Test_Authorize(t *testing.T) {
 	assert.Equal(t, "code", u.Query().Get("response_type"))
 	assert.Equal(t, "measurements", u.Query().Get("scope"))
 
-	_, err = http.Post("http://localhost:60000/callback?code=cod3", "application/x-www-form-urlencoded", nil)
+	_, err = http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
