@@ -26,7 +26,12 @@ func (u *utils) Now() _time.Time {
 func (u *utils) OpenBrowser(url string) error {
 	switch runtime.GOOS {
 	case "linux":
-		return exec.Command("xdg-open", url).Start()
+		// WSL workaround
+		err := exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
+		if err != nil {
+			return exec.Command("xdg-open", url).Start()
+		}
+		return nil
 	case "windows":
 		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
