@@ -48,14 +48,18 @@ func Test_Authorize(t *testing.T) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
-	var token *Token
 	client := NewClient(Config{
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
 		OnTokenRefresh: func(_token *Token) {
-			token = _token
+			assert.Equal(t, &Token{
+				AccessToken:  "token",
+				TokenType:    "bearer",
+				RefreshToken: "refresh",
+				Expiry:       _token.Expiry,
+			}, _token)
 		},
 	})
 	res, err := client.Authorize(func(err error) {
@@ -80,12 +84,7 @@ func Test_Authorize(t *testing.T) {
 	}
 
 	assert.True(t, succesCalled, "/authorize/success not called")
-	assert.Equal(t, &Token{
-		AccessToken:  "token",
-		TokenType:    "bearer",
-		RefreshToken: "refresh",
-		Expiry:       token.Expiry,
-	}, token)
+
 }
 
 func Test_TokenIntrospection(t *testing.T) {
