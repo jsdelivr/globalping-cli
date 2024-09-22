@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"net/http"
 	"syscall"
 	"time"
 
@@ -98,6 +97,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 
 	hm, err := r.createMeasurement(opts)
 	if err != nil {
+		r.evaluateError(err)
 		return err
 	}
 	return r.viewer.Output(hm.Id, opts)
@@ -119,13 +119,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	<-r.cancel
 
 	r.viewer.OutputSummary()
-	if err != nil && r.ctx.MeasurementsCreated > 0 {
-		e, ok := err.(*globalping.MeasurementError)
-		if ok && e.Code == http.StatusTooManyRequests {
-			r.Cmd.SilenceErrors = true
-			r.printer.ErrPrintf(r.printer.Color("> "+e.Message, view.FGBrightYellow) + "\n")
-		}
-	}
+	r.evaluateError(err)
 	r.viewer.OutputShare()
 	return err
 }
@@ -133,7 +127,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
-	r.ctx.RunSessionStartedAt = r.time.Now()
+	r.ctx.RunSessionStartedAt = r.utils.Now()
 	for {
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
@@ -164,14 +158,14 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 			}
 			if runErr == nil && mbuf.CanAppend() {
 				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
-				start := r.time.Now()
+				start := r.utils.Now()
 				hm, err := r.createMeasurement(opts)
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
 				} else {
 					mbuf.Append(hm)
 				}
-				elapsedTime += r.time.Now().Sub(start)
+				elapsedTime += r.utils.Now().Sub(start)
 			}
 			el = mbuf.Next()
 		}
@@ -204,7 +198,7 @@ func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.Hist
 	hm := &view.HistoryItem{
 		Id:        res.ID,
 		Status:    globalping.StatusInProgress,
-		StartedAt: r.time.Now(),
+		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {

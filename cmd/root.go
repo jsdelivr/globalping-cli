@@ -11,6 +11,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/globalping/probe"
+	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
@@ -22,7 +23,8 @@ type Root struct {
 	viewer  view.Viewer
 	client  globalping.Client
 	probe   probe.Probe
-	time    utils.Time
+	utils   utils.Utils
+	storage *storage.LocalStorage
 	Cmd     *cobra.Command
 	cancel  chan os.Signal
 }
@@ -30,10 +32,16 @@ type Root struct {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	utime := utils.NewTime()
+	_utils := utils.NewUtils()
 	printer := view.NewPrinter(os.Stdin, os.Stdout, os.Stderr)
 	config := utils.NewConfig()
 	config.Load()
+	localStorage := storage.NewLocalStorage(".globalping-cli")
+	if err := localStorage.Init(); err != nil {
+		printer.ErrPrintf("Error: failed to initialize storage: %v\n", err)
+		os.Exit(1)
+	}
+	profile := localStorage.GetProfile()
 	ctx := &view.Context{
 		APIMinInterval: config.GlobalpingAPIInterval,
 		History:        view.NewHistoryBuffer(10),
@@ -42,13 +50,26 @@ func Execute() {
 	}
 	t := time.NewTicker(10 * time.Second)
 	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
-		APIURL:    config.GlobalpingAPIURL,
-		APIToken:  config.GlobalpingToken,
-		UserAgent: getUserAgent(),
+		APIURL:          config.GlobalpingAPIURL,
+		AuthURL:         config.GlobalpingAuthURL,
+		DashboardURL:    config.GlobalpingDashboardURL,
+		AuthAccessToken: config.GlobalpingToken,
+		AuthToken:       profile.Token,
+		OnTokenRefresh: func(token *globalping.Token) {
+			profile.Token = token
+			err := localStorage.SaveConfig()
+			if err != nil {
+				printer.ErrPrintf("Error: failed to save config: %v\n", err)
+				os.Exit(1)
+			}
+		},
+		AuthClientID:     config.GlobalpingAuthClientID,
+		AuthClientSecret: config.GlobalpingAuthClientSecret,
+		UserAgent:        getUserAgent(),
 	}, t, 30)
 	globalpingProbe := probe.NewProbe()
-	viewer := view.NewViewer(ctx, printer, utime, globalpingClient)
-	root := NewRoot(printer, ctx, viewer, utime, globalpingClient, globalpingProbe)
+	viewer := view.NewViewer(ctx, printer, _utils, globalpingClient)
+	root := NewRoot(printer, ctx, viewer, _utils, globalpingClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()
 	if err != nil {
@@ -60,17 +81,19 @@ func NewRoot(
 	printer *view.Printer,
 	ctx *view.Context,
 	viewer view.Viewer,
-	time utils.Time,
+	utils utils.Utils,
 	globalpingClient globalping.Client,
 	globalpingProbe probe.Probe,
+	localStorage *storage.LocalStorage,
 ) *Root {
 	root := &Root{
 		printer: printer,
 		ctx:     ctx,
 		viewer:  viewer,
-		time:    time,
+		utils:   utils,
 		client:  globalpingClient,
 		probe:   globalpingProbe,
+		storage: localStorage,
 		cancel:  make(chan os.Signal, 1),
 	}
 
@@ -116,6 +139,7 @@ For more information about the platform, tips, and best practices, visit our Git
 	root.initInstallProbe()
 	root.initVersion()
 	root.initHistory()
+	root.initAuth()
 
 	return root
 }

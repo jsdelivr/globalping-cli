@@ -39,6 +39,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// Authorize mocks base method.
+func (m *MockClient) Authorize(callback func(error)) (*globalping.AuthorizeResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Authorize", callback)
+	ret0, _ := ret[0].(*globalping.AuthorizeResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Authorize indicates an expected call of Authorize.
+func (mr *MockClientMockRecorder) Authorize(callback any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Authorize", reflect.TypeOf((*MockClient)(nil).Authorize), callback)
+}
+
 // CreateMeasurement mocks base method.
 func (m *MockClient) CreateMeasurement(measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	m.ctrl.T.Helper()
@@ -82,4 +97,47 @@ func (m *MockClient) GetMeasurementRaw(id string) ([]byte, error) {
 func (mr *MockClientMockRecorder) GetMeasurementRaw(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeasurementRaw", reflect.TypeOf((*MockClient)(nil).GetMeasurementRaw), id)
+}
+
+// Logout mocks base method.
+func (m *MockClient) Logout() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logout")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Logout indicates an expected call of Logout.
+func (mr *MockClientMockRecorder) Logout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockClient)(nil).Logout))
+}
+
+// RevokeToken mocks base method.
+func (m *MockClient) RevokeToken(token string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeToken", token)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeToken indicates an expected call of RevokeToken.
+func (mr *MockClientMockRecorder) RevokeToken(token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeToken", reflect.TypeOf((*MockClient)(nil).RevokeToken), token)
+}
+
+// TokenIntrospection mocks base method.
+func (m *MockClient) TokenIntrospection(token string) (*globalping.IntrospectionResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TokenIntrospection", token)
+	ret0, _ := ret[0].(*globalping.IntrospectionResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TokenIntrospection indicates an expected call of TokenIntrospection.
+func (mr *MockClientMockRecorder) TokenIntrospection(token any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TokenIntrospection", reflect.TypeOf((*MockClient)(nil).TokenIntrospection), token)
 }

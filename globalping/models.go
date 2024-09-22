@@ -51,25 +51,23 @@ type MeasurementCreate struct {
 }
 
 type MeasurementError struct {
-	Code    int
-	Message string
+	Code    int                    `json:"-"`
+	Message string                 `json:"message"`
+	Type    string                 `json:"type"`
+	Params  map[string]interface{} `json:"params,omitempty"`
 }
 
 func (e *MeasurementError) Error() string {
 	return e.Message
 }
 
+type MeasurementErrorResponse struct {
+	Error *MeasurementError `json:"error"`
+}
+
 type MeasurementCreateResponse struct {
 	ID          string `json:"id"`
 	ProbesCount int    `json:"probesCount"`
-}
-
-type MeasurementCreateError struct {
-	Error struct {
-		Message string                 `json:"message"`
-		Type    string                 `json:"type"`
-		Params  map[string]interface{} `json:"params,omitempty"`
-	} `json:"error"`
 }
 
 type ProbeDetails struct {

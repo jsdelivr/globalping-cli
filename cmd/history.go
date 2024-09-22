@@ -100,7 +100,7 @@ func (r *Root) UpdateHistory() error {
 		}
 		index = fmt.Sprintf("%d", i)
 	}
-	time := r.time.Now().Unix()
+	time := r.utils.Now().Unix()
 	cmd := strings.Join(os.Args[1:], " ")
 	f, err := os.OpenFile(getHistoryPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

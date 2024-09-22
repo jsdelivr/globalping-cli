@@ -19,6 +19,10 @@ var (
 	noCreditsAuthErr             = "You have run out of credits for this session. You can wait %s for the rate limit to reset or get higher limits by sponsoring us or hosting probes."
 )
 
+var (
+	StatusUnauthorizedWithTokenRefreshed = 1000
+)
+
 func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*MeasurementCreateResponse, error) {
 	postData, err := json.Marshal(measurement)
 	if err != nil {
@@ -33,8 +37,12 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 	req.Header.Set("Accept-Encoding", "br")
 	req.Header.Set("Content-Type", "application/json")
 
-	if c.apiToken != "" {
-		req.Header.Set("Authorization", "Bearer "+c.apiToken)
+	token, tokenType, err := c.accessToken()
+	if err != nil {
+		return nil, &MeasurementError{Message: "failed to get token: " + err.Error()}
+	}
+	if token != "" {
+		req.Header.Set("Authorization", tokenType+" "+token)
 	}
 
 	resp, err := c.http.Do(req)
@@ -44,14 +52,13 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusAccepted {
-		var data MeasurementCreateError
+		var data MeasurementErrorResponse
 		err = json.NewDecoder(resp.Body).Decode(&data)
 		if err != nil {
 			return nil, &MeasurementError{Message: "invalid error format returned - please report this bug"}
 		}
-		err := &MeasurementError{
-			Code: resp.StatusCode,
-		}
+		err := data.Error
+		err.Code = resp.StatusCode
 		if resp.StatusCode == http.StatusBadRequest {
 			resErr := ""
 			for _, v := range data.Error.Params {
@@ -65,8 +72,12 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			return nil, err
 		}
 
-		if resp.StatusCode == http.StatusUnauthorized {
-			err.Message = fmt.Sprintf("unauthorized: %s", data.Error.Message)
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			token, _, e := c.accessToken()
+			if e == nil && token != "" {
+				err.Code = StatusUnauthorizedWithTokenRefreshed
+			}
+			err.Message = "unauthorized: " + data.Error.Message
 			return nil, err
 		}
 
@@ -81,7 +92,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			creditsRemaining, _ := strconv.ParseInt(resp.Header.Get("X-Credits-Remaining"), 10, 64)
 			requestCost, _ := strconv.ParseInt(resp.Header.Get("X-Request-Cost"), 10, 64)
 			remaining := rateLimitRemaining + creditsRemaining
-			if c.apiToken == "" {
+			if token == "" {
 				if remaining > 0 {
 					err.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
 					return nil, err

@@ -88,6 +88,7 @@ Measurement Commands:
   traceroute    Run a traceroute test
 
 Additional Commands:
+  auth          Authenticate with the Globalping API
   completion    Generate the autocompletion script for the specified shell
   help          Help about any command
   history       Display the measurement history of your current session

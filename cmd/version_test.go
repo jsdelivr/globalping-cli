@@ -15,7 +15,7 @@ func Test_Execute_Version_Default(t *testing.T) {
 	version.Version = "1.0.0"
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	root := NewRoot(printer, &view.Context{}, nil, nil, nil, nil)
+	root := NewRoot(printer, &view.Context{}, nil, nil, nil, nil, nil)
 
 	os.Args = []string{"globalping", "version"}
 	err := root.Cmd.ExecuteContext(context.TODO())

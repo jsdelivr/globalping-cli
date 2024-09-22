@@ -28,7 +28,7 @@ func Test_UpdateContext(t *testing.T) {
 func test_updateContext_NoArg(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("test", []string{"1.1.1.1"})
 	assert.Equal(t, "test", ctx.Cmd)
@@ -40,7 +40,7 @@ func test_updateContext_NoArg(t *testing.T) {
 func test_updateContext_Country(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("test", []string{"1.1.1.1", "from", "Germany"})
 	assert.Equal(t, "test", ctx.Cmd)
@@ -53,7 +53,7 @@ func test_updateContext_Country(t *testing.T) {
 func test_updateContext_CountryWhitespace(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("test", []string{"1.1.1.1", "from", " Germany, France"})
 	assert.Equal(t, "test", ctx.Cmd)
@@ -65,7 +65,7 @@ func test_updateContext_CountryWhitespace(t *testing.T) {
 func test_updateContext_NoTarget(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("test", []string{})
 	assert.Error(t, err)
@@ -78,7 +78,7 @@ func test_updateContext_CIEnv(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("test", []string{"1.1.1.1"})
 	assert.Equal(t, "test", ctx.Cmd)
@@ -92,7 +92,7 @@ func test_updateContext_TargetIsNotAHostname(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.Ipv4 = true
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("ping", []string{"1.1.1.1"})
 	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
@@ -107,7 +107,7 @@ func test_updateContext_ResolverIsNotAHostname(t *testing.T) {
 	ctx := createDefaultContext("dns")
 	ctx.Ipv4 = true
 	printer := view.NewPrinter(nil, nil, nil)
-	root := NewRoot(printer, ctx, nil, nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	err := root.updateContext("dns", []string{"example.com", "@1.1.1.1"})
 	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())

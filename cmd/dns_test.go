@@ -37,13 +37,13 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
@@ -101,13 +101,13 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
@@ -141,13 +141,13 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 	viewerMock := mocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
 
-	timeMock := mocks.NewMockTime(ctrl)
-	timeMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
-	root := NewRoot(printer, ctx, viewerMock, timeMock, gbMock, nil)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",

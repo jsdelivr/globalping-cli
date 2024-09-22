@@ -1,6 +1,8 @@
 package view
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -174,6 +176,25 @@ func (p *Printer) BoldBackground(s string, color Color) string {
 		return s
 	}
 	return fmt.Sprintf("\033[1;48;5;%sm%s\033[0m", color, s)
+}
+
+func (p *Printer) ReadPassword() (string, error) {
+	if p.InReader == nil {
+		return "", errors.New("no input reader")
+	}
+	f, ok := p.InReader.(*os.File)
+	if !ok {
+		scanner := bufio.NewScanner(p.InReader)
+		scanner.Scan()
+		return scanner.Text(), scanner.Err()
+	}
+	bytePassword, err := term.ReadPassword(int(f.Fd()))
+	if err != nil {
+		scanner := bufio.NewScanner(p.InReader)
+		scanner.Scan()
+		return scanner.Text(), scanner.Err()
+	}
+	return string(bytePassword), nil
 }
 
 func (p *Printer) GetSize() (width, height int) {

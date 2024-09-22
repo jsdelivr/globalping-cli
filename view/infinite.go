@@ -368,7 +368,7 @@ func (v *viewer) parsePingRawOutput(
 			res.Stats.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
 		}
 	} else {
-		res.Stats.Time = float64(v.time.Now().Sub(hm.StartedAt).Milliseconds())
+		res.Stats.Time = float64(v.utils.Now().Sub(hm.StartedAt).Milliseconds())
 	}
 	if res.Stats.Sent > 0 {
 		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv
@@ -402,7 +402,7 @@ func (v *viewer) getAPICreditConsumptionInfo(width int) string {
 		return apiCreditLastConsumptionInfo
 	}
 	apiCreditLastMeasurementCount = v.ctx.MeasurementsCreated
-	elapsedMinutes := v.time.Now().Sub(v.ctx.RunSessionStartedAt).Minutes()
+	elapsedMinutes := v.utils.Now().Sub(v.ctx.RunSessionStartedAt).Minutes()
 	consumption := int64(math.Ceil(float64((apiCreditLastMeasurementCount-1)*(len(v.ctx.AggregatedStats))) / elapsedMinutes))
 	info := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(consumption, "API credit"))
 	if len(info) > width-4 {
