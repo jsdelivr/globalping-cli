@@ -66,12 +66,13 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 		}()
 		if e != nil {
 			err = e
+			r.Cmd.SilenceUsage = true
 			return
 		}
 		if oldToken != nil {
 			r.client.RevokeToken(oldToken.RefreshToken)
 		}
-		r.printer.Println("You are now authenticated")
+		r.printer.Println("Success! You are now authenticated.")
 	})
 	if err != nil {
 		return err
@@ -79,6 +80,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 	r.printer.Println("Please visit the following URL to authenticate:")
 	r.printer.Println(res.AuthorizeURL)
 	r.utils.OpenBrowser(res.AuthorizeURL)
+	r.printer.Println("\nCan't use the browser-based flow? Use \"globalping auth login --with-token\" to read a token from stdin instead.")
 	<-r.cancel
 	return err
 }

@@ -101,6 +101,8 @@ func Test_Auth_Login(t *testing.T) {
 
 	assert.Equal(t, `Please visit the following URL to authenticate:
 http://localhost
+
+Can't use the browser-based flow? Use "globalping auth login --with-token" to read a token from stdin instead.
 `, w.String())
 }
 
