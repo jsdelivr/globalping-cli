@@ -99,6 +99,21 @@ func (mr *MockClientMockRecorder) GetMeasurementRaw(id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeasurementRaw", reflect.TypeOf((*MockClient)(nil).GetMeasurementRaw), id)
 }
 
+// Limits mocks base method.
+func (m *MockClient) Limits() (*globalping.LimitsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Limits")
+	ret0, _ := ret[0].(*globalping.LimitsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Limits indicates an expected call of Limits.
+func (mr *MockClientMockRecorder) Limits() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Limits", reflect.TypeOf((*MockClient)(nil).Limits))
+}
+
 // Logout mocks base method.
 func (m *MockClient) Logout() error {
 	m.ctrl.T.Helper()
