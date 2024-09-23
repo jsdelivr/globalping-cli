@@ -140,6 +140,7 @@ For more information about the platform, tips, and best practices, visit our Git
 	root.initVersion()
 	root.initHistory()
 	root.initAuth()
+	root.initLimits()
 
 	return root
 }

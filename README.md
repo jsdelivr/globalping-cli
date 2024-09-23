@@ -93,6 +93,7 @@ Additional Commands:
   help          Help about any command
   history       Display the measurement history of your current session
   install-probe Join the Globalping network by running a probe
+  limits        Show the current rate limits
   version       Display the version of your installed Globalping CLI
 
 Flags:
