@@ -64,6 +64,56 @@ Credits:
 `, w.String())
 }
 
+func Test_Limits_Zero_Reset_Time(t *testing.T) {
+	t.Cleanup(sessionCleanup)
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gbMock := mocks.NewMockClient(ctrl)
+
+	gbMock.EXPECT().TokenIntrospection("").Return(&globalping.IntrospectionResponse{
+		Active:   true,
+		Username: "test",
+	}, nil)
+	gbMock.EXPECT().Limits().Return(&globalping.LimitsResponse{
+		RateLimits: globalping.RateLimits{
+			Measurements: globalping.MeasurementsLimits{
+				Create: globalping.MeasurementsCreateLimits{
+					Type:      "user",
+					Limit:     500,
+					Remaining: 350,
+					Reset:     0,
+				},
+			},
+		},
+		Credits: globalping.CreditLimits{
+			Remaining: 1000,
+		},
+	}, nil)
+
+	w := new(bytes.Buffer)
+	r := new(bytes.Buffer)
+	printer := view.NewPrinter(r, w, w)
+	ctx := createDefaultContext("")
+
+	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
+
+	os.Args = []string{"globalping", "limits"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.NoError(t, err)
+
+	assert.Equal(t, `Authentication: token (test)
+
+Creating measurements: 
+ - 500 tests per hour
+ - 150 consumed, 350 remaining
+
+Credits:
+ - 1000 credits remaining (may be used to create measurements above the hourly limits)
+`, w.String())
+}
+
 func Test_Limits_IP(t *testing.T) {
 	t.Cleanup(sessionCleanup)
 

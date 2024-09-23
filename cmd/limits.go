@@ -30,7 +30,6 @@ func (r *Root) RunLimits(cmd *cobra.Command, args []string) error {
 	createLimit := utils.Pluralize(limits.RateLimits.Measurements.Create.Limit, "test")
 	createConsumed := limits.RateLimits.Measurements.Create.Limit - limits.RateLimits.Measurements.Create.Remaining
 	createRemaining := limits.RateLimits.Measurements.Create.Remaining
-	createResets := utils.FormatSeconds(limits.RateLimits.Measurements.Create.Reset)
 	t := limits.RateLimits.Measurements.Create.Type
 	if t == globalping.CreateLimitTypeUser {
 		r.printer.Printf("Authentication: token (%s)\n\n", username)
@@ -40,13 +39,15 @@ func (r *Root) RunLimits(cmd *cobra.Command, args []string) error {
 	r.printer.Printf(`Creating measurements: 
  - %s per hour
  - %d consumed, %d remaining
- - resets in %s
 `,
 		createLimit,
 		createConsumed,
 		createRemaining,
-		createResets,
 	)
+	if limits.RateLimits.Measurements.Create.Reset > 0 {
+		createResets := utils.FormatSeconds(limits.RateLimits.Measurements.Create.Reset)
+		r.printer.Printf(" - resets in %s\n", createResets)
+	}
 	if t == globalping.CreateLimitTypeUser {
 		credits := utils.Pluralize(limits.Credits.Remaining, "credit")
 		r.printer.Printf(`
