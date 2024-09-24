@@ -335,7 +335,7 @@ func silenceUsageOnCreateMeasurementError(err error) bool {
 	e, ok := err.(*globalping.MeasurementError)
 	if ok {
 		switch e.Code {
-		case http.StatusBadRequest, http.StatusUnprocessableEntity:
+		case http.StatusBadRequest:
 			return false
 		default:
 			return true
