@@ -60,6 +60,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 		}
 		err := data.Error
 		err.Code = resp.StatusCode
+
 		if resp.StatusCode == http.StatusBadRequest {
 			resErr := ""
 			for _, v := range data.Error.Params {
@@ -69,7 +70,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 			if len(resErr) > 0 {
 				resErr = resErr[:len(resErr)-1]
 			}
-			err.Message = fmt.Sprintf("invalid parameters\n%s", resErr)
+			err.Message = fmt.Sprintf("invalid parameters:\n%s", resErr)
 			return nil, err
 		}
 
@@ -88,7 +89,7 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 		}
 
 		if resp.StatusCode == http.StatusUnprocessableEntity {
-			err.Message = "no suitable probes found - please choose a different location"
+			err.Message = fmt.Sprintf("%s - please try a different location", utils.TextFromSentence(err.Message))
 			return nil, err
 		}
 
