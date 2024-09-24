@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"math"
 	"syscall"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -89,7 +90,7 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 	res, err := r.client.TokenIntrospection("")
 	if err != nil {
 		e, ok := err.(*globalping.AuthorizeError)
-		if ok && e.ErrorType == "not_authorized" {
+		if ok && e.ErrorType == globalping.ErrTypeNotAuthorized {
 			r.printer.Println("Not logged in.")
 			return nil
 		}
@@ -131,6 +132,7 @@ func (r *Root) loginWithToken() error {
 	profile := r.storage.GetProfile()
 	profile.Token = &globalping.Token{
 		AccessToken: token,
+		Expiry:      r.utils.Now().Add(math.MaxInt64),
 	}
 	err = r.storage.SaveConfig()
 	if err != nil {

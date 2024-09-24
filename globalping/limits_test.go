@@ -49,6 +49,7 @@ func Test_Limits(t *testing.T) {
 		APIURL:           server.URL,
 		AuthToken: &Token{
 			AccessToken: "tok3n",
+			TokenType:   "Bearer",
 			Expiry:      time.Now().Add(time.Hour),
 		},
 	})

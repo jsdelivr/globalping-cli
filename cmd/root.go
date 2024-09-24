@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"math"
 	"os"
 	"os/signal"
 	"syscall"
@@ -49,12 +50,19 @@ func Execute() {
 		Limit:          1,
 	}
 	t := time.NewTicker(10 * time.Second)
+	token := profile.Token
+	if config.GlobalpingToken != "" {
+		token = &globalping.Token{
+			AccessToken: config.GlobalpingToken,
+			ExpiresIn:   math.MaxInt64,
+			Expiry:      time.Now().Add(math.MaxInt64),
+		}
+	}
 	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
-		APIURL:          config.GlobalpingAPIURL,
-		AuthURL:         config.GlobalpingAuthURL,
-		DashboardURL:    config.GlobalpingDashboardURL,
-		AuthAccessToken: config.GlobalpingToken,
-		AuthToken:       profile.Token,
+		APIURL:       config.GlobalpingAPIURL,
+		AuthURL:      config.GlobalpingAuthURL,
+		DashboardURL: config.GlobalpingDashboardURL,
+		AuthToken:    token,
 		OnTokenRefresh: func(token *globalping.Token) {
 			profile.Token = token
 			err := localStorage.SaveConfig()
