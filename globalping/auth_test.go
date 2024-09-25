@@ -40,9 +40,7 @@ func Test_Authorize(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			_, err = w.Write(getTokenJSON())
-			if err != nil {
-				t.Fatal(err)
-			}
+			assert.Nil(t, err)
 			return
 		}
 		t.Fatalf("unexpected request to %s", r.URL.Path)
@@ -58,6 +56,7 @@ func Test_Authorize(t *testing.T) {
 				AccessToken:  "token",
 				TokenType:    "bearer",
 				RefreshToken: "refresh",
+				ExpiresIn:    3600,
 				Expiry:       _token.Expiry,
 			}, _token)
 		},
@@ -217,6 +216,7 @@ func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
 		AccessToken:  "new_token",
 		TokenType:    "bearer",
 		RefreshToken: "new_refresh_token",
+		ExpiresIn:    3600,
 		Expiry:       token.Expiry,
 	}, token)
 }
@@ -275,6 +275,16 @@ func Test_TokenIntrospection_With_Token(t *testing.T) {
 	assert.False(t, onTokenRefreshCalled)
 }
 
+func Test_TokenIntrospection_No_Token(t *testing.T) {
+	client := NewClient(Config{})
+	res, err := client.TokenIntrospection("")
+	assert.Nil(t, res)
+	e, ok := err.(*AuthorizeError)
+	assert.True(t, ok)
+	assert.Equal(t, ErrTypeNotAuthorized, e.ErrorType)
+	assert.Equal(t, "client is not authorized", e.Description)
+}
+
 func Test_Logout(t *testing.T) {
 	isCalled := false
 	now := time.Now()
@@ -312,9 +322,7 @@ func Test_Logout(t *testing.T) {
 		},
 	})
 	err := client.Logout()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 	assert.True(t, isCalled)
 	assert.True(t, onTokenRefreshCalled)
 }
@@ -370,9 +378,7 @@ func Test_Logout_No_RefreshToken(t *testing.T) {
 		},
 	})
 	err := client.Logout()
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
 	assert.True(t, onTokenRefreshCalled)
 }
 
@@ -388,9 +394,12 @@ func Test_Logout_AccessToken_Is_Set(t *testing.T) {
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthAccessToken:  "tok3n",
+		AuthToken: &Token{
+			AccessToken: "tok3n",
+			Expiry:      time.Now().Add(time.Hour),
+		},
 		OnTokenRefresh: func(token *Token) {
-			onTokenRefreshCalled = true
+			assert.Nil(t, token)
 		},
 	})
 	err := client.Logout()

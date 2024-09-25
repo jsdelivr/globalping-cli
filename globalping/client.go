@@ -1,13 +1,9 @@
 package globalping
 
 import (
-	"context"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
-
-	"golang.org/x/oauth2"
 )
 
 type Client interface {
@@ -50,7 +46,6 @@ type Config struct {
 	AuthURL          string
 	AuthClientID     string
 	AuthClientSecret string
-	AuthAccessToken  string // If set, this token will be used for API requests
 	AuthToken        *Token
 	OnTokenRefresh   func(*Token)
 
@@ -68,10 +63,10 @@ type client struct {
 	http  *http.Client
 	cache map[string]*CacheEntry
 
-	oauth2         *oauth2.Config
-	token          atomic.Pointer[oauth2.Token]
-	tokenSource    oauth2.TokenSource
-	onTokenRefresh func(*Token)
+	authClientId     string
+	authClientSecret string
+	token            *Token
+	onTokenRefresh   func(*Token)
 
 	apiURL                        string
 	authURL                       string
@@ -85,23 +80,15 @@ type client struct {
 // If you want a cache cleanup goroutine, use NewClientWithCacheCleanup.
 func NewClient(config Config) Client {
 	c := &client{
-		mu: sync.RWMutex{},
-		oauth2: &oauth2.Config{
-			ClientID:     config.AuthClientID,
-			ClientSecret: config.AuthClientSecret,
-			Scopes:       []string{"measurements"},
-			Endpoint: oauth2.Endpoint{
-				AuthURL:   config.AuthURL + "/oauth/authorize",
-				TokenURL:  config.AuthURL + "/oauth/token",
-				AuthStyle: oauth2.AuthStyleInParams,
-			},
-		},
-		onTokenRefresh: config.OnTokenRefresh,
-		apiURL:         config.APIURL,
-		authURL:        config.AuthURL,
-		dashboardURL:   config.DashboardURL,
-		userAgent:      config.UserAgent,
-		cache:          map[string]*CacheEntry{},
+		mu:               sync.RWMutex{},
+		authClientId:     config.AuthClientID,
+		authClientSecret: config.AuthClientSecret,
+		onTokenRefresh:   config.OnTokenRefresh,
+		apiURL:           config.APIURL,
+		authURL:          config.AuthURL,
+		dashboardURL:     config.DashboardURL,
+		userAgent:        config.UserAgent,
+		cache:            map[string]*CacheEntry{},
 	}
 	if config.HTTPClient != nil {
 		c.http = config.HTTPClient
@@ -110,21 +97,16 @@ func NewClient(config Config) Client {
 			Timeout: 30 * time.Second,
 		}
 	}
-	if config.AuthAccessToken != "" {
-		c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthAccessToken})
-	} else if config.AuthToken != nil {
-		t := &oauth2.Token{
+	if config.AuthToken != nil {
+		c.token = &Token{
 			AccessToken:  config.AuthToken.AccessToken,
 			TokenType:    config.AuthToken.TokenType,
 			RefreshToken: config.AuthToken.RefreshToken,
+			ExpiresIn:    config.AuthToken.ExpiresIn,
 			Expiry:       config.AuthToken.Expiry,
 		}
-		c.token.Store(t)
-		if config.AuthToken.RefreshToken == "" {
-			c.tokenSource = oauth2.StaticTokenSource(&oauth2.Token{AccessToken: config.AuthToken.AccessToken})
-		} else {
-			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.http)
-			c.tokenSource = c.oauth2.TokenSource(ctx, t)
+		if c.token.TokenType == "" {
+			c.token.TokenType = "Bearer"
 		}
 	}
 	return c

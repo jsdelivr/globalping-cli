@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"math"
 	"os"
 	"syscall"
 	"testing"
@@ -23,6 +24,9 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 
 	gbMock := mocks.NewMockClient(ctrl)
 
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	w := new(bytes.Buffer)
 	r := new(bytes.Buffer)
 	r.WriteString("token\n")
@@ -39,7 +43,7 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 		RefreshToken: "oldRefreshToken",
 	}
 
-	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, _storage)
+	root := NewRoot(printer, ctx, nil, utilsMock, gbMock, nil, _storage)
 
 	gbMock.EXPECT().TokenIntrospection("token").Return(&globalping.IntrospectionResponse{
 		Active:   true,
@@ -59,6 +63,7 @@ Logged in as test.
 	assert.Equal(t, &storage.Profile{
 		Token: &globalping.Token{
 			AccessToken: "token",
+			Expiry:      defaultCurrentTime.Add(math.MaxInt64),
 		},
 	}, profile)
 }

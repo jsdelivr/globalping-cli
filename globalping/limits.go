@@ -56,12 +56,12 @@ func (c *client) Limits() (*LimitsResponse, error) {
 	if err != nil {
 		return nil, &LimitsError{Message: "failed to create request - please report this bug"}
 	}
-	token, tokenType, err := c.accessToken()
+	token, err := c.getToken()
 	if err != nil {
 		return nil, &LimitsError{Message: "failed to get token: " + err.Error()}
 	}
-	if token != "" {
-		req.Header.Set("Authorization", tokenType+" "+token)
+	if token != nil {
+		req.Header.Set("Authorization", token.TokenType+" "+token.AccessToken)
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
