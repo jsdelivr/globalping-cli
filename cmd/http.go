@@ -69,6 +69,7 @@ Examples:
 	}
 
 	// http specific flags
+	localFlags.BoolP("help", "h", false, "help for http")
 	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
 	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")

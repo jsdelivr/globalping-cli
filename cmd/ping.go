@@ -52,6 +52,7 @@ Examples:
 	}
 
 	// ping specific flags
+	localFlags.BoolP("help", "h", false, "help for ping")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
 	localFlags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
 	pingCmd.Flags().AddFlagSet(measurementFlags)

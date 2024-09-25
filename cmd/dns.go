@@ -54,6 +54,7 @@ Examples:
 	}
 
 	// dns specific flags
+	localFlags.BoolP("help", "h", false, "help for dns")
 	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for the DNS query: TCP or UDP (default \"udp\")")
 	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify a non-standard port on the server to send the query to (default 53)")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use as the resolver (default defined by the probe)")

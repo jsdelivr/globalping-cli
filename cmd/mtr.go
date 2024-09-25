@@ -47,6 +47,7 @@ Examples:
 	}
 
 	// mtr specific flags
+	localFlags.BoolP("help", "h", false, "help for mtr")
 	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for MTR: ICMP, TCP, or UDP (default \"icmp\")")
 	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for MTR; only applicable for the TCP protocol (default 53)")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of packets to send to each hop (default 3)")
