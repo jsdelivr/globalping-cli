@@ -75,7 +75,7 @@ chocolateys:
     title: Globalping CLI
     authors: Ayuhito
 
-    project_url: https://www.jsdelivr.com/globalping
+    project_url: https://globalping.io
 
     # App's icon.
     icon_url: 'https://cdn.jsdelivr.net/gh/jimaek/akulov.com@e4e566ae5a067b02678b3cdf6e55fc6bcfb2c1c8/img/globalping-choco-icon.png'
@@ -98,7 +98,7 @@ chocolateys:
       - Human friendly format and output
       - Cross-platform. Linux, MacOS, Windows are all supported
       - Auto-updates via RPM/DEB/Chocolatey repos
-      - [Check our website for online tools, our Slack app and more!](https://www.jsdelivr.com/globalping)
+      - [Check our website for online tools, our Slack app and more!](https://globalping.io)
 
 
       ## Getting Started with Globalping CLI

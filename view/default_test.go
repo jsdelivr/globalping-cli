@@ -142,7 +142,7 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 
 	assert.Equal(t, fmt.Sprintf(`> Berlin, DE, EU, Network 1 (AS123)
 > New York (NY), US, NA, Network 2 (AS567)
-> View the results online: https://www.jsdelivr.com/globalping?measurement=%s
+> View the results online: https://globalping.io?measurement=%s
 `, measurementID1), errW.String())
 
 	assert.Equal(t, `Body 1

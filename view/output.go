@@ -10,7 +10,7 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-var ShareURL = "https://www.jsdelivr.com/globalping?measurement="
+var ShareURL = "https://globalping.io?measurement="
 
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)

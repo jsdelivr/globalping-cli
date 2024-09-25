@@ -40,7 +40,7 @@ func Test_Output_Json(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, fmt.Sprintf(`{"fake": "results"}
-> View the results online: https://www.jsdelivr.com/globalping?measurement=%s
+> View the results online: https://globalping.io?measurement=%s
 
 `, measurementID1), w.String())
 }

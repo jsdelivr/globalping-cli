@@ -1,4 +1,4 @@
-<h1 align="center"> <a href="https://www.jsdelivr.com/globalping"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
+<h1 align="center"> <a href="https://globalping.io"><img width="28" alt="Globalping icon" src="https://user-images.githubusercontent.com/1834071/216975126-01529980-a87e-478c-8ab3-bf7d927a1986.png"></a> Globalping CLI </h1>
 
 <p align="center">Access a global network of probes without leaving your console. Benchmark your internet infrastructure, automate uptime and latency monitoring with scripts, or optimize your anycast network – from any location and free of charge. Powered by the Globalping community!</p>
 
@@ -14,7 +14,7 @@
 - Human-friendly format and output
 - Supports Linux, MacOS, and Windows
 - Auto-updated via all automated installation methods
-- Explore additional [Globalping integrations](https://www.jsdelivr.com/globalping/integrations), including our online tools, Slack app, and more
+- Explore additional [Globalping integrations](https://globalping.io/integrations), including our online tools, Slack app, and more
 
 ## Installation
 
@@ -208,7 +208,7 @@ google.com.             300     IN      A       142.250.183.206
 ;; SERVER: x.x.x.x#53(x.x.x.x)
 ;; WHEN: Mon Jul 10 10:38:00 UTC 2023
 ;; MSG SIZE  rcvd: 55
-> View the results online: https://www.jsdelivr.com/globalping?measurement=xrfXUEAOGfzwfHFz
+> View the results online: https://globalping.io?measurement=xrfXUEAOGfzwfHFz
 ```
 
 #### Reselect probes
@@ -327,15 +327,15 @@ You can view the history of your current session's measurements by running the 
 ```bash
 globalping history
 1 | 2024-03-27 11:56:46 | ping google.com
-> https://www.jsdelivr.com/globalping?measurement=itcR65tYCqbouXib
+> https://globalping.io?measurement=itcR65tYCqbouXib
 - | 2024-03-27 11:57:01 | dns google.com from last
-> https://www.jsdelivr.com/globalping?measurement=kWc5UBK9A6G4RUYM
+> https://globalping.io?measurement=kWc5UBK9A6G4RUYM
 2 | 2024-03-27 11:57:20 | traceroute google.com from New York --limit 2
-> https://www.jsdelivr.com/globalping?measurement=Yz7A1UifUonZsC3C
+> https://globalping.io?measurement=Yz7A1UifUonZsC3C
 3 | 2024-03-27 11:57:37 | mtr google.com from New York --limit 2
-> https://www.jsdelivr.com/globalping?measurement=SX1NBgfDKiabM1vZ
+> https://globalping.io?measurement=SX1NBgfDKiabM1vZ
 4 | 2024-03-27 11:57:52 | http google.com from London,Belgium --limit 2 --method get --ci
-> https://www.jsdelivr.com/globalping?measurement=eclwFSYX0zgU10Cs
+> https://globalping.io?measurement=eclwFSYX0zgU10Cs
 ```
 
 > [!TIP]

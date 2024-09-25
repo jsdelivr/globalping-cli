@@ -129,5 +129,5 @@ func createDefaultExpectedHistoryLogItem(index, measurements string, cmd string)
 }
 
 func createDefaultExpectedHistoryItem(index string, time string, cmd string, measurements string) string {
-	return fmt.Sprintf("%s | %s | %s\n> https://www.jsdelivr.com/globalping?measurement=%s\n", index, time, cmd, measurements)
+	return fmt.Sprintf("%s | %s | %s\n> https://globalping.io?measurement=%s\n", index, time, cmd, measurements)
 }

@@ -22,7 +22,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
-		expectedOutput := fmt.Sprintf("\033[1;38;5;43m> View the results online: https://www.jsdelivr.com/globalping?measurement=%s\033[0m\n", measurementID1)
+		expectedOutput := fmt.Sprintf("\033[1;38;5;43m> View the results online: https://globalping.io?measurement=%s\033[0m\n", measurementID1)
 		assert.Equal(t, expectedOutput, errw.String())
 	})
 
@@ -42,7 +42,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
-		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s.%s\n", measurementID1, measurementID2)
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://globalping.io?measurement=%s.%s\n", measurementID1, measurementID2)
 		assert.Equal(t, expectedOutput, errw.String())
 	})
 
@@ -67,7 +67,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
-		expectedOutput := fmt.Sprintf("\n> View the results online: https://www.jsdelivr.com/globalping?measurement=%s", measurementID2) +
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://globalping.io?measurement=%s", measurementID2) +
 			"\nFor long-running continuous mode measurements, only the last 16 packets are shared.\n"
 		assert.Equal(t, expectedOutput, errw.String())
 	})
