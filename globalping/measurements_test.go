@@ -57,7 +57,7 @@ func Test_CreateMeasurement_AuthorizedError(t *testing.T) {
 	res, err := client.CreateMeasurement(opts)
 
 	assert.Nil(t, res)
-	assert.EqualError(t, err, "unauthorized: Unauthorized.")
+	assert.EqualError(t, err, "Unauthorized.")
 }
 
 func Test_CreateMeasurement_TokenRefreshed(t *testing.T) {
@@ -195,7 +195,7 @@ func Test_CreateMeasurement_Unauthorized_TokenRefreshed(t *testing.T) {
 	e, ok := err.(*MeasurementError)
 	assert.True(t, ok)
 	assert.Equal(t, StatusUnauthorizedWithTokenRefreshed, e.Code)
-	assert.Equal(t, "unauthorized: Unauthorized.", e.Message)
+	assert.Equal(t, "Unauthorized.", e.Message)
 }
 
 func Test_CreateMeasurement_Unauthorized_Token_Not_Refreshed(t *testing.T) {
@@ -240,7 +240,7 @@ func Test_CreateMeasurement_Unauthorized_Token_Not_Refreshed(t *testing.T) {
 	opts := &MeasurementCreate{}
 	res, err := client.CreateMeasurement(opts)
 	assert.Nil(t, res)
-	assert.EqualError(t, err, "unauthorized: Unauthorized.")
+	assert.EqualError(t, err, "You have been signed out by the API. Please try signing in again.")
 	assert.True(t, isOnTokenRefreshCalled)
 }
 func Test_CreateMeasurement_Unauthorized_NoRefreshToken(t *testing.T) {

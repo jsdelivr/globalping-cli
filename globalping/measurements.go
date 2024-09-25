@@ -17,7 +17,8 @@ var (
 	moreCreditsRequiredAuthErr   = "You only have %s remaining, and %d were required. Try requesting fewer probes or wait %s for the rate limit to reset. You can get higher limits by sponsoring us or hosting probes."
 	noCreditsNoAuthErr           = "You have run out of credits for this session. You can wait %s for the rate limit to reset or get higher limits by creating an account. Sign up at https://globalping.io"
 	noCreditsAuthErr             = "You have run out of credits for this session. You can wait %s for the rate limit to reset or get higher limits by sponsoring us or hosting probes."
-	invalidTokenErr              = "Your access token has been rejected by the API. Try signing in with a new token, or sign out."
+	invalidRefreshTokenErr       = "You have been signed out by the API. Please try signing in again."
+	invalidTokenErr              = "Your access token has been rejected by the API. Try signing in with a new token."
 )
 
 var (
@@ -82,9 +83,12 @@ func (c *client) CreateMeasurement(measurement *MeasurementCreate) (*Measurement
 				}
 				if c.tryToRefreshToken(token.RefreshToken) {
 					err.Code = StatusUnauthorizedWithTokenRefreshed
+					return nil, err
 				}
+				err.Message = invalidRefreshTokenErr
+				return nil, err
 			}
-			err.Message = "unauthorized: " + data.Error.Message
+			err.Message = data.Error.Message
 			return nil, err
 		}
 
