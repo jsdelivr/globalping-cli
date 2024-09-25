@@ -96,9 +96,7 @@ Additional Commands:
   limits        Show the current rate limits
   version       Display the version of your installed Globalping CLI
 
-Flags:
-  -C, --ci            disable real-time terminal updates and colors, suitable for CI and
-                      scripting (default false)
+Global Measurement Flags:
   -F, --from string   specify the probe locations as a comma-separated list; you may use:
                        - names of continents, regions, countries, US states, cities, or
                       networks
@@ -106,7 +104,6 @@ Flags:
                       from previous measurements in this session
                        - an ID of a previous measurement to run with its probes
                        (default "world")
-  -h, --help          help for globalping
   -4, --ipv4          resolve names to IPv4 addresses
   -6, --ipv6          resolve names to IPv6 addresses
   -J, --json          output results in JSON format (default false)
@@ -115,6 +112,11 @@ Flags:
   -L, --limit int     define the number of probes to use (default 1)
       --share         print a link at the end of the results to visualize them online (default
                       false)
+
+Global Flags:
+  -C, --ci     disable real-time terminal updates and colors, suitable for CI and scripting
+               (default false)
+  -h, --help   help for globalping
 
 Use "globalping [command] --help" for more information about a command.
 ```

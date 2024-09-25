@@ -11,9 +11,10 @@ import (
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func (r *Root) initHTTP() {
+func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	httpCmd := &cobra.Command{
 		RunE:    r.RunHTTP,
 		Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
@@ -68,16 +69,17 @@ Examples:
 	}
 
 	// http specific flags
-	flags := httpCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
-	flags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
-	flags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
-	flags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
-	flags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
-	flags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
-	flags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
+	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
+	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
+	localFlags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
+	localFlags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
+	localFlags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
+	localFlags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD or GET (default \"HEAD\")")
+	localFlags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
+	localFlags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
+	httpCmd.Flags().AddFlagSet(measurementFlags)
+	httpCmd.Flags().AddFlagSet(localFlags)
 
 	r.Cmd.AddCommand(httpCmd)
 }
