@@ -8,9 +8,10 @@ import (
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func (r *Root) initPing() {
+func (r *Root) initPing(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	pingCmd := &cobra.Command{
 		RunE:    r.RunPing,
 		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
@@ -51,9 +52,11 @@ Examples:
 	}
 
 	// ping specific flags
-	flags := pingCmd.Flags()
-	flags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
-	flags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
+	localFlags.BoolP("help", "h", false, "help for ping")
+	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
+	localFlags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
+	pingCmd.Flags().AddFlagSet(measurementFlags)
+	pingCmd.Flags().AddFlagSet(localFlags)
 
 	r.Cmd.AddCommand(pingCmd)
 }

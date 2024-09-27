@@ -6,9 +6,10 @@ import (
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func (r *Root) initTraceroute() {
+func (r *Root) initTraceroute(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	var tracerouteCmd = &cobra.Command{
 		RunE:    r.RunTraceroute,
 		Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
@@ -49,9 +50,11 @@ Examples:
 	}
 
 	// traceroute specific flags
-	flags := tracerouteCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for tracerouting: ICMP, TCP, or UDP (default \"icmp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for the traceroute; only applicable for the TCP protocol (default 80)")
+	localFlags.BoolP("help", "h", false, "help for traceroute")
+	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for tracerouting: ICMP, TCP, or UDP (default \"icmp\")")
+	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for the traceroute; only applicable for the TCP protocol (default 80)")
+	tracerouteCmd.Flags().AddFlagSet(measurementFlags)
+	tracerouteCmd.Flags().AddFlagSet(localFlags)
 
 	r.Cmd.AddCommand(tracerouteCmd)
 }

@@ -18,6 +18,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var flagGroups = map[string]*pflag.FlagSet{}
+
 type Root struct {
 	printer *view.Printer
 	ctx     *view.Context
@@ -119,31 +121,45 @@ For more information about the platform, tips, and best practices, visit our Git
 	root.Cmd.SetErr(printer.ErrWriter)
 
 	cobra.AddTemplateFunc("wrappedFlagUsages", wrappedFlagUsages)
+	cobra.AddTemplateFunc("isMeasurementCommand", isMeasurementCommand)
+	cobra.AddTemplateFunc("localMeasurementFlags", localMeasurementFlags)
+	cobra.AddTemplateFunc("globalMeasurementFlags", globalMeasurementFlags)
+
 	root.Cmd.SetUsageTemplate(usageTemplate)
 	root.Cmd.SetHelpTemplate(helpTemplate)
 
 	// Global flags
-	flags := root.Cmd.PersistentFlags()
-	flags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe locations as a comma-separated list; you may use:
+	root.Cmd.PersistentFlags().BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and colors, suitable for CI and scripting (default false)")
+
+	// Measurement flags
+	measurementFlags := pflag.NewFlagSet("measurements", pflag.ExitOnError)
+	measurementFlags.StringVarP(&ctx.From, "from", "F", ctx.From, `specify the probe locations as a comma-separated list; you may use:
  - names of continents, regions, countries, US states, cities, or networks
  - [@1 | first, @2 ... @-2, @-1 | last | previous] to run with the probes from previous measurements in this session
  - an ID of a previous measurement to run with its probes
 `)
-	flags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
-	flags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
-	flags.BoolVarP(&ctx.CIMode, "ci", "C", ctx.CIMode, "disable real-time terminal updates and colors, suitable for CI and scripting (default false)")
-	flags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
-	flags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
-	flags.BoolVarP(&ctx.Ipv4, "ipv4", "4", ctx.Ipv4, "resolve names to IPv4 addresses")
-	flags.BoolVarP(&ctx.Ipv6, "ipv6", "6", ctx.Ipv6, "resolve names to IPv6 addresses")
+	measurementFlags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
+	measurementFlags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
+	measurementFlags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
+	measurementFlags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
+	measurementFlags.BoolVarP(&ctx.Ipv4, "ipv4", "4", ctx.Ipv4, "resolve names to IPv4 addresses")
+	measurementFlags.BoolVarP(&ctx.Ipv6, "ipv6", "6", ctx.Ipv6, "resolve names to IPv6 addresses")
 
 	root.Cmd.AddGroup(&cobra.Group{ID: "Measurements", Title: "Measurement Commands:"})
 
-	root.initDNS()
-	root.initHTTP()
-	root.initMTR()
-	root.initPing()
-	root.initTraceroute()
+	flagGroups["globalping"] = root.Cmd.Flags()
+	flagGroups["globalping dns"] = pflag.NewFlagSet("dns", pflag.ExitOnError)
+	flagGroups["globalping http"] = pflag.NewFlagSet("http", pflag.ExitOnError)
+	flagGroups["globalping mtr"] = pflag.NewFlagSet("mtr", pflag.ExitOnError)
+	flagGroups["globalping ping"] = pflag.NewFlagSet("ping", pflag.ExitOnError)
+	flagGroups["globalping traceroute"] = pflag.NewFlagSet("traceroute", pflag.ExitOnError)
+	flagGroups["measurements"] = measurementFlags
+
+	root.initDNS(measurementFlags, flagGroups["globalping dns"])
+	root.initHTTP(measurementFlags, flagGroups["globalping http"])
+	root.initMTR(measurementFlags, flagGroups["globalping mtr"])
+	root.initPing(measurementFlags, flagGroups["globalping ping"])
+	root.initTraceroute(measurementFlags, flagGroups["globalping traceroute"])
 	root.initInstallProbe()
 	root.initVersion()
 	root.initHistory()
@@ -166,6 +182,18 @@ func wrappedFlagUsages(cmd *pflag.FlagSet) string {
 	}
 
 	return cmd.FlagUsagesWrapped(width - 1)
+}
+
+func isMeasurementCommand(name string) bool {
+	return flagGroups[name] != nil
+}
+
+func localMeasurementFlags(name string) string {
+	return wrappedFlagUsages(flagGroups[name])
+}
+
+func globalMeasurementFlags() string {
+	return wrappedFlagUsages(flagGroups["measurements"])
 }
 
 // Identical to the default cobra usage template,
@@ -192,13 +220,28 @@ Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help")
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
 
 Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if (eq .CommandPath "globalping")}}
+
+Global Measurement Flags:
+{{globalMeasurementFlags | trimTrailingWhitespaces}}
+
+Global Flags:
+{{wrappedFlagUsages .LocalFlags | trimTrailingWhitespaces}}{{else}}{{if isMeasurementCommand .CommandPath}}
+
+Flags:
+{{localMeasurementFlags .CommandPath | trimTrailingWhitespaces}}
+
+Global Measurement Flags:
+{{globalMeasurementFlags | trimTrailingWhitespaces}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{wrappedFlagUsages .InheritedFlags | trimTrailingWhitespaces}}{{end}}{{else}}{{if .HasAvailableLocalFlags}}
 
 Flags:
 {{wrappedFlagUsages .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
 Global Flags:
-{{wrappedFlagUsages .InheritedFlags | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+{{wrappedFlagUsages .InheritedFlags | trimTrailingWhitespaces}}{{end}}{{end}}{{end}}{{if .HasHelpSubCommands}}
 
 Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
   {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}

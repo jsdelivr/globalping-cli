@@ -4,9 +4,10 @@ import (
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
-func (r *Root) initDNS() {
+func (r *Root) initDNS(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	dnsCmd := &cobra.Command{
 		RunE:    r.RunDNS,
 		Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
@@ -53,12 +54,14 @@ Examples:
 	}
 
 	// dns specific flags
-	flags := dnsCmd.Flags()
-	flags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for the DNS query: TCP or UDP (default \"udp\")")
-	flags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify a non-standard port on the server to send the query to (default 53)")
-	flags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use as the resolver (default defined by the probe)")
-	flags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "specify the type of DNS query to perform (default \"A\")")
-	flags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "enable tracing of the delegation path from the root name servers (default false)")
+	localFlags.BoolP("help", "h", false, "help for dns")
+	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for the DNS query: TCP or UDP (default \"udp\")")
+	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify a non-standard port on the server to send the query to (default 53)")
+	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use as the resolver (default defined by the probe)")
+	localFlags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "specify the type of DNS query to perform (default \"A\")")
+	localFlags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "enable tracing of the delegation path from the root name servers (default false)")
+	dnsCmd.Flags().AddFlagSet(measurementFlags)
+	dnsCmd.Flags().AddFlagSet(localFlags)
 
 	r.Cmd.AddCommand(dnsCmd)
 }
