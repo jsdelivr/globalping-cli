@@ -37,7 +37,7 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	assert.Equal(t, `Detected container engine: Docker
 
 The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.
-Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe) [Y/n] The Globalping probe started successfully. Thank you for joining our community! 
+Please confirm to pull and run our Docker container (globalping/globalping-probe) [Y/n] The Globalping probe started successfully. Thank you for joining our community! 
 `, w.String())
 
 	expectedCtx := &view.Context{

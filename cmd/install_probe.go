@@ -56,7 +56,7 @@ func (r *Root) RunInstallProbe(cmd *cobra.Command, args []string) {
 func containerPullMessage(containerEngine probe.ContainerEngine) string {
 	pre := "The Globalping platform is a community powered project and relies on individuals like yourself to host our probes and make them accessible to everyone else.\n"
 	var mid string
-	post := "Please confirm to pull and run our Docker container (ghcr.io/jsdelivr/globalping-probe)"
+	post := "Please confirm to pull and run our Docker container (globalping/globalping-probe)"
 
 	if containerEngine == probe.ContainerEnginePodman {
 		mid = "We have detected that you are using podman, the 'sudo podman' command will be used to pull the container.\n"
