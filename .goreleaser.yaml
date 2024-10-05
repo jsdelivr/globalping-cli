@@ -40,11 +40,11 @@ nfpms:
     vendor: "Globalping"
 
     # Template to your app's homepage.
-    homepage: "https://github.com/jsdelivr/globalping"
+    homepage: "https://globalping.io/"
 
     # Template to your app's description.
     description: |-
-      A global network of probes to run network tests like ping, traceroute and DNS resolve.
+      A global network testing platform to run network tests like ping, traceroute and DNS resolve from any location.
 
     # maintainer
     maintainer: "jsDelivr <d@jsdelivr.com>"
