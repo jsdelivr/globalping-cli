@@ -59,6 +59,8 @@ jobs:
       PACKAGECLOUD_USER: jsdelivr
       PACKAGECLOUD_REPO: globalping
       PACKAGECLOUD_APIKEY: ${{ secrets.PACKAGECLOUD_APIKEY }}
+      PACKAGECLOUD_MAX_DISTRO_VERSIONS_TO_SUPPORT: ${{ vars.PACKAGECLOUD_MAX_DISTRO_VERSIONS_TO_SUPPORT }}
+      PACKAGECLOUD_MAX_PACKAGE_VERSIONS_TO_KEEP: ${{ vars.PACKAGECLOUD_MAX_PACKAGE_VERSIONS_TO_KEEP }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -79,8 +81,9 @@ jobs:
       - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: ls -la
 
-      - run: go run packagecloud/main.go "globalping_${{ env.VERSION_NAME }}_linux_amd64.deb" "deb"
-      - run: go run packagecloud/main.go "globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm" "rpm"
+      - run: go run packagecloud/main.go upload "globalping_${{ env.VERSION_NAME }}_linux_amd64.deb" "deb"
+      - run: go run packagecloud/main.go upload "globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm" "rpm"
+      - run: go run packagecloud/main.go cleanup
 
   release_windows:
     needs: goreleaser
