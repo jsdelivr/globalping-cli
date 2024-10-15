@@ -25,9 +25,9 @@ jobs:
           go-version: ">=1.22"
           cache: true
 
-      - uses: goreleaser/goreleaser-action@v4
+      - uses: goreleaser/goreleaser-action@v6
         with:
-          version: v1.22.1
+          version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
@@ -36,15 +36,15 @@ jobs:
       - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
       - run: echo $VERSION_NAME
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-deb
           path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-rpm
           path: dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-windows
           path: |
@@ -71,10 +71,10 @@ jobs:
           go-version: ">=1.22"
           cache: true
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: goreleaser-deb
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: goreleaser-rpm
 
@@ -89,7 +89,7 @@ jobs:
     needs: goreleaser
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: goreleaser-windows
 
