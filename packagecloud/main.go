@@ -33,7 +33,7 @@ func main() {
 		PackagecloudRepo:   os.Getenv("PACKAGECLOUD_REPO"),
 		PackagecloudAPIKey: os.Getenv("PACKAGECLOUD_APIKEY"),
 
-		MaxDistroVersionsToSupport: 5,
+		MaxDistroVersionsToSupport: 10,
 		MaxPackageVersionsToKeep:   3,
 	}
 	maxDistrosVersionsToSupport, _ := strconv.Atoi(os.Getenv("PACKAGECLOUD_MAX_DISTRO_VERSIONS_TO_SUPPORT"))
