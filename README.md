@@ -209,6 +209,35 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://globalping.io?measurement=xrfXUEAOGfzwfHFz
 ```
 
+### Authentication
+
+Register a free [Globalping account](https://dash.globalping.io/), then sign in with the CLI to increase the number of tests you can run every hour. GitHub sponsors and users hosting probes receive additional [credits](https://globalping.io/credits), which allow them to run even more tests.
+
+#### Interactive browser-based flow
+
+By default, the CLI will open your web browser, where you simpy confirm the sign in by clicking a button.
+
+```bash
+globalping auth login
+Please visit the following URL to authenticate:
+https://auth.globalping.io/oauth/authorize...
+```
+
+#### Providing a token manually
+
+If you can't use the interactive flow, you can create a token in the [Dashboard](https://dash.globalping.io/tokens) and provide it via `stdin`.
+
+```bash
+globalping auth login --with-token
+Please enter your token:
+```
+
+Alternatively, you may set the environment variable `GLOBALPING_TOKEN`, which will be used automatically when present.
+
+### Advanced features
+
+After learning the basics, you may also be interested in these extra features, which provide additional control over your measurements.
+
 #### Reselect probes
 
 You can select the same probes used in a previous measurement by passing the measurement ID to the `--from` flag.
