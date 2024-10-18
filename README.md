@@ -16,6 +16,22 @@
 - Auto-updated via all automated installation methods
 - Explore additional [Globalping integrations](https://globalping.io/integrations), including our online tools, Slack app, and more
 
+## Table of contents
+
+<!-- TOC -->
+  * [Installation](#installation)
+  * [Get started with Globalping CLI](#get-started-with-globalping-cli)
+  * [Filter locations](#filter-locations)
+  * [Define multiple locations and basic flags](#define-multiple-locations-and-basic-flags)
+  * [Share results online](#share-results-online)
+  * [Authenticate](#authenticate)
+  * [Reselect probes](#reselect-probes)
+  * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
+  * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
+  * [View your measurement history](#view-your-measurement-history)
+  * [Learn about available flags](#learn-about-available-flags)
+<!-- TOC -->
+
 ## Installation
 
 Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
@@ -64,7 +80,7 @@ Every new release is compiled into binaries ready to run on most operating syste
 
 [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
-## Getting started with Globalping CLI
+## Get started with Globalping CLI
 
 After installing, verify the Globalping CLI is working by running:
 
@@ -116,8 +132,6 @@ Global Flags:
 
 Use "globalping [command] --help" for more information about a command.
 ```
-
-### Run your first tests
 
 Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags.
 
@@ -209,7 +223,7 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://globalping.io?measurement=xrfXUEAOGfzwfHFz
 ```
 
-### Authentication
+## Authenticate
 
 Register a free [Globalping account](https://dash.globalping.io/), then sign in with the CLI to increase the number of tests you can run every hour. GitHub sponsors and users hosting probes receive additional [credits](https://globalping.io/credits), which allow them to run even more tests.
 
@@ -234,7 +248,7 @@ Please enter your token:
 
 Alternatively, you may set the environment variable `GLOBALPING_TOKEN`, which will be used automatically when present.
 
-### Advanced features
+## Advanced features
 
 After learning the basics, you may also be interested in these extra features, which provide additional control over your measurements.
 
