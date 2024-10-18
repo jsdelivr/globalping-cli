@@ -20,14 +20,14 @@
 
 Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
 
-### Ubuntu/Debian (deb)
+#### Ubuntu/Debian (deb)
 
 ```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
 apt install globalping
 ```
 
-### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
+#### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
 
 ```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
@@ -36,26 +36,26 @@ dnf install globalping
 
 [Manual installation instructions](https://packagecloud.io/jsdelivr/globalping/install#manual)
 
-### MacOS - Homebrew
+#### MacOS - Homebrew
 
 ```shell
 brew tap jsdelivr/globalping
 brew install globalping
 ```
 
-### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
+#### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
 
 ```shell
 choco install globalping
 ```
 
-### Windows - WinGet
+#### Windows - WinGet
 
 ```shell
 winget install globalping
 ```
 
-### Binary installation
+#### Binary installation
 
 Every new release is compiled into binaries ready to run on most operating systems and provided as assets on GitHub. You can download and execute these binaries directly on your system.
 
@@ -63,10 +63,6 @@ Every new release is compiled into binaries ready to run on most operating syste
 > Opting for this installation method means you'll have to repeat this manual process to update the CLI to a newer release!
 
 [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
-
-## Updating
-
-If you've installed the Globalping CLI via a package manager, you only need to run the manager's update command to get the latest Globalping CLI version.
 
 ## Getting started with Globalping CLI
 
@@ -245,13 +241,13 @@ google.com.             300     IN      A       142.250.199.174
 Use `[@1 | first, @2 ... @-2, @-1 | last | previous]` to select the probes from previous measurements in the current session.
 
 ```bash
-globalping ping google.com from USA  --latency
+globalping ping google.com from USA --latency
 > Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
 
-globalping ping google.com from Germany  --latency
+globalping ping google.com from Germany --latency
 > Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
 Min: 4.87 ms
 Max: 4.936 ms
