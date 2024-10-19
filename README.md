@@ -16,18 +16,34 @@
 - Auto-updated via all automated installation methods
 - Explore additional [Globalping integrations](https://globalping.io/integrations), including our online tools, Slack app, and more
 
+## Table of contents
+
+<!-- TOC -->
+  * [Installation](#installation)
+  * [Get started with Globalping CLI](#get-started-with-globalping-cli)
+  * [Filter locations](#filter-locations)
+  * [Define multiple locations and basic flags](#define-multiple-locations-and-basic-flags)
+  * [Share results online](#share-results-online)
+  * [Authenticate](#authenticate)
+  * [Reselect probes](#reselect-probes)
+  * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
+  * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
+  * [View your measurement history](#view-your-measurement-history)
+  * [Learn about available flags](#learn-about-available-flags)
+<!-- TOC -->
+
 ## Installation
 
 Install the repository and Globalping CLI using the relevant package manager command from below. This way, you can get future updates by simply running an update with your package manager.
 
-### Ubuntu/Debian (deb)
+#### Ubuntu/Debian (deb)
 
 ```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.deb.sh | sudo bash
 apt install globalping
 ```
 
-### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
+#### CentOS/Fedora/Rocky Linux/AlmaLinux (rpm)
 
 ```shell
 curl -s https://packagecloud.io/install/repositories/jsdelivr/globalping/script.rpm.sh | sudo bash
@@ -36,26 +52,26 @@ dnf install globalping
 
 [Manual installation instructions](https://packagecloud.io/jsdelivr/globalping/install#manual)
 
-### MacOS - Homebrew
+#### MacOS - Homebrew
 
 ```shell
 brew tap jsdelivr/globalping
 brew install globalping
 ```
 
-### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
+#### Windows - [Chocolatey](https://community.chocolatey.org/packages/globalping)
 
 ```shell
 choco install globalping
 ```
 
-### Windows - WinGet
+#### Windows - WinGet
 
 ```shell
 winget install globalping
 ```
 
-### Binary installation
+#### Binary installation
 
 Every new release is compiled into binaries ready to run on most operating systems and provided as assets on GitHub. You can download and execute these binaries directly on your system.
 
@@ -64,11 +80,7 @@ Every new release is compiled into binaries ready to run on most operating syste
 
 [Explore the available versions](https://github.com/jsdelivr/globalping-cli/releases).
 
-## Updating
-
-If you've installed the Globalping CLI via a package manager, you only need to run the manager's update command to get the latest Globalping CLI version.
-
-## Getting started with Globalping CLI
+## Get started with Globalping CLI
 
 After installing, verify the Globalping CLI is working by running:
 
@@ -120,8 +132,6 @@ Global Flags:
 
 Use "globalping [command] --help" for more information about a command.
 ```
-
-### Run your first tests
 
 Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags.
 
@@ -213,6 +223,35 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://globalping.io?measurement=xrfXUEAOGfzwfHFz
 ```
 
+## Authenticate
+
+Register a free [Globalping account](https://dash.globalping.io/), then sign in with the CLI to increase the number of tests you can run every hour. GitHub sponsors and users hosting probes receive additional [credits](https://globalping.io/credits), which allow them to run even more tests.
+
+#### Interactive browser-based flow
+
+By default, the CLI will open your web browser, where you simpy confirm the sign in by clicking a button.
+
+```bash
+globalping auth login
+Please visit the following URL to authenticate:
+https://auth.globalping.io/oauth/authorize...
+```
+
+#### Providing a token manually
+
+If you can't use the interactive flow, you can create a token in the [Dashboard](https://dash.globalping.io/tokens) and provide it via `stdin`.
+
+```bash
+globalping auth login --with-token
+Please enter your token:
+```
+
+Alternatively, you may set the environment variable `GLOBALPING_TOKEN`, which will be used automatically when present.
+
+## Advanced features
+
+After learning the basics, you may also be interested in these extra features, which provide additional control over your measurements.
+
 #### Reselect probes
 
 You can select the same probes used in a previous measurement by passing the measurement ID to the `--from` flag.
@@ -245,13 +284,13 @@ google.com.             300     IN      A       142.250.199.174
 Use `[@1 | first, @2 ... @-2, @-1 | last | previous]` to select the probes from previous measurements in the current session.
 
 ```bash
-globalping ping google.com from USA  --latency
+globalping ping google.com from USA --latency
 > Ashburn (VA), US, NA, Hetzner Online GmbH (AS213230)
 Min: 7.314 ms
 Max: 7.413 ms
 Avg: 7.359 ms
 
-globalping ping google.com from Germany  --latency
+globalping ping google.com from Germany --latency
 > Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
 Min: 4.87 ms
 Max: 4.936 ms
