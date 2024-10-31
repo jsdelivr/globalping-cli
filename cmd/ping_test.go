@@ -344,7 +344,9 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Limit:   1,
 	}
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 
