@@ -24,7 +24,9 @@ func Test_Execute_History_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 

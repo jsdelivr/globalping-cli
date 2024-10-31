@@ -38,7 +38,9 @@ func Test_Execute_MTR_Default(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
@@ -97,7 +99,9 @@ func Test_Execute_MTR_IPv4(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",
@@ -136,7 +140,9 @@ func Test_Execute_MTR_IPv6(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("mtr")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "mtr", "jsdelivr.com",
 		"from", "Berlin",

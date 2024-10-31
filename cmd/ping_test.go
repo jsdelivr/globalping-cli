@@ -38,7 +38,9 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
@@ -90,7 +92,9 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin,New York "}
 	err := root.Cmd.ExecuteContext(context.TODO())
@@ -455,7 +459,9 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 	err := root.Cmd.ExecuteContext(context.TODO())
@@ -521,7 +527,9 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	printer := view.NewPrinter(nil, w, errW)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin", "--infinite", "--share"}
 	err := root.Cmd.ExecuteContext(context.TODO())
@@ -574,7 +582,9 @@ func Test_Execute_Ping_IPv4(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--ipv4"}
@@ -611,7 +621,9 @@ func Test_Execute_Ping_IPv6(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("ping")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--ipv6"}

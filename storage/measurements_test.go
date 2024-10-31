@@ -9,7 +9,9 @@ import (
 
 func Test_GetIdFromSession(t *testing.T) {
 	_storage := NewLocalStorage(nil)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	err := _storage.Init(".test_globalping-cli")
 	if err != nil {
 		t.Fatal(err)
@@ -36,7 +38,9 @@ func Test_GetIdFromSession(t *testing.T) {
 
 func Test_SaveIdToSession(t *testing.T) {
 	_storage := NewLocalStorage(nil)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	err := _storage.Init(".test_globalping-cli")
 	if err != nil {
 		t.Fatal(err)

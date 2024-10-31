@@ -11,7 +11,9 @@ import (
 
 func Test_GetHistoryIndex(t *testing.T) {
 	_storage := NewLocalStorage(nil)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	err := _storage.Init(".test_globalping-cli")
 	if err != nil {
 		t.Fatal(err)
@@ -26,7 +28,9 @@ func Test_GetHistoryIndex(t *testing.T) {
 
 func Test_GetHistory(t *testing.T) {
 	_storage := NewLocalStorage(nil)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	err := _storage.Init(".test_globalping-cli")
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +69,9 @@ func Test_GetHistory(t *testing.T) {
 
 func Test_SaveCommandToHistory(t *testing.T) {
 	_storage := NewLocalStorage(nil)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	err := _storage.Init(".test_globalping-cli")
 	if err != nil {
 		t.Fatal(err)

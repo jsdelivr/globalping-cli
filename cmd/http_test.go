@@ -44,7 +44,9 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
@@ -117,7 +119,9 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
@@ -160,7 +164,9 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",

@@ -31,7 +31,9 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 	printer := view.NewPrinter(r, w, w)
 	ctx := createDefaultContext("")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	_storage.GetProfile().Token = &globalping.Token{
 		AccessToken:  "oldToken",
 		RefreshToken: "oldRefreshToken",
@@ -73,7 +75,9 @@ func Test_Auth_Login(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	_storage.GetProfile().Token = &globalping.Token{
 		AccessToken:  "oldToken",
 		RefreshToken: "oldRefreshToken",

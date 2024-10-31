@@ -42,7 +42,9 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
@@ -106,7 +108,9 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
@@ -146,7 +150,9 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("dns")
 	_storage := createDefaultStorage(utilsMock)
-	defer _storage.Remove()
+	t.Cleanup(func() {
+		_storage.Remove()
+	})
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
