@@ -14,8 +14,6 @@ import (
 )
 
 func Test_Execute_Install_Probe_Docker(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

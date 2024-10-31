@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/storage"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/view"
 )
 
@@ -19,14 +18,6 @@ var (
 
 	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
-
-func sessionCleanup() {
-	sessionPath := getSessionPath()
-	err := os.RemoveAll(sessionPath)
-	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		panic("Failed to remove session path: " + err.Error())
-	}
-}
 
 func createDefaultMeasurementCreateResponse() *globalping.MeasurementCreateResponse {
 	return &globalping.MeasurementCreateResponse{
@@ -99,6 +90,15 @@ func createDefaultContext(_ string) *view.Context {
 	return ctx
 }
 
+func createDefaultStorage(utils utils.Utils) *storage.LocalStorage {
+	s := storage.NewLocalStorage(utils)
+	err := s.Init(".test_globalping-cli")
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
 func createDefaultExpectedContext(cmd string) *view.Context {
 	ctx := &view.Context{
 		Cmd:                 cmd,
@@ -118,16 +118,11 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 	return ctx
 }
 
-func createDefaultExpectedHistoryLogItem(index, measurements string, cmd string) string {
-	return fmt.Sprintf("%s|%s|%d|%s|%s\n",
-		HistoryItemVersion1,
+func createDefaultExpectedHistoryItem(index string, cmd string, measurements string) string {
+	return fmt.Sprintf("%s | %s | %s\n> https://globalping.io?measurement=%s",
 		index,
-		defaultCurrentTime.Unix(),
-		measurements,
+		time.Unix(defaultCurrentTime.Unix(), 0).Format("2006-01-02 15:04:05"),
 		cmd,
+		measurements,
 	)
-}
-
-func createDefaultExpectedHistoryItem(index string, time string, cmd string, measurements string) string {
-	return fmt.Sprintf("%s | %s | %s\n> https://globalping.io?measurement=%s\n", index, time, cmd, measurements)
 }

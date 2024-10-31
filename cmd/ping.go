@@ -206,7 +206,7 @@ func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.Hist
 	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
-		err := saveIdToSession(res.ID)
+		err := r.storage.SaveIdToSession(res.ID)
 		if err != nil {
 			r.printer.ErrPrintf("Warning: %s\n", err)
 		}

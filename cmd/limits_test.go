@@ -14,8 +14,6 @@ import (
 )
 
 func Test_Limits_User(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -65,8 +63,6 @@ Credits:
 }
 
 func Test_Limits_Zero_Reset_Time(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -115,8 +111,6 @@ Credits:
 }
 
 func Test_Limits_IP(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

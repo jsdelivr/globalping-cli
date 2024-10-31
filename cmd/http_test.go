@@ -14,8 +14,6 @@ import (
 )
 
 func Test_Execute_HTTP_Default(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -45,7 +43,9 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultStorage(utilsMock)
+	defer _storage.Remove()
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--protocol", "HTTPS",
@@ -76,24 +76,22 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 
 	assert.Equal(t, expectedCtx, ctx)
 
-	b, err := os.ReadFile(getMeasurementsPath())
+	b, err := _storage.GetMeasurements()
 	assert.NoError(t, err)
 	expectedHistory := measurementID1 + "\n"
 	assert.Equal(t, expectedHistory, string(b))
 
-	b, err = os.ReadFile(getHistoryPath())
+	items, err := _storage.GetHistory(0)
 	assert.NoError(t, err)
-	expectedHistory = createDefaultExpectedHistoryLogItem(
+	expectedHistoryItems := []string{createDefaultExpectedHistoryItem(
 		"1",
-		measurementID1,
 		"http jsdelivr.com from Berlin --protocol HTTPS --method GET --host example.com --path /robots.txt --query test=1 --header X-Test: 1 --resolver 1.1.1.1 --port 99 --full",
-	)
-	assert.Equal(t, expectedHistory, string(b))
+		measurementID1,
+	)}
+	assert.Equal(t, expectedHistoryItems, items)
 }
 
 func Test_Execute_HTTP_IPv4(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -118,7 +116,9 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultStorage(utilsMock)
+	defer _storage.Remove()
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -135,8 +135,6 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 }
 
 func Test_Execute_HTTP_IPv6(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -161,7 +159,9 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("http")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultStorage(utilsMock)
+	defer _storage.Remove()
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",

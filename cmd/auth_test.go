@@ -17,8 +17,6 @@ import (
 )
 
 func Test_Auth_Login_WithToken(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -32,12 +30,8 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 	r.WriteString("token\n")
 	printer := view.NewPrinter(r, w, w)
 	ctx := createDefaultContext("")
-	_storage := storage.NewLocalStorage(".test_globalping-cli")
+	_storage := createDefaultStorage(utilsMock)
 	defer _storage.Remove()
-	err := _storage.Init()
-	if err != nil {
-		t.Fatal(err)
-	}
 	_storage.GetProfile().Token = &globalping.Token{
 		AccessToken:  "oldToken",
 		RefreshToken: "oldRefreshToken",
@@ -52,7 +46,7 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 	gbMock.EXPECT().RevokeToken("oldRefreshToken").Return(nil)
 
 	os.Args = []string{"globalping", "auth", "login", "--with-token"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 
 	assert.Equal(t, `Please enter your token:
@@ -69,8 +63,6 @@ Logged in as test.
 }
 
 func Test_Auth_Login(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -80,12 +72,8 @@ func Test_Auth_Login(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("")
-	_storage := storage.NewLocalStorage(".test_globalping-cli")
+	_storage := createDefaultStorage(utilsMock)
 	defer _storage.Remove()
-	err := _storage.Init()
-	if err != nil {
-		t.Fatal(err)
-	}
 	_storage.GetProfile().Token = &globalping.Token{
 		AccessToken:  "oldToken",
 		RefreshToken: "oldRefreshToken",
@@ -101,7 +89,7 @@ func Test_Auth_Login(t *testing.T) {
 	utilsMock.EXPECT().OpenBrowser("http://localhost").Return(nil)
 
 	os.Args = []string{"globalping", "auth", "login"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 
 	assert.Equal(t, `Please visit the following URL to authenticate:
@@ -112,8 +100,6 @@ Can't use the browser-based flow? Use "globalping auth login --with-token" to re
 }
 
 func Test_AuthStatus(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -139,8 +125,6 @@ func Test_AuthStatus(t *testing.T) {
 }
 
 func Test_Logout(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
