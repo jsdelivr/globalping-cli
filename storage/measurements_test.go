@@ -8,14 +8,7 @@ import (
 )
 
 func Test_GetIdFromSession(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_storage := createDefaultTestStorage(t, nil)
 	os.WriteFile(_storage.measurementsPath(), []byte("id1\nid2\nid3\n"), 0644)
 	id, err := _storage.GetIdFromSession(1)
 	if err != nil {
@@ -37,15 +30,8 @@ func Test_GetIdFromSession(t *testing.T) {
 }
 
 func Test_SaveIdToSession(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = _storage.SaveIdToSession("id")
+	_storage := createDefaultTestStorage(t, nil)
+	err := _storage.SaveIdToSession("id")
 	if err != nil {
 		t.Fatal(err)
 	}

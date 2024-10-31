@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
@@ -90,12 +91,15 @@ func createDefaultContext(_ string) *view.Context {
 	return ctx
 }
 
-func createDefaultStorage(utils utils.Utils) *storage.LocalStorage {
+func createDefaultTestStorage(t *testing.T, utils utils.Utils) *storage.LocalStorage {
 	s := storage.NewLocalStorage(utils)
-	err := s.Init(".test_globalping-cli")
+	err := s.Init("globalping-cli_" + t.Name())
 	if err != nil {
 		panic(err)
 	}
+	t.Cleanup(func() {
+		s.Remove()
+	})
 	return s
 }
 

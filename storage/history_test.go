@@ -10,14 +10,7 @@ import (
 )
 
 func Test_GetHistoryIndex(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_storage := createDefaultTestStorage(t, nil)
 	os.WriteFile(_storage.historyPath(), []byte("1|1|1|id|command\n"), 0644)
 	index, err := _storage.GetHistoryIndex()
 	if err != nil {
@@ -27,14 +20,7 @@ func Test_GetHistoryIndex(t *testing.T) {
 }
 
 func Test_GetHistory(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_storage := createDefaultTestStorage(t, nil)
 	time1 := time.Unix(1730310880, 0)
 	time2 := time.Unix(1730310890, 0)
 	os.WriteFile(_storage.historyPath(), []byte(fmt.Sprintf(`1|1|%d|id1|command1
@@ -68,16 +54,9 @@ func Test_GetHistory(t *testing.T) {
 }
 
 func Test_SaveCommandToHistory(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_storage := createDefaultTestStorage(t, nil)
 	now := time.Now()
-	err = _storage.SaveCommandToHistory(
+	err := _storage.SaveCommandToHistory(
 		"1",
 		now.Unix(),
 		"id1",

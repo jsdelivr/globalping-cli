@@ -11,14 +11,7 @@ import (
 )
 
 func Test_Config(t *testing.T) {
-	_storage := NewLocalStorage(nil)
-	t.Cleanup(func() {
-		_storage.Remove()
-	})
-	err := _storage.Init(".test_globalping-cli")
-	if err != nil {
-		t.Fatal(err)
-	}
+	_storage := createDefaultTestStorage(t, nil)
 	config, err := _storage.LoadConfig()
 	if err != nil {
 		t.Fatal(err)
