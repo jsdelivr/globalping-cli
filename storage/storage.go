@@ -21,6 +21,8 @@ type LocalStorage struct {
 	sessionsDir       string
 	currentSessionDir string
 	config            *Config
+
+	migrations []MigrationFunc
 }
 
 func NewLocalStorage(utils utils.Utils) *LocalStorage {
@@ -31,6 +33,10 @@ func NewLocalStorage(utils utils.Utils) *LocalStorage {
 }
 
 func (s *LocalStorage) Init(dirName string) error {
+	s.migrations = []MigrationFunc{
+		s.UpdateSessionDir,
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -51,8 +57,9 @@ func (s *LocalStorage) Init(dirName string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			s.config = &Config{
-				Profile:  "default",
-				Profiles: make(map[string]*Profile),
+				Profile:       "default",
+				Profiles:      make(map[string]*Profile),
+				LastMigration: len(s.migrations),
 			}
 			s.SaveConfig()
 		}

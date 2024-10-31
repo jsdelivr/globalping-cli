@@ -11,19 +11,16 @@ import (
 type MigrationFunc func() error
 
 func (s *LocalStorage) Migrate() error {
-	migrations := []MigrationFunc{
-		s.UpdateSessionDir,
-	}
-	if s.config.LastMigration >= len(migrations) {
+	if s.config.LastMigration >= len(s.migrations) {
 		return nil
 	}
-	for i := s.config.LastMigration; i < len(migrations); i++ {
-		err := migrations[i]()
+	for i := s.config.LastMigration; i < len(s.migrations); i++ {
+		err := s.migrations[i]()
 		if err != nil {
 			fmt.Printf("Warning: migration %d failed: %v", i, err)
 		}
 	}
-	s.config.LastMigration = len(migrations)
+	s.config.LastMigration = len(s.migrations)
 	return s.SaveConfig()
 }
 
