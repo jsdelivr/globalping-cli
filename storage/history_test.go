@@ -31,17 +31,19 @@ func Test_GetHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	os.WriteFile(_storage.historyPath(), []byte(`1|1|1730310880|id1|command1
-1|2|1730310890|id2|command2
-`), 0644)
+	time1 := time.Unix(1730310880, 0)
+	time2 := time.Unix(1730310890, 0)
+	os.WriteFile(_storage.historyPath(), []byte(fmt.Sprintf(`1|1|%d|id1|command1
+1|2|%d|id2|command2
+`, time1.Unix(), time2.Unix())), 0644)
 
 	items, err := _storage.GetHistory(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, []string{
-		"1 | 2024-10-30 19:54:40 | command1\n> https://globalping.io?measurement=id1",
-		"2 | 2024-10-30 19:54:50 | command2\n> https://globalping.io?measurement=id2",
+		fmt.Sprintf("1 | %s | command1\n> https://globalping.io?measurement=id1", time1.Format("2006-01-02 15:04:05")),
+		fmt.Sprintf("2 | %s | command2\n> https://globalping.io?measurement=id2", time2.Format("2006-01-02 15:04:05")),
 	}, items)
 
 	items, err = _storage.GetHistory(1)
@@ -49,7 +51,7 @@ func Test_GetHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, []string{
-		"1 | 2024-10-30 19:54:40 | command1\n> https://globalping.io?measurement=id1",
+		fmt.Sprintf("1 | %s | command1\n> https://globalping.io?measurement=id1", time1.Format("2006-01-02 15:04:05")),
 	}, items)
 
 	items, err = _storage.GetHistory(-1)
@@ -57,7 +59,7 @@ func Test_GetHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, []string{
-		"2 | 2024-10-30 19:54:50 | command2\n> https://globalping.io?measurement=id2",
+		fmt.Sprintf("2 | %s | command2\n> https://globalping.io?measurement=id2", time2.Format("2006-01-02 15:04:05")),
 	}, items)
 }
 

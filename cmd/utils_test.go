@@ -16,7 +16,7 @@ var (
 	measurementID3 = "3PDXL29YeGctf6iJ"
 	measurementID4 = "4H3tBVPZEj5k6AcW"
 
-	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
+	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
 func createDefaultMeasurementCreateResponse() *globalping.MeasurementCreateResponse {
