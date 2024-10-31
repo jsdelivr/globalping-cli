@@ -347,7 +347,11 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		From:    "world",
 		Limit:   1,
 	}
-	_storage := createDefaultStorage(utilsMock)
+	_storage := storage.NewLocalStorage(utilsMock)
+	err := _storage.Init(".test_infinite_ping_globalping-cli")
+	if err != nil {
+		panic(err)
+	}
 	t.Cleanup(func() {
 		_storage.Remove()
 	})
@@ -358,7 +362,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		time.Sleep(150 * time.Millisecond)
 		root.cancel <- syscall.SIGINT
 	}()
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err = root.Cmd.ExecuteContext(context.TODO())
 
 	assert.NoError(t, err)
 	assert.Equal(t, "", w.String())
