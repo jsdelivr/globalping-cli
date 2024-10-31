@@ -18,6 +18,8 @@ var (
 )
 
 var (
+	measurementsFileName = "measurements"
+
 	saveIdToSessionErr = "failed to save measurement ID: %s"
 	readMeasuremetsErr = "failed to read previous measurements: %s"
 )
@@ -91,5 +93,5 @@ func (s *LocalStorage) GetMeasurements() ([]byte, error) {
 }
 
 func (s *LocalStorage) measurementsPath() string {
-	return s.joinSessionDir("measurements")
+	return s.joinSessionDir(measurementsFileName)
 }

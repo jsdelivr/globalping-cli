@@ -20,6 +20,8 @@ var (
 )
 
 var (
+	historyFileName = "history"
+
 	invalidHistoryItemErr = "invalid history item: %s"
 )
 
@@ -142,7 +144,7 @@ func (s *LocalStorage) SaveCommandToHistory(
 }
 
 func (s *LocalStorage) historyPath() string {
-	return s.joinSessionDir("history")
+	return s.joinSessionDir(historyFileName)
 }
 
 func parseHistoryItem(line string) (string, error) {

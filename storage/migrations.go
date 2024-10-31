@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,7 +20,7 @@ func (s *LocalStorage) Migrate() error {
 	for i := s.config.LastMigration; i < len(migrations); i++ {
 		err := migrations[i]()
 		if err != nil {
-			return err
+			fmt.Printf("Warning: migration %d failed: %v", i, err)
 		}
 	}
 	s.config.LastMigration = len(migrations)
@@ -42,7 +43,15 @@ func (s *LocalStorage) UpdateSessionDir() error {
 			}
 			parts := strings.Split(name, "_")
 			newName := parts[2] + "_" + parts[1]
-			err := os.Rename(filepath.Join(oldDir, name), filepath.Join(s.sessionsDir, newName))
+			err := os.Rename(filepath.Join(oldDir, name, "measurements"), filepath.Join(s.sessionsDir, newName, measurementsFileName))
+			if err != nil {
+				return err
+			}
+			err = os.Rename(filepath.Join(oldDir, name, "history"), filepath.Join(s.sessionsDir, newName, historyFileName))
+			if err != nil {
+				return err
+			}
+			err = os.RemoveAll(filepath.Join(oldDir, name))
 			if err != nil {
 				return err
 			}
