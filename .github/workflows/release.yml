@@ -39,11 +39,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-deb
-          path: dist/globalping_${{ env.VERSION_NAME }}_linux_[amd64|arm64].deb
+          path: |
+            dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
+            dist/globalping_${{ env.VERSION_NAME }}_linux_arm64.deb
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-rpm
-          path: dist/globalping_${{ env.VERSION_NAME }}_linux_[amd64|arm64].rpm
+          path: |
+            dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
+            dist/globalping_${{ env.VERSION_NAME }}_linux_arm64.rpm
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-windows
