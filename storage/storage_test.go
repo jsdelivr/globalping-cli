@@ -1,59 +1,59 @@
 package storage
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Config(t *testing.T) {
-	_storage := NewLocalStorage(".test_globalping-cli")
-	defer _storage.Remove()
-	err := _storage.Init()
-	if err != nil {
-		t.Fatal(err)
-	}
-	config, err := _storage.LoadConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, &Config{
-		Profile:  "default",
-		Profiles: make(map[string]*Profile),
-	}, config)
+func Test_truncateFile(t *testing.T) {
+	file := "globalping_truncate_test"
+	os.WriteFile(file, []byte(`CrkT2oK70XgKQRPT
+io57ICA41VN5DPhh
+JDHFAGabKrAYvp7i
+rInFNLFr3Tzj43FO
+EAQ8LpKfXkfBPdUG
+`), 0644)
+	defer os.Remove(file)
 
-	profile := _storage.GetProfile()
-	profile.Token = &globalping.Token{
-		AccessToken:  "token",
-		RefreshToken: "refresh",
-		TokenType:    "bearer",
-		Expiry:       time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-	}
-	err = _storage.SaveConfig()
+	err := truncateFile(file, 17*4+1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path, err := _storage.joinHomeDir(_storage.configName)
+	b, err := os.ReadFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, `io57ICA41VN5DPhh
+JDHFAGabKrAYvp7i
+rInFNLFr3Tzj43FO
+EAQ8LpKfXkfBPdUG
+`, string(b))
+
+	err = truncateFile(file, 17*3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := os.ReadFile(path)
+	b, err = os.ReadFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, `rInFNLFr3Tzj43FO
+EAQ8LpKfXkfBPdUG
+`, string(b))
+
+	err = truncateFile(file, 17*2)
 	if err != nil {
 		t.Fatal(err)
 	}
-	c := &Config{}
-	err = json.Unmarshal(b, c)
+	b, err = os.ReadFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, `rInFNLFr3Tzj43FO
+EAQ8LpKfXkfBPdUG
+`, string(b))
+
+	err = truncateFile(file, 4)
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, &Config{
-		Profile: "default",
-		Profiles: map[string]*Profile{
-			"default": {Token: profile.Token},
-		},
-	}, c)
+	b, err = os.ReadFile(file)
+	assert.Nil(t, err)
+	assert.Equal(t, ``, string(b))
 }

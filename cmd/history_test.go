@@ -5,7 +5,6 @@ import (
 	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
@@ -15,8 +14,6 @@ import (
 )
 
 func Test_Execute_History_Default(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -26,7 +23,8 @@ func Test_Execute_History_Default(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, nil)
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 
 	ctx.History.Push(&view.HistoryItem{
@@ -61,14 +59,13 @@ func Test_Execute_History_Default(t *testing.T) {
 	err := root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 
-	timeStr := time.Unix(defaultCurrentTime.Unix(), 0).Format("2006-01-02 15:04:05")
 	assert.Equal(t,
-		createDefaultExpectedHistoryItem("1", timeStr, "ping jsdelivr.com", measurementID1)+
-			createDefaultExpectedHistoryItem("-", timeStr, "ping jsdelivr.com from last", measurementID2)+
-			createDefaultExpectedHistoryItem("2", timeStr, "ping jsdelivr.com", measurementID2)+
-			createDefaultExpectedHistoryItem("3", timeStr, "ping jsdelivr.com", measurementID2)+
-			createDefaultExpectedHistoryItem("4", timeStr, "ping jsdelivr.com", measurementID2)+
-			createDefaultExpectedHistoryItem("5", timeStr, "ping jsdelivr.com", measurementID3),
+		createDefaultExpectedHistoryItem("1", "ping jsdelivr.com", measurementID1)+"\n"+
+			createDefaultExpectedHistoryItem("-", "ping jsdelivr.com from last", measurementID2)+"\n"+
+			createDefaultExpectedHistoryItem("2", "ping jsdelivr.com", measurementID2)+"\n"+
+			createDefaultExpectedHistoryItem("3", "ping jsdelivr.com", measurementID2)+"\n"+
+			createDefaultExpectedHistoryItem("4", "ping jsdelivr.com", measurementID2)+"\n"+
+			createDefaultExpectedHistoryItem("5", "ping jsdelivr.com", measurementID3)+"\n",
 		w.String())
 
 	w.Reset()
@@ -76,8 +73,8 @@ func Test_Execute_History_Default(t *testing.T) {
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 	assert.Equal(t,
-		createDefaultExpectedHistoryItem("5", timeStr, "ping jsdelivr.com", measurementID3)+
-			createDefaultExpectedHistoryItem("4", timeStr, "ping jsdelivr.com", measurementID2),
+		createDefaultExpectedHistoryItem("5", "ping jsdelivr.com", measurementID3)+"\n"+
+			createDefaultExpectedHistoryItem("4", "ping jsdelivr.com", measurementID2)+"\n",
 		w.String())
 
 	w.Reset()
@@ -85,7 +82,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	err = root.Cmd.ExecuteContext(context.TODO())
 	assert.NoError(t, err)
 	assert.Equal(t,
-		createDefaultExpectedHistoryItem("1", timeStr, "ping jsdelivr.com", measurementID1)+
-			createDefaultExpectedHistoryItem("-", timeStr, "ping jsdelivr.com from last", measurementID2),
+		createDefaultExpectedHistoryItem("1", "ping jsdelivr.com", measurementID1)+"\n"+
+			createDefaultExpectedHistoryItem("-", "ping jsdelivr.com from last", measurementID2)+"\n",
 		w.String())
 }

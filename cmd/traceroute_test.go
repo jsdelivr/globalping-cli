@@ -14,8 +14,6 @@ import (
 )
 
 func Test_Execute_Traceroute_Default(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -38,7 +36,8 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--limit", "2",
@@ -56,24 +55,22 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 	expectedCtx.Port = 99
 	assert.Equal(t, expectedCtx, ctx)
 
-	b, err := os.ReadFile(getMeasurementsPath())
+	b, err := _storage.GetMeasurements()
 	assert.NoError(t, err)
 	expectedHistory := measurementID1 + "\n"
 	assert.Equal(t, expectedHistory, string(b))
 
-	b, err = os.ReadFile(getHistoryPath())
+	items, err := _storage.GetHistory(0)
 	assert.NoError(t, err)
-	expectedHistory = createDefaultExpectedHistoryLogItem(
+	expectedHistoryItems := []string{createDefaultExpectedHistoryItem(
 		"1",
-		measurementID1,
 		"traceroute jsdelivr.com from Berlin --limit 2 --protocol tcp --port 99",
-	)
-	assert.Equal(t, expectedHistory, string(b))
+		measurementID1,
+	)}
+	assert.Equal(t, expectedHistoryItems, items)
 }
 
 func Test_Execute_Traceroute_IPv4(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -94,7 +91,8 @@ func Test_Execute_Traceroute_IPv4(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4",
@@ -110,8 +108,6 @@ func Test_Execute_Traceroute_IPv4(t *testing.T) {
 }
 
 func Test_Execute_Traceroute_IPv6(t *testing.T) {
-	t.Cleanup(sessionCleanup)
-
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -132,7 +128,8 @@ func Test_Execute_Traceroute_IPv6(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	ctx := createDefaultContext("traceroute")
-	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, nil)
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6",

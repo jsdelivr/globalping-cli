@@ -39,8 +39,8 @@ func Execute() {
 	printer := view.NewPrinter(os.Stdin, os.Stdout, os.Stderr)
 	config := utils.NewConfig()
 	config.Load()
-	localStorage := storage.NewLocalStorage(".globalping-cli")
-	if err := localStorage.Init(); err != nil {
+	localStorage := storage.NewLocalStorage(_utils)
+	if err := localStorage.Init(".globalping-cli"); err != nil {
 		printer.ErrPrintf("Error: failed to initialize storage: %v\n", err)
 		os.Exit(1)
 	}

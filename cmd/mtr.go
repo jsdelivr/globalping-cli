@@ -109,7 +109,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	r.ctx.History.Push(hm)
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
-		err := saveIdToSession(res.ID)
+		err := r.storage.SaveIdToSession(res.ID)
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}
