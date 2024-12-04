@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Docs: https://www.jsdelivr.com/docs/api.globalping.io
+// Docs: https://globalping.io/docs/api.globalping.io
 
 type Locations struct {
 	Magic string `json:"magic"`

@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// https://www.jsdelivr.com/docs/api.globalping.io#get-/v1/limits
+// https://globalping.io/docs/api.globalping.io#get-/v1/limits
 type LimitsResponse struct {
 	RateLimits RateLimits   `json:"rateLimit"`
 	Credits    CreditLimits `json:"credits"` // Only for authenticated requests
