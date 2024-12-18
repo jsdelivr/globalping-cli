@@ -76,6 +76,7 @@ func Test_Authorize(t *testing.T) {
 	assert.Equal(t, "S256", u.Query().Get("code_challenge_method"))
 	assert.Equal(t, "code", u.Query().Get("response_type"))
 	assert.Equal(t, "measurements", u.Query().Get("scope"))
+	assert.Equal(t, expectedRedirectURI, u.Query().Get("redirect_uri"))
 
 	_, err = http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
 	if err != nil {

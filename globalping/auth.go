@@ -97,6 +97,7 @@ func (c *client) Authorize(callback func(error)) (*AuthorizeResponse, error) {
 	q.Set("code_challenge_method", "S256")
 	q.Set("response_type", "code")
 	q.Set("scope", "measurements")
+	q.Set("redirect_uri", callbackURL)
 
 	return &AuthorizeResponse{
 		AuthorizeURL: c.authURL + "/oauth/authorize?" + q.Encode(),
