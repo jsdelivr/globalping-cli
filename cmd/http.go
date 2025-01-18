@@ -19,8 +19,8 @@ func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagS
 		RunE:    r.RunHTTP,
 		Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
-		Short:   "Perform a HEAD, OPTIONS or GET request to a host",
-		Long: `The http command sends an HTTP request to a host and can perform either HEAD, OPTIONS or GET operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.
+		Short:   "Perform a HEAD, GET, or OPTIONS request to a host",
+		Long: `The http command sends an HTTP request to a host and can perform a HEAD, GET, or OPTIONS operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.
 Note that GET responses are limited to 10KB, with anything beyond this cut by the API.
 
 The CLI tool supports two formats:
@@ -76,7 +76,7 @@ Examples:
 	localFlags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
 	localFlags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
 	localFlags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
-	localFlags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD, OPTIONS or GET (default \"HEAD\")")
+	localFlags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD, GET, or OPTIONS (default \"HEAD\")")
 	localFlags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
 	localFlags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
 	httpCmd.Flags().AddFlagSet(measurementFlags)
