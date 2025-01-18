@@ -86,7 +86,7 @@ Examples:
 }
 
 func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
-	err := r.updateContext(cmd.CalledAs(), args)
+	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
 	}

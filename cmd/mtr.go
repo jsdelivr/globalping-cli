@@ -41,7 +41,7 @@ Examples:
 
   # MTR jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
   mtr jsdelivr.com from 123 --json
-  
+
   # MTR jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
   mtr jsdelivr.com from europe+eyeball --share `,
 	}
@@ -58,7 +58,7 @@ Examples:
 }
 
 func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
-	err := r.updateContext(cmd.CalledAs(), args)
+	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
 	}

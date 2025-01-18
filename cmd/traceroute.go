@@ -44,7 +44,7 @@ Examples:
 
   # Traceroute jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
   traceroute jsdelivr.com from 123 --json
-  
+
   # Traceroute jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
   traceroute jsdelivr.com from europe+eyeball --share`,
 	}
@@ -60,7 +60,7 @@ Examples:
 }
 
 func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
-	err := r.updateContext(cmd.CalledAs(), args)
+	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
 	}

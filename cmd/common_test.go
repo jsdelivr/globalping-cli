@@ -6,6 +6,7 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/version"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,8 +31,11 @@ func test_updateContext_NoArg(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("test", []string{"1.1.1.1"})
-	assert.Equal(t, "test", ctx.Cmd)
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1"})
+	assert.Equal(t, "ping", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "world", ctx.From)
 	assert.NoError(t, err)
@@ -42,8 +46,11 @@ func test_updateContext_Country(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("test", []string{"1.1.1.1", "from", "Germany"})
-	assert.Equal(t, "test", ctx.Cmd)
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1", "from", "Germany"})
+	assert.Equal(t, "ping", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany", ctx.From)
 	assert.NoError(t, err)
@@ -55,8 +62,11 @@ func test_updateContext_CountryWhitespace(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("test", []string{"1.1.1.1", "from", " Germany, France"})
-	assert.Equal(t, "test", ctx.Cmd)
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1", "from", " Germany, France"})
+	assert.Equal(t, "ping", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "Germany, France", ctx.From)
 	assert.NoError(t, err)
@@ -67,7 +77,10 @@ func test_updateContext_NoTarget(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("test", []string{})
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{})
 	assert.Error(t, err)
 }
 
@@ -80,8 +93,11 @@ func test_updateContext_CIEnv(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("test", []string{"1.1.1.1"})
-	assert.Equal(t, "test", ctx.Cmd)
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1"})
+	assert.Equal(t, "ping", ctx.Cmd)
 	assert.Equal(t, "1.1.1.1", ctx.Target)
 	assert.Equal(t, "world", ctx.From)
 	assert.True(t, ctx.CIMode)
@@ -94,12 +110,15 @@ func test_updateContext_TargetIsNotAHostname(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("ping", []string{"1.1.1.1"})
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
 
 	ctx.Ipv4 = false
 	ctx.Ipv6 = true
-	err = root.updateContext("ping", []string{"1.1.1.1"})
+	err = root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
 }
 
@@ -109,12 +128,15 @@ func test_updateContext_ResolverIsNotAHostname(t *testing.T) {
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
-	err := root.updateContext("dns", []string{"example.com", "@1.1.1.1"})
+	cmd := &cobra.Command{Use: "dns"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"example.com", "@1.1.1.1"})
 	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())
 
 	ctx.Ipv4 = false
 	ctx.Ipv6 = true
-	err = root.updateContext("dns", []string{"example.com", "@1.1.1.1"})
+	err = root.updateContext(cmd, []string{"example.com", "@1.1.1.1"})
 	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())
 }
 
