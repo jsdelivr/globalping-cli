@@ -14,6 +14,7 @@ import (
 	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/version"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -21,10 +22,18 @@ var (
 	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
 
-func (r *Root) updateContext(cmd string, args []string) error {
-	r.ctx.Cmd = cmd // Get the command name
+func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
+	r.ctx.Cmd = cmd.CalledAs() // Get the command name
 
-	targetQuery, err := parseTargetQuery(cmd, args)
+	// if the command does not have any arguments or flags, show help
+	if len(os.Args) == 2 {
+		cmd.SilenceErrors = true
+		cmd.SilenceUsage = true
+		cmd.Help()
+		return errors.New("")
+	}
+
+	targetQuery, err := parseTargetQuery(r.ctx.Cmd, args)
 	if err != nil {
 		return err
 	}

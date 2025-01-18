@@ -14,7 +14,7 @@ func (r *Root) initDNS(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSe
 		GroupID: "Measurements",
 		Short:   "Resolve DNS records, similar to the dig command",
 		Long: `The dns command (similar to the "dig" command) performs DNS lookups and displays the responses from the queried name servers, helping you troubleshoot DNS-related issues.
-Note that a probe's local settings or DHCP determine the default nameserver the command uses. To specify a DNS resolver, use the --resolver argument or @resolver format: 
+Note that a probe's local settings or DHCP determine the default nameserver the command uses. To specify a DNS resolver, use the --resolver argument or @resolver format:
 - dns jsdelivr.com from Berlin --resolver 1.1.1.1
 - dns jsdelivr.com @1.1.1.1 from Berlin
 
@@ -48,7 +48,7 @@ Examples:
 
   # Resolve jsdelivr.com from a probe in ASN 123 and output the results in JSON format.
   dns jsdelivr.com from 123 --json
-  
+
   # Resolve jsdelivr.com from a non-data center probe in Europe and add a link to view the results online..
   dns jsdelivr.com from europe+eyeball --share`,
 	}
@@ -67,7 +67,7 @@ Examples:
 }
 
 func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
-	err := r.updateContext(cmd.CalledAs(), args)
+	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
 	}
