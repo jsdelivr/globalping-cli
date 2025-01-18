@@ -94,7 +94,7 @@ Usage:
 
 Measurement Commands:
   dns           Resolve DNS records, similar to the dig command
-  http          Perform a HEAD or GET request to a host
+  http          Perform a HEAD, GET, or OPTIONS request to a host
   mtr           Run a MTR test, which combines traceroute and ping
   ping          Perform a ping test
   traceroute    Run a traceroute test
