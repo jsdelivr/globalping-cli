@@ -125,14 +125,25 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 	var output strings.Builder
 	output.WriteString("> ")
 	output.WriteString(getLocationText(result))
-	// Check tags to see if there's a region code
 	if len(result.Probe.Tags) > 0 {
+		regionCode := ""
+		userInfoTags := []string{}
 		for _, tag := range result.Probe.Tags {
-			// If tag ends in a number, it's likely a region code and should be displayed
-			if _, err := strconv.Atoi(tag[len(tag)-1:]); err == nil {
-				output.WriteString(" (" + tag + ")")
-				break
+			if strings.HasPrefix(tag, "u-") && !strings.Contains(tag, ":") {
+				userInfoTags = append(userInfoTags, tag)
+			} else if regionCode == "" {
+				// If tag ends in a number, it's likely a region code and should be displayed
+				if _, err := strconv.Atoi(tag[len(tag)-1:]); err == nil {
+					regionCode = tag
+				}
 			}
+		}
+		userInfo := largestCommonPrefix(userInfoTags)
+		if userInfo != "" {
+			output.WriteString(", " + userInfo)
+		}
+		if regionCode != "" {
+			output.WriteString(" (" + regionCode + ")")
 		}
 	}
 	return v.printer.BoldForeground(output.String(), BGYellow)
@@ -156,4 +167,23 @@ func getLocationText(m *globalping.ProbeMeasurement) string {
 		m.Probe.Continent + ", " +
 		m.Probe.Network + " " +
 		"(AS" + fmt.Sprint(m.Probe.ASN) + ")"
+}
+
+func largestCommonPrefix(items []string) string {
+	if len(items) == 0 {
+		return ""
+	}
+	if len(items) == 1 {
+		return items[0]
+	}
+	prefix := items[0]
+	for i := 1; i < len(items); i++ {
+		for j := 0; j < len(prefix); j++ {
+			if j >= len(items[i]) || prefix[j] != items[i][j] {
+				prefix = prefix[:j]
+				break
+			}
+		}
+	}
+	return prefix
 }
