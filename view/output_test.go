@@ -42,8 +42,8 @@ func Test_HeadersTags(t *testing.T) {
 
 	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345) (tag1)", v.getProbeInfo(&newResult))
 
-	newResult.Probe.Tags = []string{"tag", "tag2"}
-	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345) (tag2)", v.getProbeInfo(&newResult))
+	newResult.Probe.Tags = []string{"u-JohnDoe1", "tag2", "u-JohnDoe2"}
+	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345), u-JohnDoe (tag2)", v.getProbeInfo(&newResult))
 }
 
 func Test_TrimOutput(t *testing.T) {
