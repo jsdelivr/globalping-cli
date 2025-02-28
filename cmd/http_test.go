@@ -95,7 +95,7 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("http")
-	expectedOpts.Options.Protocol = "http"
+	expectedOpts.Options.Protocol = "https"
 	expectedOpts.Options.IPVersion = globalping.IPVersion4
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
@@ -137,7 +137,7 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("http")
-	expectedOpts.Options.Protocol = "http"
+	expectedOpts.Options.Protocol = "https"
 	expectedOpts.Options.IPVersion = globalping.IPVersion6
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
@@ -189,7 +189,7 @@ func Test_ParseUrlData_NoScheme(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
 	assert.Equal(t, "/npm/react/", urlData.Path)
-	assert.Equal(t, "http", urlData.Protocol)
+	assert.Equal(t, "https", urlData.Protocol)
 	assert.Equal(t, 0, urlData.Port)
 	assert.Equal(t, "query=3", urlData.Query)
 }
@@ -199,7 +199,7 @@ func Test_ParseUrlData_HostOnly(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
 	assert.Equal(t, "", urlData.Path)
-	assert.Equal(t, "http", urlData.Protocol)
+	assert.Equal(t, "https", urlData.Protocol)
 	assert.Equal(t, 0, urlData.Port)
 	assert.Equal(t, "", urlData.Query)
 }
