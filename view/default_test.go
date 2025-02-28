@@ -205,7 +205,25 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 				},
 				Result: globalping.ProbeResult{
 					TLS: &globalping.HTTPTLSCertificate{
-						Error: "TLS Error",
+						Authorized:  false,
+						Error:       "TLS Error",
+						Protocol:    "TLSv1.3",
+						ChipherName: "TLS_AES_256_GCM_SHA384",
+						Subject: globalping.TLSCertificateSubject{
+							CommonName:      "Sub CN",
+							AlternativeName: "Sub alt",
+						},
+						Issuer: globalping.TLSCertificateIssuer{
+							CommonName:   "Iss CN",
+							Organization: "Iss O",
+							Country:      "Iss C",
+						},
+						CreatedAt:      now,
+						ExpiresAt:      now.AddDate(1, 0, 0),
+						SerialNumber:   "03:DD",
+						Fingerprint256: "79:BD",
+						KeyType:        "EC",
+						KeyBits:        256,
 					},
 					RawOutput:  "HTTP/1.1 301\nHeaders 2\nBody 2",
 					RawHeaders: "Headers 2",
@@ -252,7 +270,14 @@ HTTP/1.1 301
 Headers 1
 
 > New York (NY), US, NA, Network 2 (AS567)
+TLSv1.3/TLS_AES_256_GCM_SHA384
 Error: TLS Error
+Subject: Sub CN; Sub alt
+Issuer: Iss CN; Iss O; Iss C
+Validity: `+validity+`
+Serial number: 03:DD
+Fingerprint: 79:BD
+Key type: EC256
 
 HTTP/1.1 301
 Headers 2

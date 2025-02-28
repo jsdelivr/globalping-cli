@@ -22,17 +22,18 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 			if v.ctx.Full {
 				tls := result.Result.TLS
 				if tls != nil {
+					v.printer.ErrPrintf("%s/%s\n", tls.Protocol, tls.ChipherName)
+
 					if tls.Authorized == false {
 						v.printer.ErrPrintln("Error:", tls.Error)
-					} else {
-						v.printer.ErrPrintf("%s/%s\n", tls.Protocol, tls.ChipherName)
-						v.printer.ErrPrintf("Subject: %s; %s\n", tls.Subject.CommonName, tls.Subject.AlternativeName)
-						v.printer.ErrPrintf("Issuer: %s; %s; %s\n", tls.Issuer.CommonName, tls.Issuer.Organization, tls.Issuer.Country)
-						v.printer.ErrPrintf("Validity: %s; %s\n", tls.CreatedAt.Format(time.RFC3339), tls.ExpiresAt.Format(time.RFC3339))
-						v.printer.ErrPrintln("Serial number:", tls.SerialNumber)
-						v.printer.ErrPrintln("Fingerprint:", tls.Fingerprint256)
-						v.printer.ErrPrintf("Key type: %s%d\n", tls.KeyType, tls.KeyBits)
 					}
+
+					v.printer.ErrPrintf("Subject: %s; %s\n", tls.Subject.CommonName, tls.Subject.AlternativeName)
+					v.printer.ErrPrintf("Issuer: %s; %s; %s\n", tls.Issuer.CommonName, tls.Issuer.Organization, tls.Issuer.Country)
+					v.printer.ErrPrintf("Validity: %s; %s\n", tls.CreatedAt.Format(time.RFC3339), tls.ExpiresAt.Format(time.RFC3339))
+					v.printer.ErrPrintln("Serial number:", tls.SerialNumber)
+					v.printer.ErrPrintln("Fingerprint:", tls.Fingerprint256)
+					v.printer.ErrPrintf("Key type: %s%d\n", tls.KeyType, tls.KeyBits)
 					v.printer.ErrPrintln()
 				}
 				firstLineEnd := strings.Index(result.Result.RawOutput, "\n")
