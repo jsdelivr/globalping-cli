@@ -108,11 +108,11 @@ type ProbeResult struct {
 	AnswersRaw     json.RawMessage `json:"answers,omitempty"` // An array of the received resource records.
 
 	// HTTP
-	RawHeaders string          `json:"rawHeaders"`        // The raw HTTP response headers.
-	RawBody    string          `json:"rawBody"`           // The raw HTTP response body or null if there was no body in response. Note that only the first 10 kb are returned.
-	Truncated  bool            `json:"truncated"`         // Indicates whether the rawBody value was truncated due to being too big.
-	HeadersRaw json.RawMessage `json:"headers,omitempty"` // The HTTP response headers.
-	TLSRaw     json.RawMessage `json:"tls,omitempty"`     // Information about the TLS certificate or null if no TLS certificate is available.
+	RawHeaders string              `json:"rawHeaders"`        // The raw HTTP response headers.
+	RawBody    string              `json:"rawBody"`           // The raw HTTP response body or null if there was no body in response. Note that only the first 10 kb are returned.
+	Truncated  bool                `json:"truncated"`         // Indicates whether the rawBody value was truncated due to being too big.
+	HeadersRaw json.RawMessage     `json:"headers,omitempty"` // The HTTP response headers.
+	TLS        *HTTPTLSCertificate `json:"tls,omitempty"`     // Information about the TLS certificate or null if no TLS certificate is available.
 
 	// Common
 	HopsRaw    json.RawMessage `json:"hops,omitempty"`
@@ -217,6 +217,8 @@ type TLSCertificateIssuer struct {
 }
 
 type HTTPTLSCertificate struct {
+	Protocol       string                `json:"protocol"`       // The negotiated SSL/TLS protocol version.
+	ChipherName    string                `json:"cipherName"`     // The OpenSSL name of the cipher suite.
 	Authorized     bool                  `json:"authorized"`     // Indicates whether a trusted authority signed the certificate
 	Error          string                `json:"error"`          // The reason for rejecting the certificate if authorized is false
 	CreatedAt      time.Time             `json:"createdAt"`      // The creation date and time of the certificate
