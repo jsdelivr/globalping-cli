@@ -70,7 +70,7 @@ Examples:
 
 	// http specific flags
 	localFlags.BoolP("help", "h", false, "help for http")
-	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTP\")")
+	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTPS\")")
 	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
 	localFlags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
@@ -204,7 +204,7 @@ func parseUrlData(input string) (*UrlData, error) {
 
 	// add url scheme if missing
 	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
-		input = "http://" + input
+		input = "https://" + input
 	}
 
 	// Parse input
