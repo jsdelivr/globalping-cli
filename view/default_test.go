@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
@@ -155,6 +156,8 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	now := time.Now()
+
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -166,6 +169,26 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 					Network:   "Network 1",
 				},
 				Result: globalping.ProbeResult{
+					TLS: &globalping.HTTPTLSCertificate{
+						Authorized:  true,
+						Protocol:    "TLSv1.3",
+						ChipherName: "TLS_AES_256_GCM_SHA384",
+						Subject: globalping.TLSCertificateSubject{
+							CommonName:      "Sub CN",
+							AlternativeName: "Sub alt",
+						},
+						Issuer: globalping.TLSCertificateIssuer{
+							CommonName:   "Iss CN",
+							Organization: "Iss O",
+							Country:      "Iss C",
+						},
+						CreatedAt:      now,
+						ExpiresAt:      now.AddDate(1, 0, 0),
+						SerialNumber:   "03:DD",
+						Fingerprint256: "79:BD",
+						KeyType:        "EC",
+						KeyBits:        256,
+					},
 					RawOutput:  "HTTP/1.1 301\nHeaders 1\nBody 1",
 					RawHeaders: "Headers 1",
 					RawBody:    "Body 1",
@@ -181,6 +204,27 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 					Network:   "Network 2",
 				},
 				Result: globalping.ProbeResult{
+					TLS: &globalping.HTTPTLSCertificate{
+						Authorized:  false,
+						Error:       "TLS Error",
+						Protocol:    "TLSv1.3",
+						ChipherName: "TLS_AES_256_GCM_SHA384",
+						Subject: globalping.TLSCertificateSubject{
+							CommonName:      "Sub CN",
+							AlternativeName: "Sub alt",
+						},
+						Issuer: globalping.TLSCertificateIssuer{
+							CommonName:   "Iss CN",
+							Organization: "Iss O",
+							Country:      "Iss C",
+						},
+						CreatedAt:      now,
+						ExpiresAt:      now.AddDate(1, 0, 0),
+						SerialNumber:   "03:DD",
+						Fingerprint256: "79:BD",
+						KeyType:        "EC",
+						KeyBits:        256,
+					},
 					RawOutput:  "HTTP/1.1 301\nHeaders 2\nBody 2",
 					RawHeaders: "Headers 2",
 					RawBody:    "Body 2",
@@ -211,12 +255,33 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 
 	viewer.Output(measurementID1, m)
 
+	validity := fmt.Sprintf("%s; %s", now.Format(time.RFC3339), now.AddDate(1, 0, 0).Format(time.RFC3339))
+
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
+TLSv1.3/TLS_AES_256_GCM_SHA384
+Subject: Sub CN; Sub alt
+Issuer: Iss CN; Iss O; Iss C
+Validity: `+validity+`
+Serial number: 03:DD
+Fingerprint: 79:BD
+Key type: EC256
+
 HTTP/1.1 301
 Headers 1
+
 > New York (NY), US, NA, Network 2 (AS567)
+TLSv1.3/TLS_AES_256_GCM_SHA384
+Error: TLS Error
+Subject: Sub CN; Sub alt
+Issuer: Iss CN; Iss O; Iss C
+Validity: `+validity+`
+Serial number: 03:DD
+Fingerprint: 79:BD
+Key type: EC256
+
 HTTP/1.1 301
 Headers 2
+
 `, errW.String())
 	assert.Equal(t, `Body 1
 

@@ -304,12 +304,3 @@ func DecodeHTTPTimings(timings json.RawMessage) (*HTTPTimings, error) {
 	}
 	return t, nil
 }
-
-func DecodeHTTPTLS(tls json.RawMessage) (*HTTPTLSCertificate, error) {
-	t := &HTTPTLSCertificate{}
-	err := json.Unmarshal(tls, t)
-	if err != nil {
-		return nil, &MeasurementError{Message: "invalid tls format returned"}
-	}
-	return t, nil
-}
