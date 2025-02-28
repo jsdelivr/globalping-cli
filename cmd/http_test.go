@@ -253,7 +253,6 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 	ctx.Target = "https://example.com/my/path?x=123&yz=abc"
 	ctx.From = "london"
 	ctx.Full = true
-	ctx.Method = "HEAD"
 
 	m, err := root.buildHttpMeasurementRequest()
 	assert.NoError(t, err)
@@ -271,6 +270,39 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 				Host:    "",
 				Query:   "x=123&yz=abc",
 				Method:  "GET",
+			},
+		},
+	}
+
+	assert.Equal(t, expectedM, m)
+}
+
+func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
+	ctx := createDefaultContext("http")
+	printer := view.NewPrinter(nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
+
+	ctx.Target = "https://example.com/my/path?x=123&yz=abc"
+	ctx.From = "london"
+	ctx.Full = true
+	ctx.Method = "HEAD"
+
+	m, err := root.buildHttpMeasurementRequest()
+	assert.NoError(t, err)
+
+	expectedM := &globalping.MeasurementCreate{
+		Limit:             1,
+		Type:              "http",
+		Target:            "example.com",
+		InProgressUpdates: true,
+		Options: &globalping.MeasurementOptions{
+			Protocol: "https",
+			Request: &globalping.RequestOptions{
+				Headers: map[string]string{},
+				Path:    "/my/path",
+				Host:    "",
+				Query:   "x=123&yz=abc",
+				Method:  "HEAD",
 			},
 		},
 	}
