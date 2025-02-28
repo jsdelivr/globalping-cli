@@ -78,7 +78,7 @@ Examples:
 	localFlags.StringVar(&r.ctx.Query, "query", r.ctx.Query, "specify a query string to add")
 	localFlags.StringVarP(&r.ctx.Method, "method", "X", r.ctx.Method, "specify the HTTP method to use: HEAD, GET, or OPTIONS (default \"HEAD\")")
 	localFlags.StringArrayVarP(&r.ctx.Headers, "header", "H", r.ctx.Headers, "add HTTP headers to the request in the format \"Key: Value\"; to add multiple headers, define the flag for each one separately")
-	localFlags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output when performing an HTTP GET request to display the status, headers, and body")
+	localFlags.BoolVar(&r.ctx.Full, "full", r.ctx.Full, "enable full output to display TLS details, HTTP status, headers, and body (if available); changes the default HTTP method to GET")
 	httpCmd.Flags().AddFlagSet(measurementFlags)
 	httpCmd.Flags().AddFlagSet(localFlags)
 
@@ -155,8 +155,8 @@ func (r *Root) buildHttpMeasurementRequest() (*globalping.MeasurementCreate, err
 		return nil, err
 	}
 	method := strings.ToUpper(r.ctx.Method)
-	if r.ctx.Full {
-		// override method to GET
+	if r.ctx.Full && method == "" {
+		// override method to GET unless it was specified by the user
 		method = "GET"
 	}
 	opts.Target = urlData.Host

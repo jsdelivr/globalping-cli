@@ -41,8 +41,10 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 					v.printer.ErrPrintln(result.Result.RawOutput[:firstLineEnd])
 				}
 				v.printer.ErrPrintln(result.Result.RawHeaders)
-				v.printer.ErrPrintln()
-				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+				if m.Options.Request.Method == "GET" {
+					v.printer.ErrPrintln()
+					v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+				}
 			} else if m.Options.Request.Method == "GET" {
 				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
 			} else {
