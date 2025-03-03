@@ -28,6 +28,7 @@
   * [Reselect probes](#reselect-probes)
   * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
   * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
+  * [Get TLS/SSL details](#get-tlsssl-details)
   * [View your measurement history](#view-your-measurement-history)
   * [Learn about available flags](#learn-about-available-flags)
 <!-- TOC -->
@@ -361,9 +362,9 @@ Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 
 > [!TIP]
 > Stop the infinite ping by pressing CTRL+C on your keyboard.
 
-#### Get TLS/SSL data
+#### Get TLS/SSL details
 
-Use the `--full` option when running a `http` command to include the certificate details in the output.
+Use the `--full` option when running an `http` command to include the TLS/SSL details in the output.
 
 ```bash
 globalping http jsdelivr.com --full
@@ -380,46 +381,9 @@ HTTP/1.1 301
 ...
 ```
 
-Filter the output to only show the TLS/SSL data:
-
-```bash
-globalping http jsdelivr.com --full |& sed '1d;/^$/q'
-TLSv1.3/TLS_AES_256_GCM_SHA384
-Subject: jsdelivr.com; DNS:jsdelivr.com, DNS:*.jsdelivr.com
-Issuer: WE1; Google Trust Services; US
-Validity: 2025-02-02T21:13:14Z; 2025-05-03T22:10:40Z
-Serial number: 57:E1:7F:F0:C7:25:0A:A5:0D:3B:73:06:FD:C0:72:D4
-Fingerprint: 73:A9:13:48:38:E7:42:E6:97:72:5A:87:D8:95:20:BE:3A:32:5F:27:78:40:CA:9C:BE:EC:F8:7F:75:11:43:79
-Key type: EC256
-
-```
-
-Or get the certificate details in JSON format:
-
-```bash
-globalping http jsdelivr.com --json | jq '.results[].result.tls'
-{
-  "authorized": true,
-  "protocol": "TLSv1.3",
-  "cipherName": "TLS_AES_256_GCM_SHA384",
-  "createdAt": "2025-02-02T21:13:14.000Z",
-  "expiresAt": "2025-05-03T22:10:40.000Z",
-  "issuer": {
-    "C": "US",
-    "O": "Google Trust Services",
-    "CN": "WE1"
-  },
-  "subject": {
-    "CN": "jsdelivr.com",
-    "alt": "DNS:jsdelivr.com, DNS:*.jsdelivr.com"
-  },
-  "keyType": "EC",
-  "keyBits": 256,
-  "serialNumber": "57:E1:7F:F0:C7:25:0A:A5:0D:3B:73:06:FD:C0:72:D4",
-  "fingerprint256": "73:A9:13:48:38:E7:42:E6:97:72:5A:87:D8:95:20:BE:3A:32:5F:27:78:40:CA:9C:BE:EC:F8:7F:75:11:43:79",
-  "publicKey": "04:33:CC:D1:99:7D:3F:2B:04:6C:AB:1E:22:44:C9:F1:A7:6D:A5:91:4A:92:CE:3C:83:88:65:AD:D8:42:32:56:58:75:EC:2C:EA:1C:E6:68:86:DF:A8:84:F8:6B:F9:4D:BF:4C:E2:54:3F:40:7F:04:92:DC:A5:44:06:2F:2D:E3:47"
-}
-```
+> [!TIP]
+> Use `globalping http jsdelivr.com --full --method head` to omit the response body,
+or `globalping http jsdelivr.com --full |& sed '1d;/^$/q'` to only show the TLS/SSL data.
 
 #### View your measurement history
 
