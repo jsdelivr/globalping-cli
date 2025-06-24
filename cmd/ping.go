@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 	"syscall"
 	"time"
 
@@ -55,6 +56,8 @@ Examples:
 	localFlags.BoolP("help", "h", false, "help for ping")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
 	localFlags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
+	localFlags.String("protocol", "ICMP", "specify the protocol to use: ICMP or TCP (default \"ICMP\")")
+	localFlags.Uint16("port", 80, "specify the port to use; only applicable for the TCP protocol (default 80)")
 	pingCmd.Flags().AddFlagSet(measurementFlags)
 	pingCmd.Flags().AddFlagSet(localFlags)
 
@@ -65,6 +68,10 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	if !slices.Contains(globalping.PingProtocols, r.ctx.Protocol) {
+		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
 	defer r.UpdateHistory()
@@ -79,7 +86,9 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		Limit:             r.ctx.Limit,
 		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
-			Packets: r.ctx.Packets,
+			Packets:  r.ctx.Packets,
+			Protocol: r.ctx.Protocol,
+			Port:     r.ctx.Port,
 		},
 	}
 	opts.Locations, err = r.getLocations()

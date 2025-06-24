@@ -656,6 +656,7 @@ func Test_GetRowValues(t *testing.T) {
 
 func Test_ParsePingRawOutput_Full(t *testing.T) {
 	ctx := createDefaultContext("ping")
+	ctx.Protocol = "ICMP"
 	v := viewer{ctx: ctx}
 
 	hm := ctx.History.Find(measurementID1)
@@ -697,6 +698,50 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 	}, res.Stats)
 }
 
+func Test_ParsePingRawOutput_Full_TCP(t *testing.T) {
+	ctx := createDefaultContext("ping")
+	ctx.Protocol = "TCP"
+	v := viewer{ctx: ctx}
+
+	hm := ctx.History.Find(measurementID1)
+	m := &globalping.ProbeMeasurement{
+		Result: globalping.ProbeResult{
+			RawOutput: `PING jsdelivr.com (104.21.23.24) on port 80.
+Reply from jsdelivr.com (104.21.23.24) on port 80: tcp_conn=1 time=29.2 ms
+Reply from jsdelivr.com (104.21.23.24) on port 80: tcp_conn=2 time=29.0 ms
+Reply from jsdelivr.com (104.21.23.24) on port 80: tcp_conn=3 time=28.9 ms
+
+--- jsdelivr.com (104.21.23.24) ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 1038 ms
+rtt min/avg/max/mdev = 28.915/29.034/29.225/0.136 ms`,
+		},
+	}
+
+	res := v.parsePingRawOutput(hm, m, -1)
+	assert.Equal(t, "104.21.23.24", res.Address)
+	assert.Equal(t, "", res.BytesOfData)
+	assert.Nil(t, res.RawPacketLines)
+	assert.Equal(t, []globalping.PingTiming{
+		{RTT: 29.2},
+		{RTT: 29.0},
+		{RTT: 28.9},
+	}, res.Timings)
+	assertMeasurementStats(t, &MeasurementStats{
+		Sent:  3,
+		Rcv:   3,
+		Lost:  0,
+		Loss:  0,
+		Last:  28.9,
+		Min:   28.9,
+		Avg:   29.0333,
+		Max:   29.2,
+		Tsum:  87.1,
+		Tsum2: 2528.85,
+		Mdev:  0.1247,
+		Time:  1038,
+	}, res.Stats)
+}
+
 func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -705,6 +750,7 @@ func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
+	ctx.Protocol = "ICMP"
 	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
@@ -753,6 +799,7 @@ func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
+	ctx.Protocol = "ICMP"
 	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
@@ -809,6 +856,7 @@ func Test_ParsePingRawOutput_WithRedirect(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(100 * time.Millisecond))
 
 	ctx := createDefaultContext("ping")
+	ctx.Protocol = "ICMP"
 	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)

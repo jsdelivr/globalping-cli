@@ -28,7 +28,7 @@ func createDefaultMeasurementCreateResponse() *globalping.MeasurementCreateRespo
 }
 
 func createDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
-	return &globalping.MeasurementCreate{
+	measurement := &globalping.MeasurementCreate{
 		Type:    cmd,
 		Target:  "jsdelivr.com",
 		Limit:   1,
@@ -37,6 +37,24 @@ func createDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
 			{Magic: "Berlin"},
 		},
 	}
+	switch cmd {
+	case "ping":
+		measurement.Options.Protocol = "ICMP"
+		measurement.Options.Port = 80
+	case "traceroute":
+		measurement.Options.Protocol = "ICMP"
+		measurement.Options.Port = 80
+	case "dns":
+		measurement.Options.Protocol = "UDP"
+		measurement.Options.Port = 53
+	case "mtr":
+		measurement.Options.Protocol = "ICMP"
+		measurement.Options.Port = 80
+	case "http":
+		measurement.Options.Protocol = "HTTPS"
+		measurement.Options.Port = 443
+	}
+	return measurement
 }
 
 func createDefaultMeasurement(cmd string) *globalping.Measurement {
@@ -113,6 +131,23 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		History:             view.NewHistoryBuffer(1),
 		MeasurementsCreated: 1,
 		RunSessionStartedAt: defaultCurrentTime,
+	}
+	switch cmd {
+	case "ping":
+		ctx.Protocol = "ICMP"
+		ctx.Port = 80
+	case "traceroute":
+		ctx.Protocol = "ICMP"
+		ctx.Port = 80
+	case "dns":
+		ctx.Protocol = "UDP"
+		ctx.Port = 53
+	case "mtr":
+		ctx.Protocol = "ICMP"
+		ctx.Port = 80
+	case "http":
+		ctx.Protocol = "HTTPS"
+		ctx.Port = 443
 	}
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -70,8 +71,8 @@ Examples:
 
 	// http specific flags
 	localFlags.BoolP("help", "h", false, "help for http")
-	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTPS\")")
-	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	localFlags.String("protocol", "HTTPS", "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTPS\")")
+	localFlags.Uint16("port", 443, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
 	localFlags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
 	localFlags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")
@@ -91,10 +92,18 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if !slices.Contains(globalping.HTTPProtocols, r.ctx.Protocol) {
+		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
+	}
+
+	if r.ctx.Protocol == "HTTP" && !cmd.Flag("port").Changed {
+		r.ctx.Port = 80
+	}
+
 	defer r.UpdateHistory()
 	r.ctx.RecordToSession = true
 
-	opts, err := r.buildHttpMeasurementRequest()
+	opts, err := r.buildHttpMeasurementRequest(cmd)
 	if err != nil {
 		return err
 	}
@@ -140,7 +149,7 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 const PostMeasurementTypeHttp = "http"
 
 // buildHttpMeasurementRequest builds the measurement request for the http type
-func (r *Root) buildHttpMeasurementRequest() (*globalping.MeasurementCreate, error) {
+func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.MeasurementCreate, error) {
 	opts := &globalping.MeasurementCreate{
 		Type:              PostMeasurementTypeHttp,
 		Limit:             r.ctx.Limit,
@@ -161,8 +170,7 @@ func (r *Root) buildHttpMeasurementRequest() (*globalping.MeasurementCreate, err
 	}
 	opts.Target = urlData.Host
 	opts.Options = &globalping.MeasurementOptions{
-		Protocol: overrideOpt(urlData.Protocol, r.ctx.Protocol),
-		Port:     overrideOptInt(urlData.Port, r.ctx.Port),
+		Protocol: urlData.Protocol,
 		Request: &globalping.RequestOptions{
 			Path:    overrideOpt(urlData.Path, r.ctx.Path),
 			Query:   overrideOpt(urlData.Query, r.ctx.Query),
@@ -172,6 +180,22 @@ func (r *Root) buildHttpMeasurementRequest() (*globalping.MeasurementCreate, err
 		},
 		Resolver: r.ctx.Resolver,
 	}
+	protocolFlag := cmd.Flag("protocol")
+	if protocolFlag != nil && protocolFlag.Changed {
+		opts.Options.Protocol = r.ctx.Protocol
+	}
+	if urlData.HasPort {
+		portFlag := cmd.Flag("port")
+		if portFlag != nil && portFlag.Changed {
+			opts.Options.Port = r.ctx.Port
+		} else {
+			opts.Options.Port = urlData.Port
+		}
+
+	} else {
+		opts.Options.Port = r.ctx.Port
+	}
+
 	return opts, nil
 }
 
@@ -195,7 +219,8 @@ type UrlData struct {
 	Path     string
 	Query    string
 	Host     string
-	Port     int
+	Port     uint16
+	HasPort  bool
 }
 
 // parse url data from user text input
@@ -213,7 +238,7 @@ func parseUrlData(input string) (*UrlData, error) {
 		return nil, errors.Wrapf(err, "failed to parse url input")
 	}
 
-	urlData.Protocol = u.Scheme
+	urlData.Protocol = strings.ToUpper(u.Scheme)
 	urlData.Path = u.Path
 	urlData.Query = u.RawQuery
 
@@ -231,10 +256,12 @@ func parseUrlData(input string) (*UrlData, error) {
 
 	if p != "" {
 		// parse port if present
-		urlData.Port, err = strconv.Atoi(p)
+		port, err := strconv.ParseUint(p, 10, 16)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse url port number: %s", p)
 		}
+		urlData.Port = uint16(port)
+		urlData.HasPort = true
 	}
 
 	return &urlData, nil
@@ -243,13 +270,6 @@ func parseUrlData(input string) (*UrlData, error) {
 // Helper functions to override flags in command
 func overrideOpt(orig, new string) string {
 	if new != "" {
-		return new
-	}
-	return orig
-}
-
-func overrideOptInt(orig, new int) int {
-	if new != 0 {
 		return new
 	}
 	return orig

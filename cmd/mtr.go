@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
@@ -48,8 +49,8 @@ Examples:
 
 	// mtr specific flags
 	localFlags.BoolP("help", "h", false, "help for mtr")
-	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for MTR: ICMP, TCP, or UDP (default \"icmp\")")
-	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify the port to use for MTR; only applicable for the TCP protocol (default 53)")
+	localFlags.String("protocol", "ICMP", "specify the protocol to use for MTR: ICMP, TCP, or UDP (default \"ICMP\")")
+	localFlags.Uint16("port", 80, "specify the port to use for MTR; only applicable for the TCP and UDP protocols (default 80)")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of packets to send to each hop (default 3)")
 	mtrCmd.Flags().AddFlagSet(measurementFlags)
 	mtrCmd.Flags().AddFlagSet(localFlags)
@@ -61,6 +62,10 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	if !slices.Contains(globalping.MTRProtocols, r.ctx.Protocol) {
+		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
 	if r.ctx.ToLatency {

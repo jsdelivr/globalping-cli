@@ -33,6 +33,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 		return errors.New("")
 	}
 
+	r.ctx.Protocol, _ = cmd.Flags().GetString("protocol")
+	r.ctx.Protocol = strings.ToUpper(r.ctx.Protocol)
+	r.ctx.Port, _ = cmd.Flags().GetUint16("port")
+
 	targetQuery, err := parseTargetQuery(r.ctx.Cmd, args)
 	if err != nil {
 		return err

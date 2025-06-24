@@ -61,11 +61,15 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 		if !v.ctx.IsHeaderPrinted {
 			v.ctx.Hostname = parsedOutput.Hostname
 			v.printer.ErrPrintln(v.getProbeInfo(probeMeasurement))
-			v.printer.Printf("PING %s (%s) %s bytes of data.\n",
-				parsedOutput.Hostname,
-				parsedOutput.Address,
-				parsedOutput.BytesOfData,
-			)
+			if v.ctx.Protocol == "ICMP" {
+				v.printer.Printf("PING %s (%s) %s bytes of data.\n",
+					parsedOutput.Hostname,
+					parsedOutput.Address,
+					parsedOutput.BytesOfData,
+				)
+			} else {
+				v.printer.Println(parsedOutput.Header)
+			}
 			v.ctx.IsHeaderPrinted = true
 		}
 		for hm.LinesPrinted < len(parsedOutput.RawPacketLines) {
@@ -263,6 +267,7 @@ func getRowValues(stats *MeasurementStats) [7]string {
 }
 
 type ParsedPingOutput struct {
+	Header         string
 	Hostname       string
 	Address        string
 	BytesOfData    string
@@ -273,11 +278,11 @@ type ParsedPingOutput struct {
 
 // Parse ping's raw output. Adapted from iputils ping: https://github.com/iputils/iputils/tree/1c08152/ping
 //
-// - If startIncmpSeq is -1, RawPacketLines will be empty
+// - If startSequence is -1, RawPacketLines will be empty
 func (v *viewer) parsePingRawOutput(
 	hm *HistoryItem,
 	m *globalping.ProbeMeasurement,
-	startIncmpSeq int,
+	startSequence int,
 ) *ParsedPingOutput {
 	res := &ParsedPingOutput{
 		Timings: make([]globalping.PingTiming, 0),
@@ -288,8 +293,8 @@ func (v *viewer) parsePingRawOutput(
 	}
 	scanner := bufio.NewScanner(strings.NewReader(m.Result.RawOutput))
 	scanner.Scan()
-	header := scanner.Text()
-	words := strings.Split(header, " ")
+	res.Header = scanner.Text()
+	words := strings.Split(res.Header, " ")
 	if len(words) > 2 {
 		res.Hostname = words[1]
 		if len(words[2]) > 1 && words[2][0] == '(' {
@@ -297,7 +302,9 @@ func (v *viewer) parsePingRawOutput(
 		} else {
 			res.Address = words[2]
 		}
-		res.BytesOfData = words[3]
+		if v.ctx.Protocol == "ICMP" {
+			res.BytesOfData = words[3]
+		}
 	}
 
 	sentMap := make([]bool, 0)
@@ -306,53 +313,12 @@ func (v *viewer) parsePingRawOutput(
 		if len(line) == 0 {
 			break
 		}
-		// Find icmp_seq
-		icmp_seq := -1
-		icmp_seq_index := 0
-		words := strings.Split(line, " ")
-		for icmp_seq_index < len(words) {
-			if strings.HasPrefix(words[icmp_seq_index], "icmp_seq=") {
-				n, err := strconv.Atoi(words[icmp_seq_index][9:])
-				if err != nil {
-				} else {
-					icmp_seq = n - 1 // icmp_seq starts at 1
-				}
-				break
-			}
-			icmp_seq_index++
+		if v.ctx.Protocol == "TCP" {
+			line, sentMap = parseTCPLine(line, sentMap, startSequence, res)
+		} else {
+			line, sentMap = parseICMPLine(line, sentMap, startSequence, res)
 		}
-		if icmp_seq >= len(sentMap) {
-			sentMap = append(sentMap, false)
-		}
-		// Get timing
-		if icmp_seq != -1 {
-			if words[1] == "bytes" && words[2] == "from" {
-				if !sentMap[icmp_seq] {
-					res.Stats.Sent++
-				}
-				res.Stats.Rcv++
-				ttl, _ := strconv.Atoi(words[icmp_seq_index+1][4:])
-				rtt, _ := strconv.ParseFloat(words[icmp_seq_index+2][5:], 64)
-				res.Stats.Min = math.Min(res.Stats.Min, rtt)
-				res.Stats.Max = math.Max(res.Stats.Max, rtt)
-				res.Stats.Tsum += rtt
-				res.Stats.Tsum2 += rtt * rtt
-				res.Timings = append(res.Timings, globalping.PingTiming{
-					TTL: ttl,
-					RTT: rtt,
-				})
-			} else {
-				if !sentMap[icmp_seq] {
-					res.Stats.Sent++
-				}
-				sentMap[icmp_seq] = true
-			}
-			if startIncmpSeq != -1 {
-				words[icmp_seq_index] = "icmp_seq=" + strconv.Itoa(startIncmpSeq+icmp_seq+1)
-				line = strings.Join(words, " ")
-			}
-		}
-		if startIncmpSeq != -1 {
+		if startSequence != -1 {
 			res.RawPacketLines = append(res.RawPacketLines, line)
 		}
 	}
@@ -365,7 +331,11 @@ func (v *viewer) parsePingRawOutput(
 		if len(words) > 9 && words[1] == "packets" && words[2] == "transmitted," {
 			res.Stats.Sent, _ = strconv.Atoi(words[0])
 			res.Stats.Rcv, _ = strconv.Atoi(words[3])
-			res.Stats.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
+			if v.ctx.Protocol == "TCP" {
+				res.Stats.Time, _ = strconv.ParseFloat(words[9], 64)
+			} else {
+				res.Stats.Time, _ = strconv.ParseFloat(words[9][:len(words[9])-2], 64)
+			}
 		}
 	} else {
 		res.Stats.Time = float64(v.utils.Now().Sub(hm.StartedAt).Milliseconds())
@@ -380,6 +350,102 @@ func (v *viewer) parsePingRawOutput(
 		}
 	}
 	return res
+}
+
+func parseICMPLine(line string, sentMap []bool, startSequence int, res *ParsedPingOutput) (string, []bool) {
+	seq := -1
+	seqIndex := 0
+	words := strings.Split(line, " ")
+	for seqIndex < len(words) {
+		if strings.HasPrefix(words[seqIndex], "icmp_seq=") {
+			n, err := strconv.Atoi(words[seqIndex][9:])
+			if err == nil {
+				seq = n - 1 // seq starts at 1
+			}
+			break
+		}
+		seqIndex++
+	}
+	if seq >= len(sentMap) {
+		sentMap = append(sentMap, false)
+	}
+	// Get timing
+	if seq != -1 {
+		if words[1] == "bytes" && words[2] == "from" {
+			if !sentMap[seq] {
+				res.Stats.Sent++
+			}
+			res.Stats.Rcv++
+			ttl, _ := strconv.Atoi(words[seqIndex+1][4:])
+			rtt, _ := strconv.ParseFloat(words[seqIndex+2][5:], 64)
+			res.Stats.Min = math.Min(res.Stats.Min, rtt)
+			res.Stats.Max = math.Max(res.Stats.Max, rtt)
+			res.Stats.Tsum += rtt
+			res.Stats.Tsum2 += rtt * rtt
+			res.Timings = append(res.Timings, globalping.PingTiming{
+				TTL: ttl,
+				RTT: rtt,
+			})
+		} else {
+			if !sentMap[seq] {
+				res.Stats.Sent++
+			}
+			sentMap[seq] = true
+		}
+		// replace sequence number
+		if startSequence != -1 {
+			words[seqIndex] = "icmp_seq=" + strconv.Itoa(startSequence+seq+1)
+			line = strings.Join(words, " ")
+		}
+	}
+	return line, sentMap
+}
+
+func parseTCPLine(line string, sentMap []bool, startSequence int, res *ParsedPingOutput) (string, []bool) {
+	seq := -1
+	seqIndex := 0
+	words := strings.Split(line, " ")
+	for seqIndex < len(words) {
+		if strings.HasPrefix(words[seqIndex], "tcp_conn=") {
+			n, err := strconv.Atoi(words[seqIndex][9:])
+			if err == nil {
+				seq = n - 1 // seq starts at 1
+			}
+			break
+		}
+		seqIndex++
+	}
+	if seq >= len(sentMap) {
+		sentMap = append(sentMap, false)
+	}
+	// Get timing
+	if seq != -1 {
+		if words[0] == "Reply" && words[1] == "from" {
+			if !sentMap[seq] {
+				res.Stats.Sent++
+			}
+			res.Stats.Rcv++
+			rtt, _ := strconv.ParseFloat(words[seqIndex+1][5:], 64)
+			res.Stats.Min = math.Min(res.Stats.Min, rtt)
+			res.Stats.Max = math.Max(res.Stats.Max, rtt)
+			res.Stats.Tsum += rtt
+			res.Stats.Tsum2 += rtt * rtt
+			res.Timings = append(res.Timings, globalping.PingTiming{
+				RTT: rtt,
+			})
+		} else {
+			if !sentMap[seq] {
+				res.Stats.Sent++
+			}
+			sentMap[seq] = true
+		}
+		// replace sequence number
+		if startSequence != -1 {
+			words[seqIndex] = "tcp_conn=" + strconv.Itoa(startSequence+seq+1)
+			line = strings.Join(words, " ")
+		}
+	}
+	return line, sentMap
 }
 
 // https://github.com/iputils/iputils/tree/1c08152/ping/ping_common.c#L917

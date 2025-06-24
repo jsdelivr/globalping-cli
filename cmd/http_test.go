@@ -9,6 +9,7 @@ import (
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/mocks"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -95,7 +96,6 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("http")
-	expectedOpts.Options.Protocol = "https"
 	expectedOpts.Options.IPVersion = globalping.IPVersion4
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
@@ -137,7 +137,6 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("http")
-	expectedOpts.Options.Protocol = "https"
 	expectedOpts.Options.IPVersion = globalping.IPVersion6
 	expectedOpts.Options.Request = &globalping.RequestOptions{
 		Headers: map[string]string{},
@@ -174,13 +173,35 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 }
 
+func Test_Execute_HTTP_Invalid_Protocol(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("http")
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
+
+	os.Args = []string{"globalping", "http", "jsdelivr.com", "--protocol", "invalid"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Error(t, err, "protocol INVALID is not supported")
+
+	items, err := _storage.GetHistory(0)
+	assert.NoError(t, err)
+	assert.Empty(t, items)
+}
+
 func Test_ParseUrlData(t *testing.T) {
 	urlData, err := parseUrlData("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
 	assert.Equal(t, "/npm/react/", urlData.Path)
-	assert.Equal(t, "https", urlData.Protocol)
-	assert.Equal(t, 8080, urlData.Port)
+	assert.Equal(t, "HTTPS", urlData.Protocol)
+	assert.Equal(t, uint16(8080), urlData.Port)
 	assert.Equal(t, "query=3", urlData.Query)
 }
 
@@ -189,8 +210,8 @@ func Test_ParseUrlData_NoScheme(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
 	assert.Equal(t, "/npm/react/", urlData.Path)
-	assert.Equal(t, "https", urlData.Protocol)
-	assert.Equal(t, 0, urlData.Port)
+	assert.Equal(t, "HTTPS", urlData.Protocol)
+	assert.Equal(t, uint16(0), urlData.Port)
 	assert.Equal(t, "query=3", urlData.Query)
 }
 
@@ -199,16 +220,9 @@ func Test_ParseUrlData_HostOnly(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
 	assert.Equal(t, "", urlData.Path)
-	assert.Equal(t, "https", urlData.Protocol)
-	assert.Equal(t, 0, urlData.Port)
+	assert.Equal(t, "HTTPS", urlData.Protocol)
+	assert.Equal(t, uint16(0), urlData.Port)
 	assert.Equal(t, "", urlData.Query)
-}
-
-func Test_OverrideOpt(t *testing.T) {
-	assert.Equal(t, "new", overrideOpt("orig", "new"))
-	assert.Equal(t, "orig", overrideOpt("orig", ""))
-	assert.Equal(t, 10, overrideOptInt(0, 10))
-	assert.Equal(t, 10, overrideOptInt(10, 0))
 }
 
 func Test_ParseHttpHeaders_None(t *testing.T) {
@@ -254,7 +268,9 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 	ctx.From = "london"
 	ctx.Full = true
 
-	m, err := root.buildHttpMeasurementRequest()
+	cmd := &cobra.Command{}
+
+	m, err := root.buildHttpMeasurementRequest(cmd)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -263,7 +279,7 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 		Target:            "example.com",
 		InProgressUpdates: true,
 		Options: &globalping.MeasurementOptions{
-			Protocol: "https",
+			Protocol: "HTTPS",
 			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
@@ -287,7 +303,9 @@ func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
 	ctx.Full = true
 	ctx.Method = "HEAD"
 
-	m, err := root.buildHttpMeasurementRequest()
+	cmd := &cobra.Command{}
+
+	m, err := root.buildHttpMeasurementRequest(cmd)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -296,7 +314,7 @@ func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
 		Target:            "example.com",
 		InProgressUpdates: true,
 		Options: &globalping.MeasurementOptions{
-			Protocol: "https",
+			Protocol: "HTTPS",
 			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",
@@ -318,7 +336,9 @@ func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	ctx.Target = "https://example.com/my/path?x=123&yz=abc"
 	ctx.From = "london"
 
-	m, err := root.buildHttpMeasurementRequest()
+	cmd := &cobra.Command{}
+
+	m, err := root.buildHttpMeasurementRequest(cmd)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -327,7 +347,7 @@ func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 		Target:            "example.com",
 		InProgressUpdates: true,
 		Options: &globalping.MeasurementOptions{
-			Protocol: "https",
+			Protocol: "HTTPS",
 			Request: &globalping.RequestOptions{
 				Headers: map[string]string{},
 				Path:    "/my/path",

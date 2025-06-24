@@ -19,7 +19,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	expectedOpts := createDefaultMeasurementCreate("mtr")
 	expectedOpts.Limit = 2
-	expectedOpts.Options.Protocol = "tcp"
+	expectedOpts.Options.Protocol = "TCP"
 	expectedOpts.Options.Port = 99
 	expectedOpts.Options.Packets = 16
 
@@ -53,7 +53,7 @@ func Test_Execute_MTR_Default(t *testing.T) {
 
 	expectedCtx := createDefaultExpectedContext("mtr")
 	expectedCtx.Limit = 2
-	expectedCtx.Protocol = "tcp"
+	expectedCtx.Protocol = "TCP"
 	expectedCtx.Port = 99
 	expectedCtx.Packets = 16
 
@@ -148,4 +148,26 @@ func Test_Execute_MTR_IPv6(t *testing.T) {
 	expectedCtx.Ipv6 = true
 
 	assert.Equal(t, expectedCtx, ctx)
+}
+
+func Test_Execute_MTR_Invalid_Protocol(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("mtr")
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
+
+	os.Args = []string{"globalping", "mtr", "jsdelivr.com", "--protocol", "invalid"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Error(t, err, "protocol INVALID is not supported")
+
+	items, err := _storage.GetHistory(0)
+	assert.NoError(t, err)
+	assert.Empty(t, items)
 }

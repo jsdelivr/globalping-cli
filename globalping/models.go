@@ -30,11 +30,17 @@ const (
 	IPVersion6 IPVersion = 6
 )
 
+var PingProtocols = []string{"ICMP", "TCP"}
+var TracerouteProtocols = []string{"ICMP", "TCP", "UDP"}
+var DNSProtocols = []string{"TCP", "UDP"}
+var MTRProtocols = []string{"ICMP", "TCP", "UDP"}
+var HTTPProtocols = []string{"HTTP", "HTTPS", "HTTP2"}
+
 type MeasurementOptions struct {
 	Query     *QueryOptions   `json:"query,omitempty"`
 	Request   *RequestOptions `json:"request,omitempty"`
 	Protocol  string          `json:"protocol,omitempty"`
-	Port      int             `json:"port,omitempty"`
+	Port      uint16          `json:"port"`
 	Resolver  string          `json:"resolver,omitempty"`
 	Trace     bool            `json:"trace,omitempty"`
 	Packets   int             `json:"packets,omitempty"`
