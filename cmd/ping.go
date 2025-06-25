@@ -39,6 +39,9 @@ Examples:
   # Ping 1.1.1.1 from 2 probes in the USA or Belgium. Send 10 packets and enable CI mode.
   ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 
+  # Ping jsdelivr.com from New York using TCP protocol and port 453.
+  ping jsdelivr.com from New York --protocol tcp --port 453
+
   # Ping jsdelivr.com from a probe on the AWS network located in Montreal and display only latency information.
   ping jsdelivr.com from aws+montreal --latency
 
