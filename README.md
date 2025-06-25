@@ -224,42 +224,6 @@ google.com.             300     IN      A       142.250.183.206
 > View the results online: https://globalping.io?measurement=xrfXUEAOGfzwfHFz
 ```
 
-### Use different protocols and ports
-
-```bash
-globalping ping jsdelivr.com --protocol tcp --port 443
-> Falkenstein, DE, EU, Hetzner Online GmbH (AS24940)
-PING jsdelivr.com (104.21.23.24) on port 443.
-Reply from jsdelivr.com (104.21.23.24) on port 443: tcp_conn=1 time=6.74 ms
-Reply from jsdelivr.com (104.21.23.24) on port 443: tcp_conn=2 time=5.90 ms
-Reply from jsdelivr.com (104.21.23.24) on port 443: tcp_conn=3 time=6.00 ms
-
---- jsdelivr.com (104.21.23.24) ping statistics ---
-3 packets transmitted, 3 received, 0% packet loss, time 1043 ms
-rtt min/avg/max/mdev = 5.902/6.213/6.740/0.375 ms
-```
-
-```bash
-globalping dns jsdelivr.com --protocol tcp
-> Falkenstein, DE, EU, Hetzner Online GmbH (AS24940), u-zGato
-; <<>> DiG 9.16.50-Debian <<>> -t A jsdelivr.com -p 53 -4 +timeout=3 +tries=2 +nocookie +nosplit +nsid +tcp
-;; global options: +cmd
-;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 9596
-;; flags: qr rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 1
-...
-```
-
-```bash
-globalping http jsdelivr.com --protocol http2 --port 443
-> Helsinki, FI, EU, Hetzner Online GmbH (AS24940)
-HTTP/2.0 301
-date: Wed, 25 Jun 2025 05:28:45 GMT
-content-type: text/html
-content-length: 167
-...
-```
-
 ## Authenticate
 
 Register a free [Globalping account](https://dash.globalping.io/), then sign in with the CLI to increase the number of tests you can run every hour. GitHub sponsors and users hosting probes receive additional [credits](https://globalping.io/credits), which allow them to run even more tests.
