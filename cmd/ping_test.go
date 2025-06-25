@@ -362,6 +362,8 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Packets:             16,
 		Infinite:            true,
 		CIMode:              true,
+		Protocol:            "ICMP",
+		Port:                80,
 		MeasurementsCreated: 4,
 		RunSessionStartedAt: defaultCurrentTime,
 	}
@@ -615,4 +617,26 @@ func Test_Execute_Ping_IPv6(t *testing.T) {
 	expectedCtx.From = "world"
 	expectedCtx.Ipv6 = true
 	assert.Equal(t, expectedCtx, ctx)
+}
+
+func Test_Execute_Ping_Invalid_Protocol(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("ping")
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
+
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--protocol", "invalid"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Error(t, err, "protocol INVALID is not supported")
+
+	items, err := _storage.GetHistory(0)
+	assert.NoError(t, err)
+	assert.Empty(t, items)
 }

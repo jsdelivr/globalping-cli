@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"slices"
+
 	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/spf13/cobra"
@@ -55,8 +58,8 @@ Examples:
 
 	// dns specific flags
 	localFlags.BoolP("help", "h", false, "help for dns")
-	localFlags.StringVar(&r.ctx.Protocol, "protocol", r.ctx.Protocol, "specify the protocol to use for the DNS query: TCP or UDP (default \"udp\")")
-	localFlags.IntVar(&r.ctx.Port, "port", r.ctx.Port, "specify a non-standard port on the server to send the query to (default 53)")
+	localFlags.String("protocol", "UDP", "specify the protocol to use for the DNS query: TCP or UDP")
+	localFlags.Uint16("port", 53, "specify a non-standard port on the server to send the query to")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use as the resolver (default defined by the probe)")
 	localFlags.StringVar(&r.ctx.QueryType, "type", r.ctx.QueryType, "specify the type of DNS query to perform (default \"A\")")
 	localFlags.BoolVar(&r.ctx.Trace, "trace", r.ctx.Trace, "enable tracing of the delegation path from the root name servers (default false)")
@@ -70,6 +73,10 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	if !slices.Contains(globalping.DNSProtocols, r.ctx.Protocol) {
+		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
 	defer r.UpdateHistory()

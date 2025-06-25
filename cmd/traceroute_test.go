@@ -19,7 +19,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 
 	expectedOpts := createDefaultMeasurementCreate("traceroute")
 	expectedOpts.Limit = 2
-	expectedOpts.Options.Protocol = "tcp"
+	expectedOpts.Options.Protocol = "TCP"
 	expectedOpts.Options.Port = 99
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
@@ -51,7 +51,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 
 	expectedCtx := createDefaultExpectedContext("traceroute")
 	expectedCtx.Limit = 2
-	expectedCtx.Protocol = "tcp"
+	expectedCtx.Protocol = "TCP"
 	expectedCtx.Port = 99
 	assert.Equal(t, expectedCtx, ctx)
 
@@ -142,4 +142,26 @@ func Test_Execute_Traceroute_IPv6(t *testing.T) {
 	expectedCtx := createDefaultExpectedContext("traceroute")
 	expectedCtx.Ipv6 = true
 	assert.Equal(t, expectedCtx, ctx)
+}
+
+func Test_Execute_Traceroute_Invalid_Protocol(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("traceroute")
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
+
+	os.Args = []string{"globalping", "traceroute", "jsdelivr.com", "--protocol", "invalid"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Error(t, err, "protocol INVALID is not supported")
+
+	items, err := _storage.GetHistory(0)
+	assert.NoError(t, err)
+	assert.Empty(t, items)
 }

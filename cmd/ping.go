@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"slices"
 	"syscall"
 	"time"
 
@@ -38,6 +39,9 @@ Examples:
   # Ping 1.1.1.1 from 2 probes in the USA or Belgium. Send 10 packets and enable CI mode.
   ping 1.1.1.1 from USA,Belgium --limit 2 --packets 10 --ci
 
+  # Ping jsdelivr.com from New York using TCP protocol and port 453.
+  ping jsdelivr.com from New York --protocol tcp --port 453
+
   # Ping jsdelivr.com from a probe on the AWS network located in Montreal and display only latency information.
   ping jsdelivr.com from aws+montreal --latency
 
@@ -55,6 +59,8 @@ Examples:
 	localFlags.BoolP("help", "h", false, "help for ping")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
 	localFlags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
+	localFlags.String("protocol", "ICMP", "specify the protocol to use: ICMP or TCP")
+	localFlags.Uint16("port", 80, "specify the port to use; only applicable for the TCP protocol")
 	pingCmd.Flags().AddFlagSet(measurementFlags)
 	pingCmd.Flags().AddFlagSet(localFlags)
 
@@ -65,6 +71,10 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
+	}
+
+	if !slices.Contains(globalping.PingProtocols, r.ctx.Protocol) {
+		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
 	defer r.UpdateHistory()
@@ -79,7 +89,9 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		Limit:             r.ctx.Limit,
 		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
-			Packets: r.ctx.Packets,
+			Packets:  r.ctx.Packets,
+			Protocol: r.ctx.Protocol,
+			Port:     r.ctx.Port,
 		},
 	}
 	opts.Locations, err = r.getLocations()

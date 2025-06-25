@@ -16,7 +16,7 @@ type Context struct {
 	Share     bool // Display share message
 
 	Packets   int // Number of packets to send
-	Port      int
+	Port      uint16
 	Protocol  string
 	Resolver  string
 	QueryType string

@@ -19,7 +19,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	expectedOpts := createDefaultMeasurementCreate("dns")
 	expectedOpts.Limit = 2
-	expectedOpts.Options.Protocol = "tcp"
+	expectedOpts.Options.Protocol = "TCP"
 	expectedOpts.Options.Port = 99
 	expectedOpts.Options.Resolver = "1.1.1.1"
 	expectedOpts.Options.Query = &globalping.QueryOptions{
@@ -61,7 +61,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 	expectedCtx.Limit = 2
 	expectedCtx.Resolver = "1.1.1.1"
 	expectedCtx.QueryType = "MX"
-	expectedCtx.Protocol = "tcp"
+	expectedCtx.Protocol = "TCP"
 	expectedCtx.Port = 99
 	expectedCtx.Trace = true
 
@@ -158,4 +158,26 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 	expectedCtx.Ipv6 = true
 
 	assert.Equal(t, expectedCtx, ctx)
+}
+
+func Test_Execute_DNS_Invalid_Protocol(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext("dns")
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
+
+	os.Args = []string{"globalping", "dns", "jsdelivr.com", "--protocol", "invalid"}
+	err := root.Cmd.ExecuteContext(context.TODO())
+	assert.Error(t, err, "protocol INVALID is not supported")
+
+	items, err := _storage.GetHistory(0)
+	assert.NoError(t, err)
+	assert.Empty(t, items)
 }
