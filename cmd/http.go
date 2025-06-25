@@ -71,8 +71,8 @@ Examples:
 
 	// http specific flags
 	localFlags.BoolP("help", "h", false, "help for http")
-	localFlags.String("protocol", "HTTPS", "specify the protocol to use: HTTP, HTTPS, or HTTP2  (default \"HTTPS\")")
-	localFlags.Uint16("port", 443, "specify the port to use (default 80 for HTTP, 443 for HTTPS and HTTP2)")
+	localFlags.String("protocol", "HTTPS", "specify the protocol to use: HTTP, HTTPS, or HTTP2")
+	localFlags.Uint16("port", 443, "specify the port to use")
 	localFlags.StringVar(&r.ctx.Resolver, "resolver", r.ctx.Resolver, "specify the hostname or IP address of the name server to use for the DNS lookup (default defined by the probe)")
 	localFlags.StringVar(&r.ctx.Host, "host", r.ctx.Host, "specify the Host header to add to the request (default host's defined in command target)")
 	localFlags.StringVar(&r.ctx.Path, "path", r.ctx.Path, "specify the URL pathname (default \"/\")")

@@ -59,8 +59,8 @@ Examples:
 	localFlags.BoolP("help", "h", false, "help for ping")
 	localFlags.IntVar(&r.ctx.Packets, "packets", r.ctx.Packets, "specify the number of ECHO_REQUEST packets to send (default 3)")
 	localFlags.BoolVar(&r.ctx.Infinite, "infinite", r.ctx.Infinite, "enable continuous pinging of the target until manually stopped (default false)")
-	localFlags.String("protocol", "ICMP", "specify the protocol to use: ICMP or TCP (default \"ICMP\")")
-	localFlags.Uint16("port", 80, "specify the port to use; only applicable for the TCP protocol (default 80)")
+	localFlags.String("protocol", "ICMP", "specify the protocol to use: ICMP or TCP")
+	localFlags.Uint16("port", 80, "specify the port to use; only applicable for the TCP protocol")
 	pingCmd.Flags().AddFlagSet(measurementFlags)
 	pingCmd.Flags().AddFlagSet(localFlags)
 

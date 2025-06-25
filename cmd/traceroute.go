@@ -52,8 +52,8 @@ Examples:
 
 	// traceroute specific flags
 	localFlags.BoolP("help", "h", false, "help for traceroute")
-	localFlags.String("protocol", "ICMP", "specify the protocol to use for tracerouting: ICMP, TCP, or UDP (default \"ICMP\")")
-	localFlags.Uint16("port", 80, "specify the port to use for the traceroute; only applicable for the TCP protocol (default 80)")
+	localFlags.String("protocol", "ICMP", "specify the protocol to use for tracerouting: ICMP, TCP, or UDP")
+	localFlags.Uint16("port", 80, "specify the port to use for the traceroute; only applicable for the TCP protocol")
 	tracerouteCmd.Flags().AddFlagSet(measurementFlags)
 	tracerouteCmd.Flags().AddFlagSet(localFlags)
 
