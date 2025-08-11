@@ -189,9 +189,10 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 						KeyType:        "EC",
 						KeyBits:        256,
 					},
-					RawOutput:  "HTTP/1.1 301\nHeaders 1\nBody 1",
-					RawHeaders: "Headers 1",
-					RawBody:    "Body 1",
+					RawOutput:       "HTTP/1.1 301\nHeaders 1\nBody 1",
+					RawHeaders:      "Headers 1",
+					RawBody:         "Body 1",
+					ResolvedAddress: "1.1.1.1",
 				},
 			},
 			{
@@ -258,6 +259,8 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 	validity := fmt.Sprintf("%s; %s", now.Format(time.RFC3339), now.AddDate(1, 0, 0).Format(time.RFC3339))
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
+Resolved address: 1.1.1.1
+
 TLSv1.3/TLS_AES_256_GCM_SHA384
 Subject: Sub CN; Sub alt
 Issuer: Iss CN; Iss O; Iss C

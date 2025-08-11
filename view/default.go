@@ -20,6 +20,10 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 
 		if v.ctx.Cmd == "http" {
 			if v.ctx.Full {
+				if result.Result.ResolvedAddress != "" {
+					v.printer.ErrPrintf("Resolved address: %s\n\n", result.Result.ResolvedAddress)
+				}
+
 				tls := result.Result.TLS
 				if tls != nil {
 					colorize := func(s string) string {
