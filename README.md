@@ -28,7 +28,7 @@
   * [Reselect probes](#reselect-probes)
   * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
   * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
-  * [Get TLS/SSL details](#get-tlsssl-details)
+  * [Get TCP & TLS/SSL details](#get-tcp--tlsssl-details)
   * [View your measurement history](#view-your-measurement-history)
   * [Learn about available flags](#learn-about-available-flags)
 <!-- TOC -->
@@ -362,13 +362,15 @@ Madrid, ES, EU, EDGOO NETWORKS LLC (AS47787)           |   22 |   0.00% |  0.24 
 > [!TIP]
 > Stop the infinite ping by pressing CTRL+C on your keyboard.
 
-#### Get TLS/SSL details
+#### Get TCP & TLS/SSL details
 
-Use the `--full` option when running an `http` command to include the TLS/SSL details in the output.
+Use the `--full` option when running an `http` command to include the TCP and TLS/SSL details in the output.
 
 ```bash
 globalping http jsdelivr.com --full
 > Kansas City (MO), US, NA, IONOS SE (AS8560), u-zGato
+Resolved address: 172.67.208.113
+
 TLSv1.3/TLS_AES_256_GCM_SHA384
 Subject: jsdelivr.com; DNS:jsdelivr.com, DNS:*.jsdelivr.com
 Issuer: WE1; Google Trust Services; US
@@ -382,8 +384,7 @@ HTTP/1.1 301
 ```
 
 > [!TIP]
-> Use `globalping http jsdelivr.com --full --method head` to omit the response body,
-or `globalping http jsdelivr.com --full |& sed '1d;/^$/q'` to only show the TLS/SSL data.
+> Use `globalping http jsdelivr.com --full --method head` to omit the response body.
 
 #### View your measurement history
 
