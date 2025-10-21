@@ -12,6 +12,7 @@ import (
 
 var ShareURL = "https://globalping.io?measurement="
 
+// TODO: Use globalping.AwaitMeasurement instead of GetMeasurement
 func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
 	// Wait for first result to arrive from a probe before starting display (can be in-progress)
 	data, err := v.globalping.GetMeasurement(id)

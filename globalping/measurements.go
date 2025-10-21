@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/andybalholm/brotli"
 	"github.com/jsdelivr/globalping-cli/utils"
@@ -156,6 +157,34 @@ func (c *client) GetMeasurement(id string) (*Measurement, error) {
 	if err != nil {
 		return nil, &MeasurementError{
 			Message: fmt.Sprintf("invalid get measurement format returned: %v %s", err, string(respBytes)),
+		}
+	}
+	return m, nil
+}
+
+func (c *client) AwaitMeasurement(id string) (*Measurement, error) {
+	respBytes, err := c.GetMeasurementRaw(id)
+	if err != nil {
+		return nil, err
+	}
+	m := &Measurement{}
+	err = json.Unmarshal(respBytes, m)
+	if err != nil {
+		return nil, &MeasurementError{
+			Message: fmt.Sprintf("invalid get measurement format returned: %v %s", err, string(respBytes)),
+		}
+	}
+	for m.Status == StatusInProgress {
+		time.Sleep(500 * time.Millisecond)
+		respBytes, err := c.GetMeasurementRaw(id)
+		if err != nil {
+			return nil, err
+		}
+		err = json.Unmarshal(respBytes, m)
+		if err != nil {
+			return nil, &MeasurementError{
+				Message: fmt.Sprintf("invalid get measurement format returned: %v %s", err, string(respBytes)),
+			}
 		}
 	}
 	return m, nil

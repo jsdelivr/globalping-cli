@@ -1048,6 +1048,31 @@ func Test_GetMeasurementRaw_Json(t *testing.T) {
 	assert.Equal(t, `{"id":"abcd"}`, string(res))
 }
 
+func Test_AwaitMeasurement(t *testing.T) {
+	count := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		var err error
+		if count == 3 {
+			_, err = w.Write([]byte(`{"id":"abcd", "status": "finished"}`))
+		} else {
+			_, err = w.Write([]byte(`{"id":"abcd", "status": "in-progress"}`))
+		}
+		if err != nil {
+			panic(err)
+		}
+		count++
+	}))
+	defer server.Close()
+	client := NewClient(Config{APIURL: server.URL})
+	res, err := client.AwaitMeasurement("abcd")
+	if err != nil {
+		t.Error(err)
+	}
+	assert.Equal(t, "abcd", res.ID)
+	assert.Equal(t, StatusFinished, res.Status)
+}
+
 func generateServer(json string, statusCode int) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(statusCode)
