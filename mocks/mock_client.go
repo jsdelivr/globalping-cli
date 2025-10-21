@@ -54,6 +54,21 @@ func (mr *MockClientMockRecorder) Authorize(callback any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Authorize", reflect.TypeOf((*MockClient)(nil).Authorize), callback)
 }
 
+// AwaitMeasurement mocks base method.
+func (m *MockClient) AwaitMeasurement(id string) (*globalping.Measurement, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AwaitMeasurement", id)
+	ret0, _ := ret[0].(*globalping.Measurement)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AwaitMeasurement indicates an expected call of AwaitMeasurement.
+func (mr *MockClientMockRecorder) AwaitMeasurement(id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AwaitMeasurement", reflect.TypeOf((*MockClient)(nil).AwaitMeasurement), id)
+}
+
 // CreateMeasurement mocks base method.
 func (m *MockClient) CreateMeasurement(measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	m.ctrl.T.Helper()

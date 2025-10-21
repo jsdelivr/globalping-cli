@@ -61,10 +61,7 @@ func Execute() {
 		}
 	}
 	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
-		APIURL:       config.GlobalpingAPIURL,
-		AuthURL:      config.GlobalpingAuthURL,
-		DashboardURL: config.GlobalpingDashboardURL,
-		AuthToken:    token,
+		AuthToken: token,
 		OnTokenRefresh: func(token *globalping.Token) {
 			profile.Token = token
 			err := localStorage.SaveConfig()
