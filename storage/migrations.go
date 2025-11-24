@@ -56,3 +56,46 @@ func (s *LocalStorage) UpdateSessionDir() error {
 	}
 	return nil
 }
+
+func (s *LocalStorage) MoveSessionsToUserDir() error {
+	// Old location: TempDir() + ".globalping-cli/sessions"
+	// New location: TempDir() + ".globalping-cli-userid/sessions"
+	oldSessionsDir := filepath.Join(os.TempDir(), ".globalping-cli", "sessions")
+
+	if _, err := os.Stat(oldSessionsDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	entries, err := os.ReadDir(oldSessionsDir)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(s.sessionsDir, 0755)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+
+		oldPath := filepath.Join(oldSessionsDir, e.Name())
+		newPath := filepath.Join(s.sessionsDir, e.Name())
+
+		if _, err := os.Stat(newPath); err == nil {
+			continue
+		}
+
+		err = os.Rename(oldPath, newPath)
+		if err != nil {
+			fmt.Printf("Warning: failed to move session %s: %v\n", e.Name(), err)
+			continue
+		}
+	}
+
+	os.RemoveAll(oldSessionsDir)
+
+	return nil
+}
