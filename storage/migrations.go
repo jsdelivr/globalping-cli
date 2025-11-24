@@ -58,9 +58,9 @@ func (s *LocalStorage) UpdateSessionDir() error {
 }
 
 func (s *LocalStorage) MoveSessionsToUserDir() error {
-	// Old location: TempDir() + dirName + "sessions"
-	// New location: TempDir() + dirName + userId + "sessions"
-	oldSessionsDir := filepath.Join(filepath.Dir(s.tempDir), "sessions")
+	// Old location: TempDir() + ".globalping-cli/sessions"
+	// New location: TempDir() + ".globalping-cli-userid/sessions"
+	oldSessionsDir := filepath.Join(os.TempDir(), ".globalping-cli", "sessions")
 
 	if _, err := os.Stat(oldSessionsDir); os.IsNotExist(err) {
 		return nil

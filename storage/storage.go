@@ -49,11 +49,8 @@ func (s *LocalStorage) Init(dirName string) error {
 		return err
 	}
 
-	userId, err := getUserID()
-	if err != nil {
-		return err
-	}
-	s.tempDir = filepath.Join(os.TempDir(), dirName, userId)
+	userId := getUserID()
+	s.tempDir = filepath.Join(os.TempDir(), dirName+"-"+userId)
 	s.sessionsDir = filepath.Join(s.tempDir, "sessions")
 	s.currentSessionDir = filepath.Join(s.sessionsDir, getSessionId())
 	err = os.MkdirAll(s.currentSessionDir, 0755)
@@ -142,15 +139,18 @@ func getSessionId() string {
 	return fmt.Sprintf("%d_%d", createTime, p.Pid)
 }
 
-func getUserID() (string, error) {
+func getUserID() string {
 	user, err := user.Current()
 	if err != nil {
-		return "", err
+		return "unknown"
 	}
 	if user.Uid == "" {
-		return user.Username, nil
+		if user.Username == "" {
+			return "unknown"
+		}
+		return user.Username
 	}
-	return user.Uid, nil
+	return user.Uid
 }
 
 func truncateFile(file string, maxSize int64) error {
