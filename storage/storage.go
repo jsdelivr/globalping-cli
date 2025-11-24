@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 
@@ -35,6 +36,7 @@ func NewLocalStorage(utils utils.Utils) *LocalStorage {
 func (s *LocalStorage) Init(dirName string) error {
 	s.migrations = []MigrationFunc{
 		s.UpdateSessionDir,
+		s.MoveSessionsToUserDir,
 	}
 
 	homeDir, err := os.UserHomeDir()
@@ -46,13 +48,19 @@ func (s *LocalStorage) Init(dirName string) error {
 	if err != nil {
 		return err
 	}
-	s.tempDir = filepath.Join(os.TempDir(), dirName)
+
+	userId, err := getUserID()
+	if err != nil {
+		return err
+	}
+	s.tempDir = filepath.Join(os.TempDir(), dirName, userId)
 	s.sessionsDir = filepath.Join(s.tempDir, "sessions")
 	s.currentSessionDir = filepath.Join(s.sessionsDir, getSessionId())
 	err = os.MkdirAll(s.currentSessionDir, 0755)
 	if err != nil {
 		return err
 	}
+
 	_, err = s.LoadConfig()
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -132,6 +140,17 @@ func getSessionId() string {
 	}
 	createTime, _ := p.CreateTime()
 	return fmt.Sprintf("%d_%d", createTime, p.Pid)
+}
+
+func getUserID() (string, error) {
+	user, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	if user.Uid == "" {
+		return user.Username, nil
+	}
+	return user.Uid, nil
 }
 
 func truncateFile(file string, maxSize int64) error {

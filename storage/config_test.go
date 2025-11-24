@@ -19,7 +19,7 @@ func Test_Config(t *testing.T) {
 	assert.Equal(t, &Config{
 		Profile:       "default",
 		Profiles:      make(map[string]*Profile),
-		LastMigration: 1,
+		LastMigration: 2,
 	}, config)
 
 	profile := _storage.GetProfile()
@@ -51,6 +51,6 @@ func Test_Config(t *testing.T) {
 		Profiles: map[string]*Profile{
 			"default": {Token: profile.Token},
 		},
-		LastMigration: 1,
+		LastMigration: 2,
 	}, c)
 }
