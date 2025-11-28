@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -9,11 +10,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/api"
 	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/version"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 )
 
@@ -21,6 +24,56 @@ var (
 	ErrTargetIPVersionNotAllowed   = errors.New("ipVersion is not allowed when target is not a domain")
 	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
+
+func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) error {
+	if r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency {
+		res, err := r.client.AwaitMeasurement(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		if r.ctx.ToLatency {
+			return r.viewer.OutputLatency(id, res)
+		}
+
+		if r.ctx.ToJSON {
+			b, err := r.client.GetMeasurementRaw(ctx, id)
+			if err != nil {
+				return err
+			}
+			r.viewer.OutputJSON(id, b)
+			return nil
+		}
+
+		if r.ctx.CIMode {
+			r.viewer.OutputDefault(id, res, opts)
+			return nil
+		}
+	}
+
+	res, err := r.client.GetMeasurement(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	w, h := r.printer.GetSize()
+	// Poll API until the measurement is complete
+	for res.Status == globalping.StatusInProgress {
+		time.Sleep(r.ctx.APIMinInterval)
+		res, err = r.client.GetMeasurement(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		r.viewer.OutputLive(res, opts, w, h)
+	}
+
+	r.printer.AreaClear()
+
+	r.viewer.OutputDefault(id, res, opts)
+
+	return nil
+}
 
 func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	r.ctx.Cmd = cmd.CalledAs() // Get the command name
@@ -121,12 +174,12 @@ func (r *Root) evaluateError(err error) {
 	if !ok {
 		return
 	}
-	if e.Code == globalping.StatusUnauthorizedWithTokenRefreshed {
+	if e.StatusCode == api.StatusUnauthorizedWithTokenRefreshed {
 		r.Cmd.SilenceErrors = true
 		r.printer.ErrPrintln("Access token successfully refreshed. Try repeating the measurement.")
 		return
 	}
-	if e.Code == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
+	if e.StatusCode == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
 		r.Cmd.SilenceErrors = true
 		r.printer.ErrPrintln(r.printer.Color("> "+e.Message, view.FGBrightYellow))
 		return
@@ -219,7 +272,7 @@ func (r *Root) mapFromSession(location string) (string, error) {
 func silenceUsageOnCreateMeasurementError(err error) bool {
 	e, ok := err.(*globalping.MeasurementError)
 	if ok {
-		switch e.Code {
+		switch e.StatusCode {
 		case http.StatusBadRequest:
 			return false
 		default:

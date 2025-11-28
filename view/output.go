@@ -4,93 +4,29 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/utils"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/mattn/go-runewidth"
 )
 
-var ShareURL = "https://globalping.io?measurement="
-
-// TODO: Use globalping.AwaitMeasurement instead of GetMeasurement
-func (v *viewer) Output(id string, m *globalping.MeasurementCreate) error {
-	// Wait for first result to arrive from a probe before starting display (can be in-progress)
-	data, err := v.globalping.GetMeasurement(id)
-	if err != nil {
-		return err
-	}
-	// Probe may not have started yet
-	for len(data.Results) == 0 {
-		time.Sleep(v.ctx.APIMinInterval)
-		data, err = v.globalping.GetMeasurement(id)
-		if err != nil {
-			return err
-		}
-	}
-
-	if v.ctx.CIMode || v.ctx.ToJSON || v.ctx.ToLatency {
-		// Poll API until the measurement is complete
-		for data.Status == globalping.StatusInProgress {
-			time.Sleep(v.ctx.APIMinInterval)
-			data, err = v.globalping.GetMeasurement(id)
-			if err != nil {
-				return err
-			}
-		}
-
-		if v.ctx.ToLatency {
-			return v.OutputLatency(id, data)
-		}
-
-		if v.ctx.ToJSON {
-			return v.OutputJson(id)
-		}
-
-		if v.ctx.CIMode {
-			v.outputDefault(id, data, m)
-			return nil
-		}
-	}
-
-	return v.liveView(id, data, m)
-}
-
-func (v *viewer) liveView(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) error {
-	var err error
-
-	w, h := v.printer.GetSize()
-
+func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalping.MeasurementCreate, w, h int) {
 	output := &strings.Builder{}
 
-	// Poll API until the measurement is complete
-	for data.Status == globalping.StatusInProgress {
-		time.Sleep(v.ctx.APIMinInterval)
-		data, err = v.globalping.GetMeasurement(id)
-		if err != nil {
-			return fmt.Errorf("failed to get data: %v", err)
+	// Output every result in case of multiple probes
+	for i := range measurement.Results {
+		result := &measurement.Results[i]
+		// Output slightly different format if state is available
+		output.WriteString(v.getProbeInfo(result) + "\n")
+
+		if v.isBodyOnlyHttpGet(opts) {
+			output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
+		} else {
+			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 		}
-
-		output.Reset()
-
-		// Output every result in case of multiple probes
-		for i := range data.Results {
-			result := &data.Results[i]
-			// Output slightly different format if state is available
-			output.WriteString(v.getProbeInfo(result) + "\n")
-
-			if v.isBodyOnlyHttpGet(m) {
-				output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
-			} else {
-				output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
-			}
-		}
-
-		v.printer.AreaUpdate(trimOutput(output, w, h))
 	}
-	v.printer.AreaClear()
 
-	v.outputDefault(id, data, m)
-	return nil
+	v.printer.AreaUpdate(trimOutput(output, w, h))
 }
 
 // Used to trim the output to fit the terminal in live view
@@ -151,7 +87,7 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s%s", ShareURL, id), BGYellow)
+	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s%s", utils.ShareURL, id), BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {

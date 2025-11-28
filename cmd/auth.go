@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"math"
 	"syscall"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-cli/api"
+	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -48,20 +50,22 @@ func (r *Root) initAuth() {
 }
 
 func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
 	var err error
 	oldToken := r.storage.GetProfile().Token
 	withToken := cmd.Flags().Changed("with-token")
 	if withToken {
-		err := r.loginWithToken()
+		err := r.loginWithToken(ctx)
 		if err != nil {
 			return err
 		}
 		if oldToken != nil {
-			r.client.RevokeToken(oldToken.RefreshToken)
+			r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
 		return nil
 	}
-	res, err := r.client.Authorize(func(e error) {
+	res, err := r.client.Authorize(ctx, func(e error) {
 		defer func() {
 			r.cancel <- syscall.SIGINT
 		}()
@@ -71,7 +75,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 			return
 		}
 		if oldToken != nil {
-			r.client.RevokeToken(oldToken.RefreshToken)
+			r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
 		r.printer.Println("Success! You are now authenticated.")
 	})
@@ -87,10 +91,12 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 }
 
 func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
-	res, err := r.client.TokenIntrospection("")
+	ctx := cmd.Context()
+
+	res, err := r.client.TokenIntrospection(ctx, "")
 	if err != nil {
-		e, ok := err.(*globalping.AuthorizeError)
-		if ok && e.ErrorType == globalping.ErrTypeNotAuthorized {
+		e, ok := err.(*api.AuthorizeError)
+		if ok && e.ErrorType == api.ErrTypeNotAuthorized {
 			r.printer.Println("Not logged in.")
 			return nil
 		}
@@ -105,7 +111,9 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 }
 
 func (r *Root) RunAuthLogout(cmd *cobra.Command, args []string) error {
-	err := r.client.Logout()
+	ctx := cmd.Context()
+
+	err := r.client.Logout(ctx)
 	if err != nil {
 		return err
 	}
@@ -113,7 +121,7 @@ func (r *Root) RunAuthLogout(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (r *Root) loginWithToken() error {
+func (r *Root) loginWithToken(ctx context.Context) error {
 	r.printer.Println("Please enter your token:")
 	token, err := r.printer.ReadPassword()
 	if err != nil {
@@ -122,15 +130,17 @@ func (r *Root) loginWithToken() error {
 	if token == "" {
 		return errors.New("empty token")
 	}
-	introspection, err := r.client.TokenIntrospection(token)
+
+	introspection, err := r.client.TokenIntrospection(ctx, token)
 	if err != nil {
 		return err
 	}
 	if !introspection.Active {
 		return errors.New("invalid token")
 	}
+
 	profile := r.storage.GetProfile()
-	profile.Token = &globalping.Token{
+	profile.Token = &storage.Token{
 		AccessToken: token,
 		Expiry:      r.utils.Now().Add(math.MaxInt64),
 	}
@@ -138,6 +148,7 @@ func (r *Root) loginWithToken() error {
 	if err != nil {
 		return errors.New("failed to save token")
 	}
+
 	r.printer.Printf("Logged in as %s.\n", introspection.Username)
 	return nil
 }

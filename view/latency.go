@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-go"
 )
 
 // Outputs the latency stats for a measurement
-func (v *viewer) OutputLatency(id string, data *globalping.Measurement) error {
+func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) error {
 	// Output every result in case of multiple probes
-	for i, result := range data.Results {
+	for i, result := range measurement.Results {
 		if i > 0 {
 			// new line as separator if more than 1 result
 			v.printer.Println()

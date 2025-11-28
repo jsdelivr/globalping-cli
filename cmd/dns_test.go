@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/mocks"
+	apiMocks "github.com/jsdelivr/globalping-cli/mocks/api"
+	utilsMocks "github.com/jsdelivr/globalping-cli/mocks/utils"
+	viewMocks "github.com/jsdelivr/globalping-cli/mocks/view"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -29,13 +30,16 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
+	gbMock := apiMocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Times(1).Return(expectedResponse, nil)
 
-	viewerMock := mocks.NewMockViewer(ctrl)
-	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
+	expectedMeasurement := createDefaultMeasurement("dns")
+	gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Times(1).Return(expectedMeasurement, nil)
 
-	utilsMock := mocks.NewMockUtils(ctrl)
+	viewerMock := viewMocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputDefault(measurementID1, expectedMeasurement, expectedOpts).Times(1)
+
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
@@ -52,7 +56,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 		"--port", "99",
 		"--protocol", "tcp",
 		"--trace"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", w.String())
@@ -92,13 +96,16 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
+	gbMock := apiMocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Times(1).Return(expectedResponse, nil)
 
-	viewerMock := mocks.NewMockViewer(ctrl)
-	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
+	expectedMeasurement := createDefaultMeasurement("dns")
+	gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Times(1).Return(expectedMeasurement, nil)
 
-	utilsMock := mocks.NewMockUtils(ctrl)
+	viewerMock := viewMocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputDefault(measurementID1, expectedMeasurement, expectedOpts).Times(1)
+
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
@@ -110,7 +117,7 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv4"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", w.String())
@@ -131,13 +138,16 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().CreateMeasurement(expectedOpts).Times(1).Return(expectedResponse, nil)
+	gbMock := apiMocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Times(1).Return(expectedResponse, nil)
 
-	viewerMock := mocks.NewMockViewer(ctrl)
-	viewerMock.EXPECT().Output(measurementID1, expectedOpts).Times(1).Return(nil)
+	expectedMeasurement := createDefaultMeasurement("dns")
+	gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Times(1).Return(expectedMeasurement, nil)
 
-	utilsMock := mocks.NewMockUtils(ctrl)
+	viewerMock := viewMocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputDefault(measurementID1, expectedMeasurement, expectedOpts).Times(1)
+
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
@@ -149,7 +159,7 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 	os.Args = []string{"globalping", "dns", "jsdelivr.com",
 		"from", "Berlin",
 		"--ipv6"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", w.String())
@@ -164,7 +174,7 @@ func Test_Execute_DNS_Invalid_Protocol(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
@@ -174,7 +184,7 @@ func Test_Execute_DNS_Invalid_Protocol(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 
 	os.Args = []string{"globalping", "dns", "jsdelivr.com", "--protocol", "invalid"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.Error(t, err, "protocol INVALID is not supported")
 
 	items, err := _storage.GetHistory(0)

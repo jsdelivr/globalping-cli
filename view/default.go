@@ -4,13 +4,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-go"
 )
 
 // Outputs non-json non-latency results for a measurement
-func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globalping.MeasurementCreate) {
-	for i := range data.Results {
-		result := &data.Results[i]
+func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, opts *globalping.MeasurementCreate) {
+	for i := range measurement.Results {
+		result := &measurement.Results[i]
 		if i > 0 {
 			// new line as separator if more than 1 result
 			v.printer.Println()
@@ -33,7 +33,7 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 						return v.printer.Color(s, FGRed)
 					}
 
-					v.printer.ErrPrintf(colorize("%s/%s\n"), tls.Protocol, tls.ChipherName)
+					v.printer.ErrPrintf(colorize("%s/%s\n"), tls.Protocol, tls.CipherName)
 
 					if tls.Authorized == false {
 						v.printer.ErrPrintf(colorize("Error: %s\n"), tls.Error)
@@ -52,11 +52,11 @@ func (v *viewer) outputDefault(id string, data *globalping.Measurement, m *globa
 					v.printer.ErrPrintln(result.Result.RawOutput[:firstLineEnd])
 				}
 				v.printer.ErrPrintln(result.Result.RawHeaders)
-				if m.Options.Request.Method == "GET" {
+				if opts.Options.Request.Method == "GET" {
 					v.printer.ErrPrintln()
 					v.printer.Println(strings.TrimSpace(result.Result.RawBody))
 				}
-			} else if m.Options.Request.Method == "GET" {
+			} else if opts.Options.Request.Method == "GET" {
 				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
 			} else {
 				v.printer.Println(strings.TrimSpace(result.Result.RawOutput))

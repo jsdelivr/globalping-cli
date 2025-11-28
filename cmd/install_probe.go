@@ -3,7 +3,7 @@ package cmd
 import (
 	"bufio"
 
-	"github.com/jsdelivr/globalping-cli/globalping/probe"
+	"github.com/jsdelivr/globalping-cli/api/probe"
 	"github.com/spf13/cobra"
 )
 
