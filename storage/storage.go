@@ -66,7 +66,10 @@ func (s *LocalStorage) Init(dirName string) error {
 				Profiles:      make(map[string]*Profile),
 				LastMigration: len(s.migrations),
 			}
-			s.SaveConfig()
+			err = s.SaveConfig()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	s.Migrate()

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-go"
 )
 
 var (

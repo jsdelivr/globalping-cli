@@ -5,6 +5,8 @@ import (
 	_time "time"
 )
 
+var ShareURL = "https://globalping.io?measurement="
+
 type Config struct {
 	GlobalpingToken            string
 	GlobalpingAuthClientID     string

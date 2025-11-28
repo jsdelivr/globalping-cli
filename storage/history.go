@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/icza/backscanner"
-	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-cli/utils"
 )
 
 var (
@@ -162,7 +162,7 @@ func parseHistoryItem(line string) (string, error) {
 			parts[1],
 			time.Unix(t, 0).Format("2006-01-02 15:04:05"),
 			parts[4],
-			"> "+view.ShareURL+parts[3],
+			"> "+utils.ShareURL+parts[3],
 		), nil
 	}
 	return "", nil

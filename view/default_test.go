@@ -6,16 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/mocks"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 )
 
 func Test_Output_Default_HTTP_Get(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -51,10 +46,7 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
-	m := &globalping.MeasurementCreate{
+	opts := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
 			Request: &globalping.RequestOptions{
 				Method: "GET",
@@ -68,9 +60,9 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, printer, nil, gbMock)
+	}, printer, nil)
 
-	viewer.Output(measurementID1, m)
+	viewer.OutputDefault(measurementID1, measurement, opts)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 Body 1
@@ -81,9 +73,6 @@ Body 2
 }
 
 func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -119,10 +108,7 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
-	m := &globalping.MeasurementCreate{
+	opts := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
 			Request: &globalping.RequestOptions{
 				Method: "GET",
@@ -137,9 +123,9 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		Cmd:    "http",
 		CIMode: true,
 		Share:  true,
-	}, printer, nil, gbMock)
+	}, printer, nil)
 
-	viewer.Output(measurementID1, m)
+	viewer.OutputDefault(measurementID1, measurement, opts)
 
 	assert.Equal(t, fmt.Sprintf(`> Berlin, DE, EU, Network 1 (AS123)
 > New York (NY), US, NA, Network 2 (AS567)
@@ -153,9 +139,6 @@ Body 2
 }
 
 func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	now := time.Now()
 
 	measurement := &globalping.Measurement{
@@ -170,9 +153,9 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 				},
 				Result: globalping.ProbeResult{
 					TLS: &globalping.HTTPTLSCertificate{
-						Authorized:  true,
-						Protocol:    "TLSv1.3",
-						ChipherName: "TLS_AES_256_GCM_SHA384",
+						Authorized: true,
+						Protocol:   "TLSv1.3",
+						CipherName: "TLS_AES_256_GCM_SHA384",
 						Subject: globalping.TLSCertificateSubject{
 							CommonName:      "Sub CN",
 							AlternativeName: "Sub alt",
@@ -206,10 +189,10 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 				},
 				Result: globalping.ProbeResult{
 					TLS: &globalping.HTTPTLSCertificate{
-						Authorized:  false,
-						Error:       "TLS Error",
-						Protocol:    "TLSv1.3",
-						ChipherName: "TLS_AES_256_GCM_SHA384",
+						Authorized: false,
+						Error:      "TLS Error",
+						Protocol:   "TLSv1.3",
+						CipherName: "TLS_AES_256_GCM_SHA384",
 						Subject: globalping.TLSCertificateSubject{
 							CommonName:      "Sub CN",
 							AlternativeName: "Sub alt",
@@ -234,10 +217,7 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
-	m := &globalping.MeasurementCreate{
+	opts := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
 			Request: &globalping.RequestOptions{
 				Method: "GET",
@@ -252,9 +232,9 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		Cmd:    "http",
 		CIMode: true,
 		Full:   true,
-	}, printer, nil, gbMock)
+	}, printer, nil)
 
-	viewer.Output(measurementID1, m)
+	viewer.OutputDefault(measurementID1, measurement, opts)
 
 	validity := fmt.Sprintf("%s; %s", now.Format(time.RFC3339), now.AddDate(1, 0, 0).Format(time.RFC3339))
 
@@ -293,9 +273,6 @@ Body 2
 }
 
 func Test_Output_Default_HTTP_Head(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -329,10 +306,7 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
-	m := &globalping.MeasurementCreate{
+	opts := &globalping.MeasurementCreate{
 		Options: &globalping.MeasurementOptions{
 			Request: &globalping.RequestOptions{
 				Method: "HEAD",
@@ -346,9 +320,9 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, printer, nil, gbMock)
+	}, printer, nil)
 
-	viewer.Output(measurementID1, m)
+	viewer.OutputDefault(measurementID1, measurement, opts)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 > New York (NY), US, NA, Network 2 (AS567)
@@ -360,9 +334,6 @@ Headers 2
 }
 
 func Test_Output_Default_Ping(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -394,10 +365,7 @@ func Test_Output_Default_Ping(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
-	m := &globalping.MeasurementCreate{}
+	opts := &globalping.MeasurementCreate{}
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
@@ -405,9 +373,9 @@ func Test_Output_Default_Ping(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "ping",
 		CIMode: true,
-	}, printer, nil, gbMock)
+	}, printer, nil)
 
-	viewer.Output(measurementID1, m)
+	viewer.OutputDefault(measurementID1, measurement, opts)
 
 	assert.Equal(t, `> Berlin, DE, EU, Network 1 (AS123)
 > New York (NY), US, NA, Network 2 (AS567)

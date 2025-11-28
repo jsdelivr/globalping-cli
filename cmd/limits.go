@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/utils"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 )
 
@@ -18,12 +18,14 @@ func (r *Root) initLimits() {
 }
 
 func (r *Root) RunLimits(cmd *cobra.Command, args []string) error {
-	introspection, _ := r.client.TokenIntrospection("")
+	ctx := cmd.Context()
+
+	introspection, _ := r.client.TokenIntrospection(ctx, "")
 	username := ""
 	if introspection != nil {
 		username = introspection.Username
 	}
-	limits, err := r.client.Limits()
+	limits, err := r.client.Limits(ctx)
 	if err != nil {
 		return err
 	}
@@ -36,7 +38,7 @@ func (r *Root) RunLimits(cmd *cobra.Command, args []string) error {
 	} else {
 		r.printer.Printf("Authentication: IP address\n\n")
 	}
-	r.printer.Printf(`Creating measurements: 
+	r.printer.Printf(`Creating measurements:
  - %s per hour
  - %d consumed, %d remaining
 `,

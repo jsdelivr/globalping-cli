@@ -2,13 +2,12 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/mocks"
+	utilsMocks "github.com/jsdelivr/globalping-cli/mocks/utils"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -17,7 +16,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	utilsMock := mocks.NewMockUtils(ctrl)
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	ctx := createDefaultContext("ping")
@@ -56,7 +55,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	root.UpdateHistory()
 
 	os.Args = []string{"globalping", "history"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.Equal(t,
@@ -70,7 +69,7 @@ func Test_Execute_History_Default(t *testing.T) {
 
 	w.Reset()
 	os.Args = []string{"globalping", "history", "--tail", "2"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err = root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t,
 		createDefaultExpectedHistoryItem("5", "ping jsdelivr.com", measurementID3)+"\n"+
@@ -79,7 +78,7 @@ func Test_Execute_History_Default(t *testing.T) {
 
 	w.Reset()
 	os.Args = []string{"globalping", "history", "--head", "2"}
-	err = root.Cmd.ExecuteContext(context.TODO())
+	err = root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t,
 		createDefaultExpectedHistoryItem("1", "ping jsdelivr.com", measurementID1)+"\n"+
