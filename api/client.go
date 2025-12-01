@@ -54,6 +54,9 @@ type Client interface {
 
 	// Returns the rate limits for the current user or IP address.
 	Limits(ctx context.Context) (*globalping.LimitsResponse, error)
+
+	// Closes the client.
+	Close()
 }
 
 type Config struct {
@@ -80,6 +83,7 @@ type client struct {
 	http       *http.Client
 	globalping globalping.Client
 	mu         sync.RWMutex
+	done       chan struct{}
 
 	authClientId     string
 	authClientSecret string
@@ -96,6 +100,7 @@ func NewClient(config Config) Client {
 		printer:          config.Printer,
 		globalping:       config.Globalping,
 		mu:               sync.RWMutex{},
+		done:             make(chan struct{}),
 		authClientId:     config.AuthClientID,
 		authClientSecret: config.AuthClientSecret,
 		authURL:          config.AuthURL,
@@ -143,10 +148,21 @@ func NewClient(config Config) Client {
 
 	t := time.NewTicker(10 * time.Second)
 	go func() {
-		for range t.C {
-			c.globalping.CacheClean()
+		defer t.Stop()
+
+		for {
+			select {
+			case <-t.C:
+				c.globalping.CacheClean()
+			case <-c.done:
+				return
+			}
 		}
 	}()
 
 	return c
+}
+
+func (c *client) Close() {
+	close(c.done)
 }

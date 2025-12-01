@@ -71,6 +71,18 @@ func (mr *MockClientMockRecorder) AwaitMeasurement(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AwaitMeasurement", reflect.TypeOf((*MockClient)(nil).AwaitMeasurement), ctx, id)
 }
 
+// Close mocks base method.
+func (m *MockClient) Close() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Close")
+}
+
+// Close indicates an expected call of Close.
+func (mr *MockClientMockRecorder) Close() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockClient)(nil).Close))
+}
+
 // CreateMeasurement mocks base method.
 func (m *MockClient) CreateMeasurement(ctx context.Context, measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	m.ctrl.T.Helper()

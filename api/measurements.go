@@ -82,7 +82,7 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 		} else {
 			if remaining > 0 {
 				apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
-				return nil, err
+				return nil, apiErr
 			}
 			apiErr.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
 			return nil, apiErr

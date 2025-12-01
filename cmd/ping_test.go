@@ -300,10 +300,10 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedResponse4.ID = measurementID4
 
 	gbMock := apiMocks.NewMockClient(ctrl)
-	createCall1 := gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts1).Return(expectedResponse1, nil)
-	createCall2 := gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts2).Return(expectedResponse2, nil).After(createCall1)
-	createCall3 := gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts3).Return(expectedResponse3, nil).After(createCall2)
-	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts4).Return(expectedResponse4, nil).After(createCall3)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts1).Return(expectedResponse1, nil)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts2).Return(expectedResponse2, nil)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts3).Return(expectedResponse3, nil)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts4).Return(expectedResponse4, nil)
 
 	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusFinished)
 	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusInProgress)
@@ -316,26 +316,26 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedMeasurement4.ID = measurementID4
 	expectedMeasurement4.Results[1].Result.Status = globalping.StatusFinished
 
-	getCall1 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID1).Return(expectedMeasurement1, nil)
-	getCall2 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID2).Return(expectedMeasurement2, nil).After(getCall1)
-	getCall3 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID3).Return(expectedMeasurement3, nil).After(getCall2)
-	getCall4 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID4).Return(expectedMeasurement4, nil).After(getCall3)
-	getCall5 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID2).Return(expectedMeasurement2, nil).After(getCall4)
-	getCall6 := gbMock.EXPECT().GetMeasurement(t.Context(), measurementID3).Return(expectedMeasurement3, nil).After(getCall5)
-	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID4).Return(expectedMeasurement4, nil).After(getCall6)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID1).Return(expectedMeasurement1, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID2).Return(expectedMeasurement2, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID3).Return(expectedMeasurement3, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID4).Return(expectedMeasurement4, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID2).Return(expectedMeasurement2, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID3).Return(expectedMeasurement3, nil)
+	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID4).Return(expectedMeasurement4, nil)
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
 	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
-	outputCall1 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(waitFn)
-	outputCall2 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn).After(outputCall1)
-	outputCall3 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn).After(outputCall2)
-	outputCall4 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(waitFn).After(outputCall3)
-	outputCall5 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn).After(outputCall4)
-	outputCall6 := viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn).After(outputCall5)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(waitFn)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(waitFn)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) error {
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(10000 * time.Millisecond)
 		return nil
-	}).After(outputCall6)
+	})
 
 	viewerMock.EXPECT().OutputSummary().Times(1)
 	viewerMock.EXPECT().OutputShare().Times(1)
@@ -355,7 +355,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
 
 	go func() {
-		time.Sleep(700 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 		root.cancel <- syscall.SIGINT
 	}()
 	err := root.Cmd.ExecuteContext(t.Context())

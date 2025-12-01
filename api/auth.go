@@ -48,7 +48,12 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	}
 	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
-		req.ParseForm()
+		err := req.ParseForm()
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			callback(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()})
+			return
+		}
 		token, err := c.exchange(ctx, req.Form, verifier, callbackURL)
 		if err != nil {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/error", http.StatusFound)

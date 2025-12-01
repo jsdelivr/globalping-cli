@@ -454,7 +454,7 @@ func Test_Logout_AccessToken_Is_Set(t *testing.T) {
 		DashboardURL:     server.URL,
 		AuthToken: &storage.Token{
 			AccessToken: "tok3n",
-			Expiry:      time.Now().Add(time.Hour),
+			Expiry:      defaultCurrentTime.Add(time.Hour),
 		},
 	})
 	err := client.Logout(t.Context())

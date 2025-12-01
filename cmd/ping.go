@@ -196,7 +196,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 		}
 		last := r.ctx.History.Last()
 		if last != nil {
-			opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+			opts.Locations = []globalping.Locations{{Magic: last.Id}}
 		}
 		hm, err := r.createMeasurement(ctx, opts)
 		if err != nil {
