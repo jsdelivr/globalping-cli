@@ -19,19 +19,18 @@
 ## Table of contents
 
 <!-- TOC -->
-
-* [Installation](#installation)
-* [Get started with Globalping CLI](#get-started-with-globalping-cli)
-* [Filter locations](#filter-locations)
-* [Define multiple locations and basic flags](#define-multiple-locations-and-basic-flags)
-* [Share results online](#share-results-online)
-* [Authenticate](#authenticate)
-* [Reselect probes](#reselect-probes)
-* [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
-* [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
-* [Get TCP & TLS/SSL details](#get-tcp--tlsssl-details)
-* [View your measurement history](#view-your-measurement-history)
-* [Learn about available flags](#learn-about-available-flags)
+  * [Installation](#installation)
+  * [Get started with Globalping CLI](#get-started-with-globalping-cli)
+  * [Filter locations](#filter-locations)
+  * [Define multiple locations and basic flags](#define-multiple-locations-and-basic-flags)
+  * [Share results online](#share-results-online)
+  * [Authenticate](#authenticate)
+  * [Reselect probes](#reselect-probes)
+  * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
+  * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
+  * [Get TCP & TLS/SSL details](#get-tcp--tlsssl-details)
+  * [View your measurement history](#view-your-measurement-history)
+  * [Learn about available flags](#learn-about-available-flags)
 <!-- TOC -->
 
 ## Installation
