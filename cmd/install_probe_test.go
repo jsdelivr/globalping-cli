@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping/probe"
-	"github.com/jsdelivr/globalping-cli/mocks"
+	"github.com/jsdelivr/globalping-cli/api/probe"
+	apiMocks "github.com/jsdelivr/globalping-cli/mocks/api"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -17,7 +16,7 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	probeMock := mocks.NewMockProbe(ctrl)
+	probeMock := apiMocks.NewMockProbe(ctrl)
 	probeMock.EXPECT().DetectContainerEngine().Times(1).Return(probe.ContainerEngineDocker, nil)
 	probeMock.EXPECT().InspectContainer(probe.ContainerEngineDocker).Times(1).Return(nil)
 	probeMock.EXPECT().RunContainer(probe.ContainerEngineDocker).Times(1).Return(nil)
@@ -28,7 +27,8 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	ctx := createDefaultContext("install-probe")
 	root := NewRoot(printer, ctx, nil, nil, nil, probeMock, nil)
 	os.Args = []string{"globalping", "install-probe"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.NoError(t, err)

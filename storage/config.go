@@ -3,12 +3,19 @@ package storage
 import (
 	"encoding/json"
 	"os"
-
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"time"
 )
 
+type Token struct {
+	AccessToken  string    `json:"access_token"`
+	TokenType    string    `json:"token_type,omitempty"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
+	ExpiresIn    int64     `json:"expires_in,omitempty"`
+	Expiry       time.Time `json:"expiry,omitzero"`
+}
+
 type Profile struct {
-	Token *globalping.Token `json:"token"`
+	Token *Token `json:"token"`
 }
 
 type Config struct {
@@ -17,6 +24,7 @@ type Config struct {
 	LastMigration int                 `json:"last_migration"`
 }
 
+// TODO: Implement locking mechanism
 func (s *LocalStorage) LoadConfig() (*Config, error) {
 	if s.config != nil {
 		return s.config, nil

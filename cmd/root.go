@@ -10,11 +10,12 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/globalping/probe"
+	"github.com/jsdelivr/globalping-cli/api"
+	"github.com/jsdelivr/globalping-cli/api/probe"
 	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,7 @@ type Root struct {
 	printer *view.Printer
 	ctx     *view.Context
 	viewer  view.Viewer
-	client  globalping.Client
+	client  api.Client
 	probe   probe.Probe
 	utils   utils.Utils
 	storage *storage.LocalStorage
@@ -44,39 +45,39 @@ func Execute() {
 		printer.ErrPrintf("Error: failed to initialize storage: %v\n", err)
 		os.Exit(1)
 	}
-	profile := localStorage.GetProfile()
 	ctx := &view.Context{
 		APIMinInterval: config.GlobalpingAPIInterval,
 		History:        view.NewHistoryBuffer(10),
 		From:           "world",
 		Limit:          1,
 	}
-	t := time.NewTicker(10 * time.Second)
-	token := profile.Token
+
+	var token *storage.Token
 	if config.GlobalpingToken != "" {
-		token = &globalping.Token{
+		token = &storage.Token{
 			AccessToken: config.GlobalpingToken,
 			ExpiresIn:   math.MaxInt64,
 			Expiry:      time.Now().Add(math.MaxInt64),
 		}
 	}
-	globalpingClient := globalping.NewClientWithCacheCleanup(globalping.Config{
-		AuthToken: token,
-		OnTokenRefresh: func(token *globalping.Token) {
-			profile.Token = token
-			err := localStorage.SaveConfig()
-			if err != nil {
-				printer.ErrPrintf("Error: failed to save config: %v\n", err)
-				os.Exit(1)
-			}
-		},
+	globalpingClient := globalping.NewClient(globalping.Config{
+		UserAgent:          getUserAgent(),
+		CacheExpireSeconds: 30,
+	})
+	apiClient := api.NewClient(api.Config{
+		Utils:            _utils,
+		Storage:          localStorage,
+		Printer:          printer,
+		Globalping:       globalpingClient,
+		AuthToken:        token,
 		AuthClientID:     config.GlobalpingAuthClientID,
 		AuthClientSecret: config.GlobalpingAuthClientSecret,
-		UserAgent:        getUserAgent(),
-	}, t, 30)
+	})
+	defer apiClient.Close()
+
 	globalpingProbe := probe.NewProbe()
-	viewer := view.NewViewer(ctx, printer, _utils, globalpingClient)
-	root := NewRoot(printer, ctx, viewer, _utils, globalpingClient, globalpingProbe, localStorage)
+	viewer := view.NewViewer(ctx, printer, _utils)
+	root := NewRoot(printer, ctx, viewer, _utils, apiClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()
 	if err != nil {
@@ -89,7 +90,7 @@ func NewRoot(
 	ctx *view.Context,
 	viewer view.Viewer,
 	utils utils.Utils,
-	globalpingClient globalping.Client,
+	globalpingClient api.Client,
 	globalpingProbe probe.Probe,
 	localStorage *storage.LocalStorage,
 ) *Root {

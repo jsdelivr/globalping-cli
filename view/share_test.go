@@ -18,7 +18,7 @@ func Test_OutputShare(t *testing.T) {
 		ctx.Share = true
 		w := new(bytes.Buffer)
 		errw := new(bytes.Buffer)
-		viewer := NewViewer(ctx, NewPrinter(nil, w, errw), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, errw), nil)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
@@ -38,7 +38,7 @@ func Test_OutputShare(t *testing.T) {
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
 		printer.DisableStyling()
-		viewer := NewViewer(ctx, printer, nil, nil)
+		viewer := NewViewer(ctx, printer, nil)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
@@ -63,7 +63,7 @@ func Test_OutputShare(t *testing.T) {
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
 		printer.DisableStyling()
-		viewer := NewViewer(ctx, printer, nil, nil)
+		viewer := NewViewer(ctx, printer, nil)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
