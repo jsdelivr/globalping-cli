@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -70,6 +70,8 @@ Examples:
 }
 
 func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
@@ -109,7 +111,7 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		opts.Options.IPVersion = globalping.IPVersion6
 	}
 
-	res, err := r.client.CreateMeasurement(opts)
+	res, err := r.client.CreateMeasurement(ctx, opts)
 	if err != nil {
 		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		r.evaluateError(err)
@@ -131,6 +133,6 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	r.viewer.Output(res.ID, opts)
+	r.handleMeasurement(ctx, res.ID, opts)
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,7 @@ func Test_Config(t *testing.T) {
 	}, config)
 
 	profile := _storage.GetProfile()
-	profile.Token = &globalping.Token{
+	profile.Token = &Token{
 		AccessToken:  "token",
 		RefreshToken: "refresh",
 		TokenType:    "bearer",

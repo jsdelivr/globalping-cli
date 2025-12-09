@@ -1,6 +1,7 @@
-package globalping
+package api
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -11,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-var timeNow = time.Now
+	"github.com/jsdelivr/globalping-cli/storage"
+)
 
 var (
 	ErrTypeExchangeFailed      = "exchange_failed"
@@ -23,14 +24,6 @@ var (
 	ErrTypeInvalidGrant        = "invalid_grant"
 	ErrTypeNotAuthorized       = "not_authorized"
 )
-
-type Token struct {
-	AccessToken  string    `json:"access_token"`
-	TokenType    string    `json:"token_type,omitempty"`
-	RefreshToken string    `json:"refresh_token,omitempty"`
-	ExpiresIn    int64     `json:"expires_in,omitempty"`
-	Expiry       time.Time `json:"expiry,omitempty"`
-}
 
 type AuthorizeError struct {
 	Code        int    `json:"-"`
@@ -47,7 +40,7 @@ type AuthorizeResponse struct {
 	CallbackURL  string
 }
 
-func (c *client) Authorize(callback func(error)) (*AuthorizeResponse, error) {
+func (c *client) Authorize(ctx context.Context, callback func(error)) (*AuthorizeResponse, error) {
 	verifier := generateVerifier()
 	mux := http.NewServeMux()
 	server := &http.Server{
@@ -55,15 +48,20 @@ func (c *client) Authorize(callback func(error)) (*AuthorizeResponse, error) {
 	}
 	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
-		req.ParseForm()
-		token, err := c.exchange(req.Form, verifier, callbackURL)
+		err := req.ParseForm()
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			callback(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()})
+			return
+		}
+		token, err := c.exchange(ctx, req.Form, verifier, callbackURL)
 		if err != nil {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/error", http.StatusFound)
 		} else {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/success", http.StatusFound)
 		}
 		go func() {
-			server.Shutdown(req.Context())
+			server.Shutdown(context.Background())
 			if err == nil {
 				c.updateToken(token)
 			}
@@ -105,9 +103,9 @@ func (c *client) Authorize(callback func(error)) (*AuthorizeResponse, error) {
 	}, nil
 }
 
-func (c *client) TokenIntrospection(token string) (*IntrospectionResponse, error) {
+func (c *client) TokenIntrospection(ctx context.Context, token string) (*IntrospectionResponse, error) {
 	if token == "" {
-		t, err := c.getToken()
+		t, err := c.getToken(ctx)
 		if err != nil {
 			return nil, &AuthorizeError{
 				ErrorType:   ErrTypeNotAuthorized,
@@ -124,17 +122,17 @@ func (c *client) TokenIntrospection(token string) (*IntrospectionResponse, error
 			Description: "client is not authorized",
 		}
 	}
-	return c.introspection(token)
+	return c.introspection(ctx, token)
 }
 
-func (c *client) Logout() error {
+func (c *client) Logout(ctx context.Context) error {
 	c.mu.RLock()
 	t := c.token
 	c.mu.RUnlock()
 	if t == nil {
 		return nil
 	}
-	err := c.RevokeToken(t.RefreshToken)
+	err := c.RevokeToken(ctx, t.RefreshToken)
 	if err != nil {
 		return err
 	}
@@ -142,7 +140,7 @@ func (c *client) Logout() error {
 	return nil
 }
 
-func (c *client) exchange(form url.Values, verifier string, redirect string) (*Token, error) {
+func (c *client) exchange(ctx context.Context, form url.Values, verifier string, redirect string) (*storage.Token, error) {
 	if form.Get("error") != "" {
 		return nil, &AuthorizeError{
 			ErrorType:   form.Get("error"),
@@ -163,7 +161,7 @@ func (c *client) exchange(form url.Values, verifier string, redirect string) (*T
 	q.Set("code_verifier", verifier)
 	q.Set("grant_type", "authorization_code")
 	q.Set("redirect_uri", redirect)
-	req, err := http.NewRequest("POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeExchangeFailed,
@@ -188,7 +186,7 @@ func (c *client) exchange(form url.Values, verifier string, redirect string) (*T
 		json.NewDecoder(resp.Body).Decode(err)
 		return nil, err
 	}
-	t := &Token{}
+	t := &storage.Token{}
 	err = json.NewDecoder(resp.Body).Decode(t)
 	if err != nil {
 		return nil, &AuthorizeError{
@@ -200,18 +198,18 @@ func (c *client) exchange(form url.Values, verifier string, redirect string) (*T
 		t.TokenType = "Bearer"
 	}
 	if t.ExpiresIn != 0 {
-		t.Expiry = timeNow().Add(time.Duration(t.ExpiresIn) * time.Second)
+		t.Expiry = c.utils.Now().Add(time.Duration(t.ExpiresIn) * time.Second)
 	}
 	return t, nil
 }
 
-func (c *client) getToken() (*Token, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (c *client) getToken(ctx context.Context) (*storage.Token, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.token == nil {
 		return nil, nil
 	}
-	if !c.token.Expiry.Before(timeNow()) {
+	if !c.token.Expiry.Before(c.utils.Now()) {
 		return c.token, nil
 	}
 	if c.token.RefreshToken == "" {
@@ -220,47 +218,47 @@ func (c *client) getToken() (*Token, error) {
 			Description: "empty refresh token",
 		}
 	}
-	t, err := c.refreshToken(c.token.RefreshToken)
+	t, err := c.refreshToken(ctx, c.token.RefreshToken)
 	if err != nil {
 		e, ok := err.(*AuthorizeError)
-		if ok && e.ErrorType == ErrTypeInvalidGrant && c.onTokenRefresh != nil {
-			c.onTokenRefresh(nil)
+		if ok && e.ErrorType == ErrTypeInvalidGrant {
+			c.saveToken(nil)
 		}
 		return nil, err
 	}
+
 	c.token = t
-	if c.onTokenRefresh != nil {
-		c.onTokenRefresh(&Token{
-			AccessToken:  t.AccessToken,
-			TokenType:    t.TokenType,
-			RefreshToken: t.RefreshToken,
-			ExpiresIn:    t.ExpiresIn,
-			Expiry:       t.Expiry,
-		})
-	}
+	c.saveToken(&storage.Token{
+		AccessToken:  t.AccessToken,
+		TokenType:    t.TokenType,
+		RefreshToken: t.RefreshToken,
+		ExpiresIn:    t.ExpiresIn,
+		Expiry:       t.Expiry,
+	})
+
 	return t, nil
 }
 
-func (c *client) updateToken(t *Token) {
+func (c *client) updateToken(t *storage.Token) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	c.token = t
-	if c.onTokenRefresh != nil {
-		if t == nil {
-			c.onTokenRefresh(nil)
-		} else {
-			c.onTokenRefresh(&Token{
-				AccessToken:  t.AccessToken,
-				TokenType:    t.TokenType,
-				RefreshToken: t.RefreshToken,
-				ExpiresIn:    t.ExpiresIn,
-				Expiry:       t.Expiry,
-			})
-		}
+	if t == nil {
+		c.saveToken(nil)
+		return
 	}
+
+	c.saveToken(&storage.Token{
+		AccessToken:  t.AccessToken,
+		TokenType:    t.TokenType,
+		RefreshToken: t.RefreshToken,
+		ExpiresIn:    t.ExpiresIn,
+		Expiry:       t.Expiry,
+	})
 }
 
-func (c *client) tryToRefreshToken(refreshToken string) bool {
+func (c *client) tryToRefreshToken(ctx context.Context, refreshToken string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.token == nil {
@@ -270,38 +268,37 @@ func (c *client) tryToRefreshToken(refreshToken string) bool {
 	if c.token.RefreshToken != refreshToken {
 		return false
 	}
-	token, err := c.refreshToken(c.token.RefreshToken)
+
+	token, err := c.refreshToken(ctx, c.token.RefreshToken)
 	if err != nil {
 		e, ok := err.(*AuthorizeError)
 		// If the refresh token is invalid, clear the token
-		if ok && e.ErrorType == ErrTypeInvalidGrant && c.onTokenRefresh != nil {
+		if ok && e.ErrorType == ErrTypeInvalidGrant {
 			c.token = nil
-			if c.onTokenRefresh != nil {
-				c.onTokenRefresh(nil)
-			}
+			c.saveToken(nil)
 		}
 		return false
 	}
+
 	c.token = token
-	if c.onTokenRefresh != nil {
-		c.onTokenRefresh(&Token{
-			AccessToken:  token.AccessToken,
-			TokenType:    token.TokenType,
-			RefreshToken: token.RefreshToken,
-			ExpiresIn:    token.ExpiresIn,
-			Expiry:       token.Expiry,
-		})
-	}
+	c.saveToken(&storage.Token{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		ExpiresIn:    token.ExpiresIn,
+		Expiry:       token.Expiry,
+	})
+
 	return true
 }
 
-func (c *client) refreshToken(token string) (*Token, error) {
+func (c *client) refreshToken(ctx context.Context, token string) (*storage.Token, error) {
 	q := url.Values{}
 	q.Set("client_id", c.authClientId)
 	q.Set("client_secret", c.authClientSecret)
 	q.Set("refresh_token", token)
 	q.Set("grant_type", "refresh_token")
-	req, err := http.NewRequest("POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeRefreshFailed,
@@ -326,7 +323,7 @@ func (c *client) refreshToken(token string) (*Token, error) {
 		json.NewDecoder(resp.Body).Decode(err)
 		return nil, err
 	}
-	t := &Token{}
+	t := &storage.Token{}
 	err = json.NewDecoder(resp.Body).Decode(t)
 	if err != nil {
 		return nil, &AuthorizeError{
@@ -338,9 +335,17 @@ func (c *client) refreshToken(token string) (*Token, error) {
 		t.TokenType = "Bearer"
 	}
 	if t.ExpiresIn != 0 {
-		t.Expiry = timeNow().Add(time.Duration(t.ExpiresIn) * time.Second)
+		t.Expiry = c.utils.Now().Add(time.Duration(t.ExpiresIn) * time.Second)
 	}
 	return t, nil
+}
+
+func (c *client) saveToken(token *storage.Token) {
+	c.storage.GetProfile().Token = token
+	err := c.storage.SaveConfig()
+	if err != nil {
+		c.printer.ErrPrintf("Error: Token was refreshed but failed to save to storage: %v\n", err)
+	}
 }
 
 // https://datatracker.ietf.org/doc/html/rfc7662#section-2.1
@@ -362,9 +367,9 @@ type IntrospectionResponse struct {
 	Jti       string `json:"jti"` // JWT ID
 }
 
-func (c *client) introspection(token string) (*IntrospectionResponse, error) {
+func (c *client) introspection(ctx context.Context, token string) (*IntrospectionResponse, error) {
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequest("POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeIntrospectionFailed,
@@ -400,12 +405,12 @@ func (c *client) introspection(token string) (*IntrospectionResponse, error) {
 	return ires, nil
 }
 
-func (c *client) RevokeToken(token string) error {
+func (c *client) RevokeToken(ctx context.Context, token string) error {
 	if token == "" {
 		return nil
 	}
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequest("POST", c.authURL+"/oauth/token/revoke", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/revoke", strings.NewReader(form))
 	if err != nil {
 		return &AuthorizeError{
 			ErrorType:   ErrTypeRevokeFailed,

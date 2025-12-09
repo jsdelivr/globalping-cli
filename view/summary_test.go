@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +12,7 @@ func Test_OutputSummary(t *testing.T) {
 	t.Run("No_stats", func(t *testing.T) {
 		w := new(bytes.Buffer)
 		ctx := createDefaultContext("ping")
-		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
 		viewer.OutputSummary()
 
 		assert.Equal(t, "", w.String())
@@ -37,7 +37,7 @@ func Test_OutputSummary(t *testing.T) {
 			},
 		}
 		ctx.History.Push(hm)
-		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
 		viewer.OutputSummary()
 
 		assert.Equal(t, `
@@ -55,7 +55,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms
 			NewMeasurementStats(),
 			NewMeasurementStats(),
 		}
-		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil, nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
 		viewer.OutputSummary()
 
 		assert.Equal(t, "", w.String())

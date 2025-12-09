@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 )
 
 var (
@@ -27,7 +27,7 @@ func createDefaultMeasurementCreateResponse() *globalping.MeasurementCreateRespo
 	}
 }
 
-func createDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
+func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.MeasurementCreate {
 	measurement := &globalping.MeasurementCreate{
 		Type:    cmd,
 		Target:  "jsdelivr.com",
@@ -57,7 +57,7 @@ func createDefaultMeasurementCreate(cmd string) *globalping.MeasurementCreate {
 	return measurement
 }
 
-func createDefaultMeasurement(cmd string) *globalping.Measurement {
+func createDefaultMeasurement(cmd globalping.MeasurementType) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Status:      globalping.StatusFinished,
@@ -73,7 +73,7 @@ func createDefaultMeasurement(cmd string) *globalping.Measurement {
 	}
 }
 
-func createDefaultMeasurement_MultipleProbes(cmd string, status globalping.MeasurementStatus) *globalping.Measurement {
+func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, status globalping.MeasurementStatus) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Status:      status,

@@ -1,4 +1,4 @@
-package globalping
+package api
 
 import (
 	"encoding/json"
@@ -8,10 +8,19 @@ import (
 	"testing"
 	"time"
 
+	utilsMock "github.com/jsdelivr/globalping-cli/mocks/utils"
+	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func Test_Authorize(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	succesCalled := false
 	expectedRedirectURI := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,22 +55,18 @@ func Test_Authorize(t *testing.T) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
+
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		OnTokenRefresh: func(_token *Token) {
-			assert.Equal(t, &Token{
-				AccessToken:  "token",
-				TokenType:    "bearer",
-				RefreshToken: "refresh",
-				ExpiresIn:    3600,
-				Expiry:       _token.Expiry,
-			}, _token)
-		},
 	})
-	res, err := client.Authorize(func(err error) {
+	res, err := client.Authorize(t.Context(), func(err error) {
 		assert.Nil(t, err)
 	})
 	assert.Nil(t, err)
@@ -84,11 +89,15 @@ func Test_Authorize(t *testing.T) {
 	}
 
 	assert.True(t, succesCalled, "/authorize/success not called")
-
 }
 
 func Test_TokenIntrospection(t *testing.T) {
-	now := time.Now()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	introspectionRes := &IntrospectionResponse{
 		Active:    true,
 		Scope:     "measurements",
@@ -120,29 +129,32 @@ func Test_TokenIntrospection(t *testing.T) {
 	}))
 	defer server.Close()
 
-	onTokenRefreshCalled := false
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken: "tok3n",
-			Expiry:      now.Add(time.Hour),
-		},
-		OnTokenRefresh: func(_ *Token) {
-			onTokenRefreshCalled = true
+			Expiry:      defaultCurrentTime.Add(time.Hour),
 		},
 	})
-	res, err := client.TokenIntrospection("")
+	res, err := client.TokenIntrospection(t.Context(), "")
 	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
-
-	assert.False(t, onTokenRefreshCalled)
 }
 
 func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
-	now := time.Now()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	introspectionRes := &IntrospectionResponse{
 		Active:    true,
 		Scope:     "measurements",
@@ -194,36 +206,45 @@ func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
 	}))
 	defer server.Close()
 
-	var token *Token
+	_storage := createDefaultTestStorage(t, utilsMock)
+	_storage.GetProfile().Token = &storage.Token{
+		AccessToken:  "token",
+		RefreshToken: "refresh",
+	}
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken:  "tok3n",
 			RefreshToken: "refresh_tok3n",
-			Expiry:       now.Add(-time.Hour),
-		},
-		OnTokenRefresh: func(_t *Token) {
-			token = _t
+			Expiry:       defaultCurrentTime.Add(-time.Hour),
 		},
 	})
-	res, err := client.TokenIntrospection("")
+	res, err := client.TokenIntrospection(t.Context(), "")
 	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
 
-	assert.Equal(t, &Token{
+	assert.Equal(t, &storage.Token{
 		AccessToken:  "new_token",
 		TokenType:    "bearer",
 		RefreshToken: "new_refresh_token",
 		ExpiresIn:    3600,
-		Expiry:       token.Expiry,
-	}, token)
+		Expiry:       defaultCurrentTime.Add(3600 * time.Second),
+	}, _storage.GetProfile().Token)
 }
 
 func Test_TokenIntrospection_With_Token(t *testing.T) {
-	now := time.Now()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	introspectionRes := &IntrospectionResponse{
 		Active:    true,
 		Scope:     "measurements",
@@ -255,31 +276,41 @@ func Test_TokenIntrospection_With_Token(t *testing.T) {
 	}))
 	defer server.Close()
 
-	onTokenRefreshCalled := false
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken: "local_token",
-			Expiry:      now.Add(time.Hour),
-		},
-		OnTokenRefresh: func(_ *Token) {
-			onTokenRefreshCalled = true
+			Expiry:      defaultCurrentTime.Add(time.Hour),
 		},
 	})
-	res, err := client.TokenIntrospection("tok3n")
+	res, err := client.TokenIntrospection(t.Context(), "tok3n")
 	assert.Nil(t, err)
 	assert.Equal(t, introspectionRes, res)
-
-	assert.False(t, onTokenRefreshCalled)
 }
 
 func Test_TokenIntrospection_No_Token(t *testing.T) {
-	client := NewClient(Config{})
-	res, err := client.TokenIntrospection("")
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	_storage := createDefaultTestStorage(t, utilsMock)
+	client := NewClient(Config{
+		Utils:   utilsMock,
+		Storage: _storage,
+	})
+
+	res, err := client.TokenIntrospection(t.Context(), "")
 	assert.Nil(t, res)
+
 	e, ok := err.(*AuthorizeError)
 	assert.True(t, ok)
 	assert.Equal(t, ErrTypeNotAuthorized, e.ErrorType)
@@ -287,8 +318,13 @@ func Test_TokenIntrospection_No_Token(t *testing.T) {
 }
 
 func Test_Logout(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	isCalled := false
-	now := time.Now()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isCalled = true
 		if r.URL.Path == "/oauth/token/revoke" {
@@ -306,29 +342,33 @@ func Test_Logout(t *testing.T) {
 	}))
 	defer server.Close()
 
-	onTokenRefreshCalled := false
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken:  "tok3n",
 			RefreshToken: "refresh_tok3n",
-			Expiry:       now.Add(time.Hour),
-		},
-		OnTokenRefresh: func(token *Token) {
-			onTokenRefreshCalled = true
-			assert.Nil(t, token)
+			Expiry:       defaultCurrentTime.Add(time.Hour),
 		},
 	})
-	err := client.Logout()
+	err := client.Logout(t.Context())
 	assert.Nil(t, err)
 	assert.True(t, isCalled)
-	assert.True(t, onTokenRefreshCalled)
 }
 
 func Test_RevokeToken(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	isCalled := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isCalled = true
@@ -347,65 +387,78 @@ func Test_RevokeToken(t *testing.T) {
 	}))
 	defer server.Close()
 
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
 	})
-	err := client.RevokeToken("refresh_tok3n")
+	err := client.RevokeToken(t.Context(), "refresh_tok3n")
 	assert.Nil(t, err)
 	assert.True(t, isCalled)
 }
 
 func Test_Logout_No_RefreshToken(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
 
-	onTokenRefreshCalled := false
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken: "tok3n",
 		},
-		OnTokenRefresh: func(token *Token) {
-			onTokenRefreshCalled = true
-			assert.Nil(t, token)
-		},
 	})
-	err := client.Logout()
+	err := client.Logout(t.Context())
 	assert.Nil(t, err)
-	assert.True(t, onTokenRefreshCalled)
 }
 
 func Test_Logout_AccessToken_Is_Set(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	utilsMock := utilsMock.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
 
-	onTokenRefreshCalled := false
+	_storage := createDefaultTestStorage(t, utilsMock)
+
 	client := NewClient(Config{
+		Utils:            utilsMock,
+		Storage:          _storage,
 		AuthClientID:     "<client_id>",
 		AuthClientSecret: "<client_secret>",
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
-		AuthToken: &Token{
+		AuthToken: &storage.Token{
 			AccessToken: "tok3n",
-			Expiry:      time.Now().Add(time.Hour),
-		},
-		OnTokenRefresh: func(token *Token) {
-			assert.Nil(t, token)
+			Expiry:      defaultCurrentTime.Add(time.Hour),
 		},
 	})
-	err := client.Logout()
+	err := client.Logout(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.False(t, onTokenRefreshCalled)
 }

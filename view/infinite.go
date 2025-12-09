@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/utils"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -23,25 +23,18 @@ var (
 	apiCreditLastMeasurementCount = 0
 )
 
-func (v *viewer) OutputInfinite(m *globalping.Measurement) error {
-	if v.ctx.ToJSON {
-		if m.Status == globalping.StatusInProgress {
-			return nil
-		}
-		return v.OutputJson(m.ID)
+func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
+	if isFailedMeasurement(measurement) {
+		return v.outputFailSummary(measurement)
 	}
 
-	if isFailedMeasurement(m) {
-		return v.outputFailSummary(m)
-	}
-
-	if len(m.Results) == 1 {
+	if len(measurement.Results) == 1 {
 		if v.ctx.ToLatency {
-			return v.outputTableView(m)
+			return v.outputTableView(measurement)
 		}
-		return v.outputStreamingPackets(m)
+		return v.outputStreamingPackets(measurement)
 	}
-	return v.outputTableView(m)
+	return v.outputTableView(measurement)
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {

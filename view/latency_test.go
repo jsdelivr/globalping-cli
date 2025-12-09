@@ -5,16 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
-	"github.com/jsdelivr/globalping-cli/mocks"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/mock/gomock"
 )
 
 func Test_Output_Latency_Ping(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -48,9 +43,6 @@ func Test_Output_Latency_Ping(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
 	viewer := NewViewer(
@@ -60,10 +52,9 @@ func Test_Output_Latency_Ping(t *testing.T) {
 		},
 		NewPrinter(nil, w, errW),
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345) (tag-1)\033[0m\n"+
@@ -77,9 +68,6 @@ func Test_Output_Latency_Ping(t *testing.T) {
 }
 
 func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -99,9 +87,6 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -112,10 +97,9 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 		},
 		printer,
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
@@ -127,9 +111,6 @@ Avg: 12.00 ms
 }
 
 func Test_Output_Latency_DNS(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -148,9 +129,6 @@ func Test_Output_Latency_DNS(t *testing.T) {
 			},
 		},
 	}
-
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
 	viewer := NewViewer(
@@ -160,10 +138,9 @@ func Test_Output_Latency_DNS(t *testing.T) {
 		},
 		NewPrinter(nil, w, w),
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345)\033[0m\n"+
@@ -171,9 +148,6 @@ func Test_Output_Latency_DNS(t *testing.T) {
 }
 
 func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -192,9 +166,6 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 			},
 		},
 	}
-
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
 
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
@@ -206,10 +177,9 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 		},
 		printer,
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
@@ -219,9 +189,6 @@ Total: 44 ms
 }
 
 func Test_Output_Latency_Http(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -241,9 +208,6 @@ func Test_Output_Latency_Http(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
 	w := new(bytes.Buffer)
 	viewer := NewViewer(
 		&Context{
@@ -252,10 +216,9 @@ func Test_Output_Latency_Http(t *testing.T) {
 		},
 		NewPrinter(nil, w, w),
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345)\033[0m\n"+
@@ -268,9 +231,6 @@ func Test_Output_Latency_Http(t *testing.T) {
 }
 
 func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -290,9 +250,6 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 		},
 	}
 
-	gbMock := mocks.NewMockClient(ctrl)
-	gbMock.EXPECT().GetMeasurement(measurementID1).Times(1).Return(measurement, nil)
-
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
@@ -304,10 +261,9 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 		},
 		printer,
 		nil,
-		gbMock,
 	)
 
-	err := viewer.Output(measurementID1, &globalping.MeasurementCreate{})
+	err := viewer.OutputLatency(measurementID1, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)

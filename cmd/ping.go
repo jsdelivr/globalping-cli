@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"syscall"
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
 	"github.com/jsdelivr/globalping-cli/view"
+	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -68,6 +69,8 @@ Examples:
 }
 
 func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
 	err := r.updateContext(cmd, args)
 	if err != nil {
 		return err
@@ -107,25 +110,25 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.Infinite {
-		return r.pingInfinite(opts)
+		return r.pingInfinite(ctx, opts)
 	}
 
-	hm, err := r.createMeasurement(opts)
+	hm, err := r.createMeasurement(ctx, opts)
 	if err != nil {
 		r.evaluateError(err)
 		return err
 	}
-	return r.viewer.Output(hm.Id, opts)
+	return r.handleMeasurement(ctx, hm.Id, opts)
 }
 
-func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
+func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCreate) error {
 	if r.ctx.Limit > 5 {
 		return fmt.Errorf("continuous mode is currently limited to 5 probes")
 	}
 
 	var err error
 	go func() {
-		err = r.ping(opts)
+		err = r.ping(ctx, opts)
 		if err != nil {
 			r.cancel <- syscall.SIGINT
 			return
@@ -139,7 +142,7 @@ func (r *Root) pingInfinite(opts *globalping.MeasurementCreate) error {
 	return err
 }
 
-func (r *Root) ping(opts *globalping.MeasurementCreate) error {
+func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) error {
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	r.ctx.RunSessionStartedAt = r.utils.Now()
@@ -148,33 +151,33 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 		elapsedTime := time.Duration(0)
 		el := mbuf.Next()
 		for el != nil {
-			m, err := r.client.GetMeasurement(el.Id)
+			measurement, err := r.client.GetMeasurement(ctx, el.Id)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
 				return err
 			}
-			el.Status = m.Status
-			if len(m.Results) == 0 {
+			el.Status = measurement.Status
+			if len(measurement.Results) == 0 {
 				el = mbuf.Next()
 				continue
 			}
-			err = r.viewer.OutputInfinite(m)
+			err = r.viewer.OutputInfinite(measurement)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
 				return err
 			}
-			if m.Status != globalping.StatusInProgress {
+			if measurement.Status != globalping.StatusInProgress {
 				mbuf.Remove(el)
 			} else {
-				el.ProbeStatus = make([]globalping.MeasurementStatus, len(m.Results))
-				for i := range m.Results {
-					el.ProbeStatus[i] = m.Results[i].Result.Status
+				el.ProbeStatus = make([]globalping.MeasurementStatus, len(measurement.Results))
+				for i := range measurement.Results {
+					el.ProbeStatus[i] = measurement.Results[i].Result.Status
 				}
 			}
 			if runErr == nil && mbuf.CanAppend() {
 				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
 				start := r.utils.Now()
-				hm, err := r.createMeasurement(opts)
+				hm, err := r.createMeasurement(ctx, opts)
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
 				} else {
@@ -193,9 +196,9 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 		}
 		last := r.ctx.History.Last()
 		if last != nil {
-			opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+			opts.Locations = []globalping.Locations{{Magic: last.Id}}
 		}
-		hm, err := r.createMeasurement(opts)
+		hm, err := r.createMeasurement(ctx, opts)
 		if err != nil {
 			return err
 		}
@@ -203,8 +206,8 @@ func (r *Root) ping(opts *globalping.MeasurementCreate) error {
 	}
 }
 
-func (r *Root) createMeasurement(opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
-	res, err := r.client.CreateMeasurement(opts)
+func (r *Root) createMeasurement(ctx context.Context, opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
+	res, err := r.client.CreateMeasurement(ctx, opts)
 	if err != nil {
 		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		return nil, err

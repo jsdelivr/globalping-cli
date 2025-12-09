@@ -3,7 +3,7 @@ package view
 import (
 	"time"
 
-	"github.com/jsdelivr/globalping-cli/globalping"
+	"github.com/jsdelivr/globalping-go"
 )
 
 type HistoryBuffer struct {

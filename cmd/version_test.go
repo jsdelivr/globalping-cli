@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"testing"
 
@@ -18,7 +17,7 @@ func Test_Execute_Version_Default(t *testing.T) {
 	root := NewRoot(printer, &view.Context{}, nil, nil, nil, nil, nil)
 
 	os.Args = []string{"globalping", "version"}
-	err := root.Cmd.ExecuteContext(context.TODO())
+	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Globalping CLI v1.0.0\n", w.String())
