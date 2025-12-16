@@ -3,8 +3,6 @@ package cmd
 import (
 	"math"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -104,8 +102,6 @@ func NewRoot(
 		storage: localStorage,
 		cancel:  make(chan os.Signal, 1),
 	}
-
-	signal.Notify(root.cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	// rootCmd represents the base command when called without any subcommands
 	root.Cmd = &cobra.Command{
