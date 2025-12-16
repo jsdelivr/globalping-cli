@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"os/signal"
 	"syscall"
 
 	"github.com/jsdelivr/globalping-cli/api"
@@ -65,6 +66,9 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 		}
 		return nil
 	}
+
+	signal.Notify(r.cancel, syscall.SIGINT, syscall.SIGTERM)
+
 	res, err := r.client.Authorize(ctx, func(e error) {
 		defer func() {
 			r.cancel <- syscall.SIGINT

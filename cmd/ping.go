@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os/signal"
 	"slices"
 	"syscall"
 	"time"
@@ -125,6 +126,8 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	if r.ctx.Limit > 5 {
 		return fmt.Errorf("continuous mode is currently limited to 5 probes")
 	}
+
+	signal.Notify(r.cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	var err error
 	go func() {
