@@ -177,6 +177,7 @@ func (c *client) exchange(ctx context.Context, form url.Values, verifier string,
 			Description: err.Error(),
 		}
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
@@ -314,6 +315,7 @@ func (c *client) refreshToken(ctx context.Context, token string) (*storage.Token
 			Description: err.Error(),
 		}
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
@@ -385,6 +387,7 @@ func (c *client) introspection(ctx context.Context, token string) (*Introspectio
 			Description: err.Error(),
 		}
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
@@ -426,6 +429,7 @@ func (c *client) RevokeToken(ctx context.Context, token string) error {
 			Description: err.Error(),
 		}
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
