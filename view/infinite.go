@@ -24,7 +24,7 @@ var (
 )
 
 func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
-	if isFailedMeasurement(measurement) {
+	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
 		return v.outputFailSummary(measurement)
 	}
 
@@ -104,13 +104,13 @@ func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	return errors.New("all probes failed")
 }
 
-func isFailedMeasurement(m *globalping.Measurement) bool {
+func isSomeTestFinished(m *globalping.Measurement) bool {
 	for i := range m.Results {
-		if m.Results[i].Result.Status != globalping.StatusFailed {
-			return false
+		if m.Results[i].Result.Status == globalping.StatusFinished {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func formatDuration(ms float64) string {
