@@ -23,6 +23,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 					Tags:      []string{"tag-1"},
 				},
 				Result: globalping.ProbeResult{
+					Status:   globalping.StatusFinished,
 					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
@@ -37,6 +38,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 					Tags:      []string{"tag B"},
 				},
 				Result: globalping.ProbeResult{
+					Status:   globalping.StatusFinished,
 					StatsRaw: json.RawMessage(`{"min":9,"avg":15,"max":22}`),
 				},
 			},
@@ -81,6 +83,7 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
+					Status:   globalping.StatusFinished,
 					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
@@ -124,6 +127,7 @@ func Test_Output_Latency_DNS(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
+					Status:     globalping.StatusFinished,
 					TimingsRaw: []byte(`{"total": 44}`),
 				},
 			},
@@ -161,6 +165,7 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
+					Status:     globalping.StatusFinished,
 					TimingsRaw: []byte(`{"total": 44}`),
 				},
 			},
@@ -202,6 +207,7 @@ func Test_Output_Latency_Http(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
+					Status:     globalping.StatusFinished,
 					TimingsRaw: []byte(`{"total": 44,"download":11,"firstByte":20,"dns":5,"tls":2,"tcp":4}`),
 				},
 			},
@@ -244,6 +250,7 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
+					Status:     globalping.StatusFinished,
 					TimingsRaw: []byte(`{"total": 44,"download":11,"firstByte":20,"dns":5,"tls":2,"tcp":4}`),
 				},
 			},
@@ -276,4 +283,47 @@ TLS: 2 ms
 TCP: 4 ms
 
 `, w.String())
+}
+
+func Test_Output_Latency_Offline(t *testing.T) {
+	measurement := &globalping.Measurement{
+		Results: []globalping.ProbeMeasurement{
+			{
+				Probe: globalping.ProbeDetails{
+					Continent: "Continent",
+					Country:   "Country",
+					State:     "State",
+					City:      "City",
+					ASN:       12345,
+					Network:   "Network",
+				},
+				Result: globalping.ProbeResult{
+					Status:    globalping.MeasurementStatus("offline"),
+					RawOutput: "This probe is currently offline. Please try again later.",
+				},
+			},
+		},
+	}
+
+	w := new(bytes.Buffer)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
+	printer.DisableStyling()
+	viewer := NewViewer(
+		&Context{
+			Cmd:       "ping",
+			ToLatency: true,
+			Share:     true,
+		},
+		printer,
+		nil,
+	)
+
+	err := viewer.OutputLatency(measurementID1, measurement)
+	assert.NoError(t, err)
+
+	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
+> View the results online: https://globalping.io?measurement=1zGzfAGL7sZfUs3c
+`, errW.String())
+	assert.Equal(t, "This probe is currently offline. Please try again later.\n\n", w.String())
 }
