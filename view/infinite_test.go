@@ -464,6 +464,29 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 	assert.Nil(t, ctx.AggregatedStats)
 }
 
+func Test_OutputInfinite_SingleProbe_Offline(t *testing.T) {
+	measurement := createPingMeasurement(measurementID1)
+	measurement.Status = globalping.StatusFinished
+	measurement.Results[0].Result.Status = "offline"
+	measurement.Results[0].Result.RawOutput = `This probe is currently offline. Please try again later.`
+
+	ctx := createDefaultContext("ping")
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+	err := viewer.OutputInfinite(measurement)
+
+	assert.Equal(t, "all probes failed", err.Error())
+	assert.Equal(t,
+		`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+This probe is currently offline. Please try again later.
+`,
+		w.String(),
+	)
+	assert.Nil(t, ctx.AggregatedStats)
+}
+
 func Test_FormatDuration(t *testing.T) {
 	d := formatDuration(1.2345)
 	assert.Equal(t, "1.23 ms", d)
