@@ -47,7 +47,7 @@ Examples:
   traceroute jsdelivr.com from 123 --json
 
   # Traceroute jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
-  traceroute jsdelivr.com from europe+eyeball --share`,
+  traceroute jsdelivr.com from europe+eyeball-network --share`,
 	}
 
 	// traceroute specific flags

@@ -51,7 +51,7 @@ Examples:
   ping jsdelivr.com from 123 --json
 
   # Ping jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
-  ping jsdelivr.com from europe+eyeball --share
+  ping jsdelivr.com from europe+eyeball-network --share
 
   # Start a continuous ping to google.com from a probe in New York.
   ping google.com from New York --infinite`,

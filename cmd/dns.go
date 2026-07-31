@@ -53,7 +53,7 @@ Examples:
   dns jsdelivr.com from 123 --json
 
   # Resolve jsdelivr.com from a non-data center probe in Europe and add a link to view the results online..
-  dns jsdelivr.com from europe+eyeball --share`,
+  dns jsdelivr.com from europe+eyeball-network --share`,
 	}
 
 	// dns specific flags

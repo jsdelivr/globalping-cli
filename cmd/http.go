@@ -60,7 +60,7 @@ Examples:
   http jsdelivr.com from aws+montreal --protocol http2 --header "Accept-Encoding: br,gzip" -H "Accept-Language: *"
 
   # Perform an HTTP HEAD request to jsdelivr.com from a non-data center probe in Europe and add the path /robots.txt and query string "test=1" to the request.
-  http jsdelivr.com from europe+eyeball --path /robots.txt --query "test=1"
+  http jsdelivr.com from europe+eyeball-network --path /robots.txt --query "test=1"
 
   # Perform an HTTP HEAD request to example.com from a probe in Berlin. Override the "Host" header by specifying a different host (example.org) from the target (example.com).
   http example.com from Berlin --host example.org

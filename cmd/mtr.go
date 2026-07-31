@@ -44,7 +44,7 @@ Examples:
   mtr jsdelivr.com from 123 --json
 
   # MTR jsdelivr.com from a non-data center probe in Europe and add a link to view the results online.
-  mtr jsdelivr.com from europe+eyeball --share `,
+  mtr jsdelivr.com from europe+eyeball-network --share `,
 	}
 
 	// mtr specific flags
