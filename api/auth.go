@@ -74,7 +74,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	port := ""
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
-		ln, err = net.Listen("tcp", ":"+port)
+		ln, err = net.Listen("tcp", "127.0.0.1:"+port)
 		if err == nil {
 			break
 		}
