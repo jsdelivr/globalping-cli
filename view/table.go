@@ -332,6 +332,31 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 			columnWidths[column] = max(columnWidths[column], width)
 		}
 	}
+	if isHTTPTableHeader(rows[0]) {
+		tableWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 1)
+		for _, width := range columnWidths {
+			tableWidth += width
+		}
+		if tableWidth > areaWidth {
+			adjustedRows := make([][]string, len(rows))
+			copy(adjustedRows, rows)
+			statusWidth := runewidth.StringWidth(rows[0][1])
+			for rowIndex := 1; rowIndex < len(rows); rowIndex++ {
+				if len(rows[rowIndex]) <= 1 {
+					continue
+				}
+				status := rows[rowIndex][1]
+				if code, ok := httpStatusCode(status); ok {
+					adjustedRows[rowIndex] = append([]string(nil), rows[rowIndex]...)
+					adjustedRows[rowIndex][1] = code
+					status = code
+				}
+				statusWidth = max(statusWidth, runewidth.StringWidth(status))
+			}
+			rows = adjustedRows
+			columnWidths[1] = statusWidth
+		}
+	}
 	if options.minimumTrailingWidth > 0 {
 		trailingWidth := options.minimumTrailingWidth
 		for _, row := range rows[1:] {
@@ -406,19 +431,6 @@ func fitTableColumnWidths(widths []int, header []string, areaWidth int) {
 	widths[0] -= locationReduction
 	overflow -= locationReduction
 
-	if overflow > 0 && isHTTPTableHeader(header) {
-		for i := 1; i < len(widths); i++ {
-			if header[i] != "Status" {
-				continue
-			}
-			minWidth := runewidth.StringWidth(header[i])
-			reduction := min(max(widths[i]-minWidth, 0), overflow)
-			widths[i] -= reduction
-			overflow -= reduction
-			break
-		}
-	}
-
 	for i := 1; i < len(widths) && overflow > 0; i++ {
 		if header[i] != "Resolved IP" {
 			continue
@@ -438,6 +450,17 @@ func isHTTPTableHeader(header []string) bool {
 		hasResolvedIP = hasResolvedIP || value == "Resolved IP"
 	}
 	return hasContentLength && hasResolvedIP
+}
+
+func httpStatusCode(status string) (string, bool) {
+	code, _, found := strings.Cut(status, " ")
+	if !found {
+		return "", false
+	}
+	if _, err := strconv.Atoi(code); err != nil {
+		return "", false
+	}
+	return code, true
 }
 
 func truncateTableCell(value string, width int) string {
