@@ -87,7 +87,11 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s%s", utils.ShareURL, id), BGYellow)
+	shareURL := utils.ShareURL + id
+	if v.ctx.Table {
+		shareURL += "&display=table"
+	}
+	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s", shareURL), BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {

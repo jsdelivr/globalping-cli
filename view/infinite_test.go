@@ -9,6 +9,7 @@ import (
 	utilsMocks "github.com/jsdelivr/globalping-cli/mocks/utils"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -154,6 +155,50 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 	)
 
 	assert.Nil(t, ctx.AggregatedStats)
+}
+
+func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
+	measurement := createPingMeasurement(measurementID1)
+	ctx := createDefaultContext("ping")
+	ctx.Table = true
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+
+	err := viewer.OutputInfinite(measurement)
+
+	assert.NoError(t, err)
+	assert.Contains(t, w.String(), "Location")
+	assert.Contains(t, w.String(), "Sent")
+	assert.NotContains(t, w.String(), "PING ")
+	assert.Equal(t, 1, ctx.TableOutputRows)
+}
+
+func Test_OutputInfinite_FailedProbePreservesPriorAggregate(t *testing.T) {
+	first := createPingMeasurement_MultipleProbes(measurementID1)
+	first.Results = first.Results[:2]
+	first.ProbesCount = len(first.Results)
+	ctx := createDefaultContext("ping")
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+
+	require.NoError(t, viewer.OutputInfinite(first))
+	priorAggregate := *ctx.AggregatedStats[1]
+
+	second := createPingMeasurement_MultipleProbes(measurementID2)
+	second.Results = second.Results[:2]
+	second.ProbesCount = len(second.Results)
+	second.Results[1].Result.Status = globalping.StatusFailed
+	second.Results[1].Result.RawOutput = "probe failed"
+	ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
+
+	require.NoError(t, viewer.OutputInfinite(second))
+
+	assert.Equal(t, priorAggregate, *ctx.AggregatedStats[1])
+	assert.Equal(t, NewMeasurementStats(), ctx.History.Find(measurementID2).Stats[1])
 }
 
 func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {

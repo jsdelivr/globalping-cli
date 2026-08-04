@@ -24,16 +24,20 @@ var (
 )
 
 func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
-	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
-		return v.outputFailSummary(measurement)
-	}
-
-	if len(measurement.Results) == 1 {
-		if v.ctx.ToLatency {
-			return v.outputTableView(measurement)
+	if len(measurement.Results) == 1 && !v.ctx.ToLatency && !v.ctx.Table {
+		if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
+			return v.outputFailSummary(measurement)
 		}
 		return v.outputStreamingPackets(measurement)
 	}
+	return v.OutputTable(measurement)
+}
+
+func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
+	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
+		return v.outputFailSummary(measurement)
+	}
+	v.ctx.TableOutputRows = len(measurement.Results)
 	return v.outputTableView(measurement)
 }
 
@@ -77,6 +81,13 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) error {
+	if m.Type != "ping" {
+		width, _ := v.printer.GetSize()
+		output := v.generateMeasurementTable(m, width-2)
+		v.printer.AreaUpdate(&output)
+		return nil
+	}
+
 	if len(v.ctx.AggregatedStats) == 0 {
 		// Initialize state
 		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
@@ -136,10 +147,18 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	newStats := make([]*MeasurementStats, len(m.Results))
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
-		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
-		newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
-		newStats[i] = parsedOutput.Stats
-		row := getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
+		var row [7]string
+		if probeMeasurement.Result.Status == globalping.StatusFailed || probeMeasurement.Result.Status == globalping.StatusOffline {
+			preservedStats := *v.ctx.AggregatedStats[i]
+			newAggregatedStats[i] = &preservedStats
+			newStats[i] = NewMeasurementStats()
+			row = [7]string{"", "-", "-", "-", "-", "-", "-"}
+		} else {
+			parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
+			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
+			newStats[i] = parsedOutput.Stats
+			row = getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
+		}
 		rowWidth := 0
 		for j := 1; j < len(row); j++ {
 			rowWidth += len(row[j]) + len(colSeparator)

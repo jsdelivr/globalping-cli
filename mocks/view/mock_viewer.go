@@ -103,6 +103,20 @@ func (mr *MockViewerMockRecorder) OutputLive(measurement, opts, w, h any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputLive", reflect.TypeOf((*MockViewer)(nil).OutputLive), measurement, opts, w, h)
 }
 
+// OutputTable mocks base method.
+func (m *MockViewer) OutputTable(measurement *globalping.Measurement) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OutputTable", measurement)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// OutputTable indicates an expected call of OutputTable.
+func (mr *MockViewerMockRecorder) OutputTable(measurement any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputTable", reflect.TypeOf((*MockViewer)(nil).OutputTable), measurement)
+}
+
 // OutputShare mocks base method.
 func (m *MockViewer) OutputShare() {
 	m.ctrl.T.Helper()
