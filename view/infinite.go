@@ -10,13 +10,9 @@ import (
 
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-go"
-	"github.com/mattn/go-runewidth"
 )
 
 var (
-	// Table defaults
-	colSeparator = " | "
-
 	apiCreditInfo                 = "Consuming 1 API credit for every 16 packets until stopped.\n"
 	apiCreditConsumptionInfo      = "Consuming ~%s/minute.\n"
 	apiCreditLastConsumptionInfo  = ""
@@ -31,14 +27,6 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
 		return v.outputStreamingPackets(measurement)
 	}
 	return v.OutputTable(measurement)
-}
-
-func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
-	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
-		return v.outputFailSummary(measurement)
-	}
-	v.ctx.TableOutputRows = len(measurement.Results)
-	return v.outputTableView(measurement)
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
@@ -80,16 +68,8 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	return nil
 }
 
-func (v *viewer) outputTableView(m *globalping.Measurement) error {
-	if m.Type != "ping" {
-		width, _ := v.printer.GetSize()
-		output := v.generateMeasurementTable(m, width-2)
-		v.printer.AreaUpdate(&output)
-		return nil
-	}
-
+func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	if len(v.ctx.AggregatedStats) == 0 {
-		// Initialize state
 		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
 		for i := range m.Results {
 			v.ctx.AggregatedStats[i] = NewMeasurementStats()
@@ -135,80 +115,28 @@ func formatDuration(ms float64) string {
 }
 
 func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
-	table := [][7]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
-	// Calculate max column width and max line width
-	// We handle multi-line values only for the first column
-	maxLineWidth := 0
-	colMax := [7]int{len(table[0][0]), 4, 7, 8, 8, 8, 8}
-	for i := 1; i < len(table[0]); i++ {
-		maxLineWidth += len(table[i]) + len(colSeparator)
-	}
+	rows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
 	newStats := make([]*MeasurementStats, len(m.Results))
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
-		var row [7]string
+		var row []string
 		if probeMeasurement.Result.Status == globalping.StatusFailed || probeMeasurement.Result.Status == globalping.StatusOffline {
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
-			row = [7]string{"", "-", "-", "-", "-", "-", "-"}
+			row = []string{"", "-", "-", "-", "-", "-", "-"}
 		} else {
 			parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
 			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
 			newStats[i] = parsedOutput.Stats
-			row = getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
+			values := getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
+			row = values[:]
 		}
-		rowWidth := 0
-		for j := 1; j < len(row); j++ {
-			rowWidth += len(row[j]) + len(colSeparator)
-			colMax[j] = max(colMax[j], len(row[j]))
-		}
-		maxLineWidth = max(maxLineWidth, rowWidth)
 		row[0] = getLocationText(probeMeasurement)
-		colMax[0] = max(colMax[0], len(row[0]))
-		table = append(table, row)
+		rows = append(rows, row)
 	}
-	remainingWidth := max(areaWidth-maxLineWidth, 6) // Remaining width for first column
-	colMax[0] = min(colMax[0], remainingWidth)       // Truncate first column if necessary
-	// Generate table string
-	output := ""
-	for i := range table {
-		table[i][0] = strings.ReplaceAll(table[i][0], "\t", "  ") // Replace tabs with spaces
-		lines := strings.Split(table[i][0], "\n")                 // Split first column into lines
-		color := ColorNone                                        // No color
-		if i == 0 {
-			color = FGBrightCyan
-		}
-		for k := range lines {
-			width := runewidth.StringWidth(lines[k])
-			if colMax[0] < width {
-				lines[k] = runewidth.FillRight(
-					runewidth.Truncate(lines[k], colMax[0], "..."),
-					colMax[0],
-				)
-			} else if colMax[0] > width {
-				lines[k] = runewidth.FillRight(lines[k], colMax[0])
-			}
-			if color != "" {
-				lines[k] = v.printer.Color(lines[k], color)
-			}
-		}
-		for j := 1; j < len(table[i]); j++ {
-			lines[0] += colSeparator
-			if j == 0 {
-				lines[0] += v.printer.FillRightAndColor(table[i][j], colMax[j], color)
-			} else {
-				lines[0] += v.printer.FillLeftAndColor(table[i][j], colMax[j], color)
-			}
-			for k := 1; k < len(lines); k++ {
-				lines[k] += colSeparator + v.printer.FillLeft("", colMax[j])
-			}
-		}
-		for j := 0; j < len(lines); j++ {
-			output += lines[j] + "\n"
-		}
-	}
+	output := v.renderPingTable(rows, areaWidth)
 	return &output, newStats, newAggregatedStats
 }
 

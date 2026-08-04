@@ -11,6 +11,35 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+const colSeparator = " | "
+
+type tableRenderOptions struct {
+	minimumWidths        []int
+	minimumLocationWidth int
+	minimumTrailingWidth int
+	multilineLocation    bool
+	measureLocationBytes bool
+}
+
+func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
+	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
+		return v.outputFailSummary(measurement)
+	}
+	v.ctx.TableOutputRows = len(measurement.Results)
+	return v.outputTableView(measurement)
+}
+
+func (v *viewer) outputTableView(m *globalping.Measurement) error {
+	if m.Type == "ping" {
+		return v.outputPingTableView(m)
+	}
+
+	width, _ := v.printer.GetSize()
+	output := v.generateMeasurementTable(m, width-2)
+	v.printer.AreaUpdate(&output)
+	return nil
+}
+
 func (v *viewer) generateMeasurementTable(m *globalping.Measurement, areaWidth int) string {
 	rows := [][]string{tableHeader(m.Type, v.ctx.Trace)}
 	for i := range m.Results {
@@ -268,6 +297,20 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 }
 
 func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int) string {
+	return v.renderTable(rows, areaWidth, tableRenderOptions{})
+}
+
+func (v *viewer) renderPingTable(rows [][]string, areaWidth int) string {
+	return v.renderTable(rows, areaWidth, tableRenderOptions{
+		minimumWidths:        []int{0, 4, 7, 8, 8, 8, 8},
+		minimumLocationWidth: 6,
+		minimumTrailingWidth: 60,
+		multilineLocation:    true,
+		measureLocationBytes: true,
+	})
+}
+
+func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRenderOptions) string {
 	if len(rows) == 0 || len(rows[0]) == 0 {
 		return ""
 	}
@@ -276,31 +319,72 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int) string {
 	for _, row := range rows {
 		for column, value := range row {
 			if column < len(columnWidths) {
-				columnWidths[column] = max(columnWidths[column], runewidth.StringWidth(value))
+				width := runewidth.StringWidth(value)
+				if column == 0 && options.measureLocationBytes {
+					width = len(value)
+				}
+				columnWidths[column] = max(columnWidths[column], width)
 			}
 		}
 	}
-	fitTableColumnWidths(columnWidths, rows[0], areaWidth)
+	for column, width := range options.minimumWidths {
+		if column < len(columnWidths) {
+			columnWidths[column] = max(columnWidths[column], width)
+		}
+	}
+	if options.minimumTrailingWidth > 0 {
+		trailingWidth := options.minimumTrailingWidth
+		for _, row := range rows[1:] {
+			rowWidth := 0
+			for column := 1; column < len(row); column++ {
+				rowWidth += len(row[column]) + len(colSeparator)
+			}
+			trailingWidth = max(trailingWidth, rowWidth)
+		}
+		locationWidth := max(areaWidth-trailingWidth, options.minimumLocationWidth)
+		columnWidths[0] = min(columnWidths[0], locationWidth)
+	} else {
+		fitTableColumnWidths(columnWidths, rows[0], areaWidth)
+	}
 
 	var output bytes.Buffer
 	for rowIndex, row := range rows {
+		if len(row) == 0 {
+			output.WriteByte('\n')
+			continue
+		}
 		color := ColorNone
 		if rowIndex == 0 {
 			color = FGBrightCyan
 		}
-		for column, value := range row {
-			if column > 0 {
-				output.WriteString(colSeparator)
-			}
-			value = strings.ReplaceAll(value, "\t", "  ")
-			value = truncateTableCell(value, columnWidths[column])
-			value = padTableCell(value, columnWidths[column], column != 0)
-			if color != ColorNone {
-				value = v.printer.Color(value, color)
-			}
-			output.WriteString(value)
+		location := strings.ReplaceAll(row[0], "\t", "  ")
+		locationLines := []string{location}
+		if options.multilineLocation {
+			locationLines = strings.Split(location, "\n")
 		}
-		output.WriteByte('\n')
+		for lineIndex, line := range locationLines {
+			line = truncateTableCell(line, columnWidths[0])
+			line = padTableCell(line, columnWidths[0], false)
+			if color != ColorNone {
+				line = v.printer.Color(line, color)
+			}
+			output.WriteString(line)
+
+			for column := 1; column < len(row); column++ {
+				output.WriteString(colSeparator)
+				value := ""
+				if lineIndex == 0 {
+					value = strings.ReplaceAll(row[column], "\t", "  ")
+				}
+				value = truncateTableCell(value, columnWidths[column])
+				value = padTableCell(value, columnWidths[column], true)
+				if color != ColorNone {
+					value = v.printer.Color(value, color)
+				}
+				output.WriteString(value)
+			}
+			output.WriteByte('\n')
+		}
 	}
 	return output.String()
 }
