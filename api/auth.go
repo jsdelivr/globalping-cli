@@ -6,12 +6,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/storage"
@@ -79,23 +81,38 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	})
 	var err error
 	var listeners []net.Listener
+	const wsaAddrInUse = syscall.Errno(10048)
+	isAddrInUse := func(err error) bool {
+		return errors.Is(err, syscall.EADDRINUSE) || errors.Is(err, wsaAddrInUse)
+	}
 	ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
 	port := ""
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
+		portListeners := []net.Listener{}
 		ln4, listenErr := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", port))
 		if listenErr == nil {
-			listeners = append(listeners, ln4)
+			portListeners = append(portListeners, ln4)
 		} else {
 			err = listenErr
+			if isAddrInUse(listenErr) {
+				continue
+			}
 		}
 		ln6, listenErr := net.Listen("tcp6", net.JoinHostPort("::1", port))
 		if listenErr == nil {
-			listeners = append(listeners, ln6)
+			portListeners = append(portListeners, ln6)
 		} else {
 			err = listenErr
+			if isAddrInUse(listenErr) {
+				for _, ln := range portListeners {
+					ln.Close()
+				}
+				continue
+			}
 		}
-		if len(listeners) != 0 {
+		if len(portListeners) != 0 {
+			listeners = portListeners
 			break
 		}
 	}
