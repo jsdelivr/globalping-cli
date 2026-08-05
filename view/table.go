@@ -205,7 +205,7 @@ func dnsTableValues(result *globalping.ProbeResult) []string {
 		values[1] = strconv.Itoa(len(answers))
 	}
 	if total, ok := decodeTotalTiming(result.TimingsRaw); ok {
-		values[2] = formatDuration(total)
+		values[2] = formatTotalDuration(total)
 	}
 	if result.Resolver != "" {
 		values[3] = result.Resolver
@@ -231,7 +231,7 @@ func dnsTraceTableValues(raw json.RawMessage) []string {
 		values[0] = strconv.Itoa(len(*lastHop.Answers))
 	}
 	if lastHop.Timings != nil && lastHop.Timings.Total != nil {
-		values[1] = formatDuration(*lastHop.Timings.Total)
+		values[1] = formatTotalDuration(*lastHop.Timings.Total)
 	}
 	if lastHop.Resolver != nil && *lastHop.Resolver != "" {
 		values[2] = *lastHop.Resolver
@@ -253,7 +253,7 @@ func httpTableValues(result *globalping.ProbeResult) []string {
 		values[1] = strconv.FormatUint(length, 10) + " B"
 	}
 	if total, ok := decodeTotalTiming(result.TimingsRaw); ok {
-		values[2] = formatDuration(total)
+		values[2] = formatTotalDuration(total)
 	}
 	if result.ResolvedAddress != "" {
 		values[3] = result.ResolvedAddress
@@ -267,6 +267,13 @@ func decodeTotalTiming(raw json.RawMessage) (float64, bool) {
 		return 0, false
 	}
 	return *timings.Total, true
+}
+
+func formatTotalDuration(ms float64) string {
+	if math.Trunc(ms) == ms {
+		return strconv.FormatFloat(ms, 'f', 0, 64) + " ms"
+	}
+	return formatDuration(ms)
 }
 
 func contentLength(raw json.RawMessage) (uint64, bool) {

@@ -204,7 +204,7 @@ func Test_OutputTable_DNS(t *testing.T) {
 	assertTableForTest(t, output, [][]string{
 		{"Location", "Status", "Answers", "Time", "Resolver"},
 		{"Berlin, DE, EU, DNS Network (AS64500)", "NOERROR", "2", "4.57 ms", "1.1.1.1"},
-		{"London, GB, EU, Empty DNS Network (AS64500)", "3", "0", "0.00 ms", "-"},
+		{"London, GB, EU, Empty DNS Network (AS64500)", "3", "0", "0 ms", "-"},
 		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-"},
 	})
 }
@@ -288,10 +288,10 @@ func Test_OutputTable_HTTP(t *testing.T) {
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
 		{"Location", "Status", "Content length", "Total", "Resolved IP"},
-		{"Berlin, DE, EU, HTTP Network (AS64500)", "200 OK", "123 B", "44.0 ms", "192.0.2.10"},
-		{"London, GB, EU, Numeric Header Network (AS64500)", "204 No Content", "42 B", "5.00 ms", "192.0.2.11"},
+		{"Berlin, DE, EU, HTTP Network (AS64500)", "200 OK", "123 B", "44 ms", "192.0.2.10"},
+		{"London, GB, EU, Numeric Header Network (AS64500)", "204 No Content", "42 B", "5 ms", "192.0.2.11"},
 		{"Paris, FR, EU, Missing Header Network (AS64500)", "304", "-", "100 ms", "192.0.2.12"},
-		{"Prague, CZ, EU, Invalid Header Network (AS64500)", "500 Internal Server Error", "-", "1.00 ms", "192.0.2.13"},
+		{"Prague, CZ, EU, Invalid Header Network (AS64500)", "500 Internal Server Error", "-", "1 ms", "192.0.2.13"},
 		{"Rome, IT, EU, Malformed Header Network (AS64500)", "200 OK", "-", "-", "-"},
 		{"Madrid, ES, EU, Offline Network (AS64500)", "-", "-", "-", "-"},
 	})
