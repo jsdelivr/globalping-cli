@@ -287,7 +287,7 @@ func Test_OutputTable_HTTP(t *testing.T) {
 
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
-		{"Location", "Status", "Content length", "Total", "Resolved IP"},
+		{"Location", "Status", "Content-Length", "Total", "Resolved IP"},
 		{"Berlin, DE, EU, HTTP Network (AS64500)", "200 OK", "123 B", "44 ms", "192.0.2.10"},
 		{"London, GB, EU, Numeric Header Network (AS64500)", "204 No Content", "42 B", "5 ms", "192.0.2.11"},
 		{"Paris, FR, EU, Missing Header Network (AS64500)", "304", "-", "100 ms", "192.0.2.12"},
@@ -305,7 +305,7 @@ func Test_OutputTable_HTTP_StatusNameWithoutCode(t *testing.T) {
 
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
-		{"Location", "Status", "Content length", "Total", "Resolved IP"},
+		{"Location", "Status", "Content-Length", "Total", "Resolved IP"},
 		{"Berlin, DE, EU, HTTP Network (AS64500)", "Connection failed", "-", "-", "-"},
 	})
 }
@@ -326,7 +326,7 @@ func Test_RenderMeasurementTable_UnicodeCellsAlignByDisplayWidth(t *testing.T) {
 
 func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	rows := [][]string{
-		{"Location", "Status", "Content length", "Total", "Resolved IP"},
+		{"Location", "Status", "Content-Length", "Total", "Resolved IP"},
 		{"A very long probe location in a very long network", "599 An unusually long status name", "123456789 B", "123 ms", "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"},
 		{"Tokyo 東京", "200 OK", "42 B", "1.00 ms", "192.0.2.1"},
 	}
@@ -349,7 +349,7 @@ func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	}
 	assert.LessOrEqual(t, runewidth.StringWidth(wideLines[1]), 80)
 	wideHeader := strings.Split(wideLines[0], colSeparator)
-	assert.Equal(t, []string{"Location", "Status", "Content length", "Total", "Resolved IP"}, trimCellsForTest(wideHeader))
+	assert.Equal(t, []string{"Location", "Status", "Content-Length", "Total", "Resolved IP"}, trimCellsForTest(wideHeader))
 	assert.Contains(t, wideLines[1], "599")
 	assert.NotContains(t, wideLines[1], "An unusually long status name")
 	assert.Contains(t, wideLines[1], "123456789 B")

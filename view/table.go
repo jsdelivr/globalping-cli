@@ -62,7 +62,7 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool) []strin
 		}
 		return []string{"Location", "Status", "Answers", "Time", "Resolver"}
 	case "http":
-		return []string{"Location", "Status", "Content length", "Total", "Resolved IP"}
+		return []string{"Location", "Status", "Content-Length", "Total", "Resolved IP"} // TODO: Bytes => all after first (?:\r?\n){2}
 	default:
 		return []string{"Location"}
 	}
