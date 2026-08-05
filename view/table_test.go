@@ -320,8 +320,8 @@ func Test_RenderMeasurementTable_UnicodeCellsAlignByDisplayWidth(t *testing.T) {
 	printer.DisableStyling()
 	v := &viewer{printer: printer}
 
-	output := v.renderMeasurementTable(rows, 120)
-	assertDisplayTableLayoutForTest(t, output, 120, false)
+	output := v.renderMeasurementTable(rows, 120, "dns")
+	assertDisplayTableLayoutForTest(t, output, 120)
 }
 
 func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
@@ -333,14 +333,14 @@ func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
 	v := &viewer{printer: printer}
 
-	statusOnly := v.renderMeasurementTable(rows, 130)
+	statusOnly := v.renderMeasurementTable(rows, 130, "http")
 	statusOnlyLines := strings.Split(strings.TrimSpace(stripANSIForTest(statusOnly)), "\n")
 	statusOnlyCells := trimCellsForTest(strings.Split(statusOnlyLines[1], colSeparator))
 	assert.Equal(t, rows[1][0], statusOnlyCells[0])
 	assert.Equal(t, "599", statusOnlyCells[1])
 	assert.Equal(t, rows[1][4], statusOnlyCells[4])
 
-	wide := v.renderMeasurementTable(rows, 80)
+	wide := v.renderMeasurementTable(rows, 80, "http")
 	assert.Contains(t, wide, "\x1b[96m")
 	wideLines := strings.Split(strings.TrimSpace(stripANSIForTest(wide)), "\n")
 	wantOffsets := displaySeparatorOffsetsForTest(wideLines[0])
@@ -360,7 +360,7 @@ func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	assert.True(t, strings.HasSuffix(wideCells[4], "..."))
 	assert.NotContains(t, wideLines[1], "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff")
 
-	narrow := v.renderMeasurementTable(rows, 32)
+	narrow := v.renderMeasurementTable(rows, 32, "http")
 	narrowLines := strings.Split(strings.TrimSpace(stripANSIForTest(narrow)), "\n")
 	assert.Greater(t, runewidth.StringWidth(narrowLines[1]), 32)
 	assert.Contains(t, narrowLines[1], "599")
@@ -378,7 +378,7 @@ func Test_RenderMeasurementTable_TruncatesLocationBeforeTimings(t *testing.T) {
 	printer.DisableStyling()
 	v := &viewer{printer: printer}
 
-	output := v.renderMeasurementTable(rows, 88)
+	output := v.renderMeasurementTable(rows, 88, "traceroute")
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 
 	require.Len(t, lines, 2)
@@ -530,11 +530,8 @@ func trimCellsForTest(cells []string) []string {
 	return cells
 }
 
-func assertDisplayTableLayoutForTest(t *testing.T, output string, maxWidth int, styled bool) {
+func assertDisplayTableLayoutForTest(t *testing.T, output string, maxWidth int) {
 	t.Helper()
-	if styled {
-		assert.Contains(t, output, "\x1b[96m")
-	}
 	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
 	require.NotEmpty(t, lines)
 	wantOffsets := displaySeparatorOffsetsForTest(stripANSIForTest(lines[0]))

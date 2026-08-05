@@ -15,6 +15,8 @@ const colSeparator = " | "
 
 type tableRenderOptions struct {
 	minimumWidths        []int
+	shrinkableColumns    []int
+	compactStatusColumn  int
 	minimumLocationWidth int
 	minimumTrailingWidth int
 	multilineLocation    bool
@@ -47,7 +49,7 @@ func (v *viewer) generateMeasurementTable(m *globalping.Measurement, areaWidth i
 		rows = append(rows, tableRow(m.Type, v.ctx.Trace, len(rows[0]), &m.Results[i]))
 	}
 
-	return v.renderMeasurementTable(rows, areaWidth)
+	return v.renderMeasurementTable(rows, areaWidth, m.Type)
 }
 
 func tableHeader(measurementType globalping.MeasurementType, trace bool) []string {
@@ -118,11 +120,8 @@ func tracerouteTableValues(raw json.RawMessage) []string {
 	if len(timings) == 0 {
 		return values
 	}
-	for i := len(timings) - 1; i >= 0; i-- {
-		if timings[i].RTT != nil {
-			values[1] = formatDuration(*timings[i].RTT)
-			break
-		}
+	if lastRTT := lastTimingRTT(timings); lastRTT != nil {
+		values[1] = formatDuration(*lastRTT)
 	}
 
 	minRTT := math.MaxFloat64
@@ -144,6 +143,15 @@ func tracerouteTableValues(raw json.RawMessage) []string {
 		values[4] = formatDuration(maxRTT)
 	}
 	return values
+}
+
+func lastTimingRTT(timings []tracerouteTableTiming) *float64 {
+	for i := len(timings) - 1; i >= 0; i-- {
+		if timings[i].RTT != nil {
+			return timings[i].RTT
+		}
+	}
+	return nil
 }
 
 type mtrTableStats struct {
@@ -169,11 +177,8 @@ func mtrTableValues(raw json.RawMessage) []string {
 		return values
 	}
 	lastHop := hops[len(hops)-1]
-	for i := len(lastHop.Timings) - 1; i >= 0; i-- {
-		if lastHop.Timings[i].RTT != nil {
-			values[1] = formatDuration(*lastHop.Timings[i].RTT)
-			break
-		}
+	if lastRTT := lastTimingRTT(lastHop.Timings); lastRTT != nil {
+		values[1] = formatDuration(*lastRTT)
 	}
 	if lastHop.Stats != nil {
 		if lastHop.Stats.Min != nil {
@@ -304,8 +309,13 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 	return 0, false
 }
 
-func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int) string {
-	return v.renderTable(rows, areaWidth, tableRenderOptions{})
+func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType) string {
+	options := tableRenderOptions{}
+	if measurementType == "http" {
+		options.shrinkableColumns = []int{4}
+		options.compactStatusColumn = 1
+	}
+	return v.renderTable(rows, areaWidth, options)
 }
 
 func (v *viewer) renderPingTable(rows [][]string, areaWidth int) string {
@@ -340,29 +350,30 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 			columnWidths[column] = max(columnWidths[column], width)
 		}
 	}
-	if isHTTPTableHeader(rows[0]) {
+	if options.compactStatusColumn > 0 && options.compactStatusColumn < len(rows[0]) {
 		tableWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 1)
 		for _, width := range columnWidths {
 			tableWidth += width
 		}
 		if tableWidth > areaWidth {
+			statusColumn := options.compactStatusColumn
 			adjustedRows := make([][]string, len(rows))
 			copy(adjustedRows, rows)
-			statusWidth := runewidth.StringWidth(rows[0][1])
+			statusWidth := runewidth.StringWidth(rows[0][statusColumn])
 			for rowIndex := 1; rowIndex < len(rows); rowIndex++ {
-				if len(rows[rowIndex]) <= 1 {
+				if len(rows[rowIndex]) <= statusColumn {
 					continue
 				}
-				status := rows[rowIndex][1]
+				status := rows[rowIndex][statusColumn]
 				if code, ok := httpStatusCode(status); ok {
 					adjustedRows[rowIndex] = append([]string(nil), rows[rowIndex]...)
-					adjustedRows[rowIndex][1] = code
+					adjustedRows[rowIndex][statusColumn] = code
 					status = code
 				}
 				statusWidth = max(statusWidth, runewidth.StringWidth(status))
 			}
 			rows = adjustedRows
-			columnWidths[1] = statusWidth
+			columnWidths[statusColumn] = statusWidth
 		}
 	}
 	if options.minimumTrailingWidth > 0 {
@@ -377,7 +388,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 		locationWidth := max(areaWidth-trailingWidth, options.minimumLocationWidth)
 		columnWidths[0] = min(columnWidths[0], locationWidth)
 	} else {
-		fitTableColumnWidths(columnWidths, rows[0], areaWidth)
+		fitTableColumnWidths(columnWidths, rows[0], areaWidth, options.shrinkableColumns)
 	}
 
 	var output bytes.Buffer
@@ -422,7 +433,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 	return output.String()
 }
 
-func fitTableColumnWidths(widths []int, header []string, areaWidth int) {
+func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkableColumns []int) {
 	separatorWidth := runewidth.StringWidth(colSeparator) * (len(widths) - 1)
 	contentWidth := areaWidth - separatorWidth
 	usedWidth := 0
@@ -439,25 +450,18 @@ func fitTableColumnWidths(widths []int, header []string, areaWidth int) {
 	widths[0] -= locationReduction
 	overflow -= locationReduction
 
-	for i := 1; i < len(widths) && overflow > 0; i++ {
-		if header[i] != "Resolved IP" {
+	for _, column := range shrinkableColumns {
+		if overflow <= 0 {
+			break
+		}
+		if column <= 0 || column >= len(widths) || column >= len(header) {
 			continue
 		}
-		minWidth := runewidth.StringWidth(header[i])
-		reduction := min(max(widths[i]-minWidth, 0), overflow)
-		widths[i] -= reduction
+		minWidth := runewidth.StringWidth(header[column])
+		reduction := min(max(widths[column]-minWidth, 0), overflow)
+		widths[column] -= reduction
 		overflow -= reduction
 	}
-}
-
-func isHTTPTableHeader(header []string) bool {
-	hasContentLength := false
-	hasResolvedIP := false
-	for _, value := range header {
-		hasContentLength = hasContentLength || value == "Content length"
-		hasResolvedIP = hasResolvedIP || value == "Resolved IP"
-	}
-	return hasContentLength && hasResolvedIP
 }
 
 func httpStatusCode(status string) (string, bool) {
