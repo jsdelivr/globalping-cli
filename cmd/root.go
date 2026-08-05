@@ -135,7 +135,7 @@ For more information about the platform, tips, and best practices, visit our Git
 	measurementFlags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
 	measurementFlags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
 	measurementFlags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
-	measurementFlags.BoolVar(&ctx.Table, "table", ctx.Table, "display results in a table (default false)")
+	measurementFlags.BoolVar(&ctx.Table, "table", ctx.Table, "output results in a table format (default false)")
 	measurementFlags.BoolVar(&ctx.Share, "share", ctx.Share, "print a link at the end of the results to visualize them online (default false)")
 	measurementFlags.BoolVarP(&ctx.Ipv4, "ipv4", "4", ctx.Ipv4, "resolve names to IPv4 addresses")
 	measurementFlags.BoolVarP(&ctx.Ipv6, "ipv6", "6", ctx.Ipv6, "resolve names to IPv6 addresses")
