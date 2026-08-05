@@ -139,7 +139,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	}()
 	<-r.cancel
 
-	if !r.ctx.Table {
+	if !r.ctx.Table && !r.ctx.ToLatency {
 		r.viewer.OutputSummary()
 	}
 	r.evaluateError(err)
