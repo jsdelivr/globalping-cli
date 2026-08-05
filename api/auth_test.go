@@ -22,6 +22,7 @@ func Test_Authorize(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	succesCalled := false
+	authorizeDone := make(chan error, 1)
 	expectedRedirectURI := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/authorize/error" {
@@ -67,7 +68,7 @@ func Test_Authorize(t *testing.T) {
 		DashboardURL:     server.URL,
 	})
 	res, err := client.Authorize(t.Context(), func(err error) {
-		assert.Nil(t, err)
+		authorizeDone <- err
 	})
 	assert.Nil(t, err)
 	expectedRedirectURI = res.CallbackURL
@@ -86,6 +87,12 @@ func Test_Authorize(t *testing.T) {
 	_, err = http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	select {
+	case err := <-authorizeDone:
+		assert.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("authorization callback timed out")
 	}
 
 	assert.True(t, succesCalled, "/authorize/success not called")
