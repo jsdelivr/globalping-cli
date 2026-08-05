@@ -49,7 +49,7 @@ func Test_OutputTable_Ping_PartialFailureDoesNotParseFailureOutput(t *testing.T)
 	measurement.Results = append(measurement.Results, failed)
 	measurement.ProbesCount = len(measurement.Results)
 
-	output, ctx, err := renderTableWithContextForTest(t, measurement, false)
+	output, ctx, err := renderTableWithContextForTest(t, measurement, false, 0)
 
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
@@ -426,9 +426,10 @@ func Test_OutputTable_AllFailedPreservesProbeErrors(t *testing.T) {
 			offline.Result.RawOutput = "This probe is currently offline. Please try again later."
 			measurement := tableMeasurement(measurementType, failed, offline)
 
-			output, err := renderTableForTest(t, measurement, measurementType == "dns")
+			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 2)
 
 			require.EqualError(t, err, "all probes failed")
+			assert.Equal(t, 0, ctx.TableOutputRows)
 			assert.Equal(t, `> Berlin, DE, EU, Failed Network (AS64500)
 measurement failed
 > Paris, FR, EU, Offline Network (AS64500)
@@ -462,16 +463,17 @@ func tableProbe(city, country, network string, status globalping.MeasurementStat
 }
 
 func renderTableForTest(t *testing.T, measurement *globalping.Measurement, trace bool) (string, error) {
-	output, _, err := renderTableWithContextForTest(t, measurement, trace)
+	output, _, err := renderTableWithContextForTest(t, measurement, trace, 0)
 	return output, err
 }
 
-func renderTableWithContextForTest(t *testing.T, measurement *globalping.Measurement, trace bool) (string, *Context, error) {
+func renderTableWithContextForTest(t *testing.T, measurement *globalping.Measurement, trace bool, initialTableOutputRows int) (string, *Context, error) {
 	t.Helper()
 	ctx := createDefaultContext(string(measurement.Type))
 	ctx.Cmd = string(measurement.Type)
 	ctx.Table = true
 	ctx.Trace = trace
+	ctx.TableOutputRows = initialTableOutputRows
 	if ctx.History.Find(measurement.ID) == nil {
 		ctx.History.Push(&HistoryItem{Id: measurement.ID, StartedAt: defaultCurrentTime})
 	}
