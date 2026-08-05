@@ -100,14 +100,24 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	if len(listeners) == 0 {
 		return nil, err
 	}
+	serveErrors := make(chan error, len(listeners))
 	for _, ln := range listeners {
 		go func(ln net.Listener) {
-			err := server.Serve(ln)
-			if err != nil && err != http.ErrServerClosed {
-				finish(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()}, nil)
-			}
+			serveErrors <- server.Serve(ln)
 		}(ln)
 	}
+	go func() {
+		var serveErr error
+		for range listeners {
+			err := <-serveErrors
+			if err != nil && err != http.ErrServerClosed {
+				serveErr = err
+			}
+		}
+		if serveErr != nil {
+			finish(&AuthorizeError{ErrorType: "failed to start server", Description: serveErr.Error()}, nil)
+		}
+	}()
 	callbackURL = "http://localhost:" + port + "/callback"
 	q := url.Values{}
 	q.Set("client_id", c.authClientId)
