@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/storage"
@@ -46,12 +47,24 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	server := &http.Server{
 		Handler: mux,
 	}
+	var callbackOnce sync.Once
+	finish := func(err error, token *storage.Token) {
+		callbackOnce.Do(func() {
+			go func() {
+				server.Shutdown(context.Background())
+				if err == nil {
+					c.updateToken(token)
+				}
+				callback(err)
+			}()
+		})
+	}
 	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
 		err := req.ParseForm()
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
-			callback(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()})
+			finish(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()}, nil)
 			return
 		}
 		token, err := c.exchange(ctx, req.Form, verifier, callbackURL)
@@ -60,13 +73,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		} else {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/success", http.StatusFound)
 		}
-		go func() {
-			server.Shutdown(context.Background())
-			if err == nil {
-				c.updateToken(token)
-			}
-			callback(err)
-		}()
+		finish(err, token)
 	})
 	var err error
 	var listeners []net.Listener
@@ -75,18 +82,20 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
 		ln4, listenErr := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", port))
-		if listenErr != nil {
+		if listenErr == nil {
+			listeners = append(listeners, ln4)
+		} else {
 			err = listenErr
-			continue
 		}
 		ln6, listenErr := net.Listen("tcp6", net.JoinHostPort("::1", port))
-		if listenErr != nil {
-			ln4.Close()
+		if listenErr == nil {
+			listeners = append(listeners, ln6)
+		} else {
 			err = listenErr
-			continue
 		}
-		listeners = []net.Listener{ln4, ln6}
-		break
+		if len(listeners) != 0 {
+			break
+		}
 	}
 	if len(listeners) == 0 {
 		return nil, err
@@ -95,7 +104,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		go func(ln net.Listener) {
 			err := server.Serve(ln)
 			if err != nil && err != http.ErrServerClosed {
-				callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
+				finish(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()}, nil)
 			}
 		}(ln)
 	}
