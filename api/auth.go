@@ -48,8 +48,10 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		Handler: mux,
 	}
 	var callbackOnce sync.Once
+	authorizeDone := make(chan struct{})
 	finish := func(err error, token *storage.Token) {
 		callbackOnce.Do(func() {
+			close(authorizeDone)
 			go func() {
 				server.Shutdown(context.Background())
 				if err == nil {
@@ -116,6 +118,13 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		}
 		if serveErr != nil {
 			finish(&AuthorizeError{ErrorType: "failed to start server", Description: serveErr.Error()}, nil)
+		}
+	}()
+	go func() {
+		select {
+		case <-ctx.Done():
+			finish(ctx.Err(), nil)
+		case <-authorizeDone:
 		}
 	}()
 	callbackURL = "http://localhost:" + port + "/callback"

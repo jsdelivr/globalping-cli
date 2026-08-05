@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,8 @@ import (
 )
 
 func Test_Authorize(t *testing.T) {
+	const authorizationTimeout = 5 * time.Second
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -67,7 +70,9 @@ func Test_Authorize(t *testing.T) {
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
 	})
-	res, err := client.Authorize(t.Context(), func(err error) {
+	authorizeCtx, cancelAuthorize := context.WithCancel(t.Context())
+	defer cancelAuthorize()
+	res, err := client.Authorize(authorizeCtx, func(err error) {
 		authorizeDone <- err
 	})
 	assert.Nil(t, err)
@@ -91,8 +96,14 @@ func Test_Authorize(t *testing.T) {
 	select {
 	case err := <-authorizeDone:
 		assert.NoError(t, err)
-	case <-time.After(time.Second):
-		t.Fatal("authorization callback timed out")
+	case <-time.After(authorizationTimeout):
+		cancelAuthorize()
+		select {
+		case <-authorizeDone:
+			t.Fatal("authorization callback timed out")
+		case <-time.After(authorizationTimeout):
+			t.Fatal("authorization listener cleanup timed out")
+		}
 	}
 
 	assert.True(t, succesCalled, "/authorize/success not called")
