@@ -69,25 +69,36 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		}()
 	})
 	var err error
-	var ln net.Listener
+	var listeners []net.Listener
 	ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
 	port := ""
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
-		ln, err = net.Listen("tcp", "127.0.0.1:"+port)
-		if err == nil {
-			break
+		ln4, listenErr := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", port))
+		if listenErr != nil {
+			err = listenErr
+			continue
 		}
+		ln6, listenErr := net.Listen("tcp6", net.JoinHostPort("::1", port))
+		if listenErr != nil {
+			ln4.Close()
+			err = listenErr
+			continue
+		}
+		listeners = []net.Listener{ln4, ln6}
+		break
 	}
-	if err != nil {
+	if len(listeners) == 0 {
 		return nil, err
 	}
-	go func() {
-		err := server.Serve(ln)
-		if err != nil && err != http.ErrServerClosed {
-			callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
-		}
-	}()
+	for _, ln := range listeners {
+		go func(ln net.Listener) {
+			err := server.Serve(ln)
+			if err != nil && err != http.ErrServerClosed {
+				callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
+			}
+		}(ln)
+	}
 	callbackURL = "http://localhost:" + port + "/callback"
 	q := url.Values{}
 	q.Set("client_id", c.authClientId)
