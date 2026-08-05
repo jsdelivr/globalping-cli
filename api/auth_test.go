@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +16,8 @@ import (
 )
 
 func Test_Authorize(t *testing.T) {
+	const authorizationTimeout = 5 * time.Second
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -22,6 +25,7 @@ func Test_Authorize(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	succesCalled := false
+	authorizeDone := make(chan error, 1)
 	expectedRedirectURI := ""
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/authorize/error" {
@@ -66,8 +70,10 @@ func Test_Authorize(t *testing.T) {
 		AuthURL:          server.URL,
 		DashboardURL:     server.URL,
 	})
-	res, err := client.Authorize(t.Context(), func(err error) {
-		assert.Nil(t, err)
+	authorizeCtx, cancelAuthorize := context.WithCancel(t.Context())
+	defer cancelAuthorize()
+	res, err := client.Authorize(authorizeCtx, func(err error) {
+		authorizeDone <- err
 	})
 	assert.Nil(t, err)
 	expectedRedirectURI = res.CallbackURL
@@ -86,6 +92,18 @@ func Test_Authorize(t *testing.T) {
 	_, err = http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	select {
+	case err := <-authorizeDone:
+		assert.NoError(t, err)
+	case <-time.After(authorizationTimeout):
+		cancelAuthorize()
+		select {
+		case <-authorizeDone:
+			t.Fatal("authorization callback timed out")
+		case <-time.After(authorizationTimeout):
+			t.Fatal("authorization listener cleanup timed out")
+		}
 	}
 
 	assert.True(t, succesCalled, "/authorize/success not called")

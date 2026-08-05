@@ -6,11 +6,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/jsdelivr/globalping-cli/storage"
@@ -46,12 +49,26 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	server := &http.Server{
 		Handler: mux,
 	}
+	var callbackOnce sync.Once
+	authorizeDone := make(chan struct{})
+	finish := func(err error, token *storage.Token) {
+		callbackOnce.Do(func() {
+			close(authorizeDone)
+			go func() {
+				server.Shutdown(context.Background())
+				if err == nil {
+					c.updateToken(token)
+				}
+				callback(err)
+			}()
+		})
+	}
 	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
 		err := req.ParseForm()
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
-			callback(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()})
+			finish(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()}, nil)
 			return
 		}
 		token, err := c.exchange(ctx, req.Form, verifier, callbackURL)
@@ -60,32 +77,71 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		} else {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/success", http.StatusFound)
 		}
-		go func() {
-			server.Shutdown(context.Background())
-			if err == nil {
-				c.updateToken(token)
-			}
-			callback(err)
-		}()
+		finish(err, token)
 	})
 	var err error
-	var ln net.Listener
+	var listeners []net.Listener
+	const wsaAddrInUse = syscall.Errno(10048)
+	isAddrInUse := func(err error) bool {
+		return errors.Is(err, syscall.EADDRINUSE) || errors.Is(err, wsaAddrInUse)
+	}
 	ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
 	port := ""
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
-		ln, err = net.Listen("tcp", ":"+port)
-		if err == nil {
+		portListeners := []net.Listener{}
+		ln4, listenErr := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", port))
+		if listenErr == nil {
+			portListeners = append(portListeners, ln4)
+		} else {
+			err = listenErr
+			if isAddrInUse(listenErr) {
+				continue
+			}
+		}
+		ln6, listenErr := net.Listen("tcp6", net.JoinHostPort("::1", port))
+		if listenErr == nil {
+			portListeners = append(portListeners, ln6)
+		} else {
+			err = listenErr
+			if isAddrInUse(listenErr) {
+				for _, ln := range portListeners {
+					ln.Close()
+				}
+				continue
+			}
+		}
+		if len(portListeners) != 0 {
+			listeners = portListeners
 			break
 		}
 	}
-	if err != nil {
+	if len(listeners) == 0 {
 		return nil, err
 	}
+	serveErrors := make(chan error, len(listeners))
+	for _, ln := range listeners {
+		go func(ln net.Listener) {
+			serveErrors <- server.Serve(ln)
+		}(ln)
+	}
 	go func() {
-		err := server.Serve(ln)
-		if err != nil && err != http.ErrServerClosed {
-			callback(&AuthorizeError{ErrorType: "failed to start server", Description: err.Error()})
+		var serveErr error
+		for range listeners {
+			err := <-serveErrors
+			if err != nil && err != http.ErrServerClosed {
+				serveErr = err
+			}
+		}
+		if serveErr != nil {
+			finish(&AuthorizeError{ErrorType: "failed to start server", Description: serveErr.Error()}, nil)
+		}
+	}()
+	go func() {
+		select {
+		case <-ctx.Done():
+			finish(ctx.Err(), nil)
+		case <-authorizeDone:
 		}
 	}()
 	callbackURL = "http://localhost:" + port + "/callback"
