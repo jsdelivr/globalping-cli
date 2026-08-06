@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,16 @@ import (
 )
 
 const colSeparator = " | "
+
+var httpBodySeparator = regexp.MustCompile(`\r?\n\r?\n`)
+
+type httpSizeColumn int
+
+const (
+	httpSizeNone httpSizeColumn = iota
+	httpSizeContentLength
+	httpSizeBytes
+)
 
 type tableRenderOptions struct {
 	minimumWidths        []int
@@ -44,15 +55,16 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 }
 
 func (v *viewer) generateMeasurementTable(m *globalping.Measurement, areaWidth int) string {
-	rows := [][]string{tableHeader(m.Type, v.ctx.Trace)}
+	httpSize := httpTableSizeColumn(m)
+	rows := [][]string{tableHeader(m.Type, v.ctx.Trace, httpSize)}
 	for i := range m.Results {
-		rows = append(rows, tableRow(m.Type, v.ctx.Trace, len(rows[0]), &m.Results[i]))
+		rows = append(rows, tableRow(m.Type, v.ctx.Trace, len(rows[0]), &m.Results[i], httpSize))
 	}
 
 	return v.renderMeasurementTable(rows, areaWidth, m.Type)
 }
 
-func tableHeader(measurementType globalping.MeasurementType, trace bool) []string {
+func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSize httpSizeColumn) []string {
 	switch measurementType {
 	case "traceroute", "mtr":
 		return []string{"Location", "Hops", "Last", "Min", "Avg", "Max"}
@@ -62,13 +74,19 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool) []strin
 		}
 		return []string{"Location", "Status", "Answers", "Time", "Resolver"}
 	case "http":
-		return []string{"Location", "Status", "Content-Length", "Total", "Resolved IP"} // TODO: Bytes => all after first (?:\r?\n){2}
+		header := []string{"Location", "Status"}
+		if httpSize == httpSizeContentLength {
+			header = append(header, "Content-Length")
+		} else if httpSize == httpSizeBytes {
+			header = append(header, "Bytes")
+		}
+		return append(header, "Total", "Resolved IP")
 	default:
 		return []string{"Location"}
 	}
 }
 
-func tableRow(measurementType globalping.MeasurementType, trace bool, columns int, measurement *globalping.ProbeMeasurement) []string {
+func tableRow(measurementType globalping.MeasurementType, trace bool, columns int, measurement *globalping.ProbeMeasurement, httpSize httpSizeColumn) []string {
 	row := make([]string, columns)
 	for i := range row {
 		row[i] = "-"
@@ -91,7 +109,7 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 			copy(row[1:], dnsTableValues(&measurement.Result))
 		}
 	case "http":
-		copy(row[1:], httpTableValues(&measurement.Result))
+		copy(row[1:], httpTableValues(&measurement.Result, httpSize))
 	}
 
 	return row
@@ -245,7 +263,42 @@ func dnsTraceTableValues(raw json.RawMessage) []string {
 	return values
 }
 
-func httpTableValues(result *globalping.ProbeResult) []string {
+func httpTableSizeColumn(measurement *globalping.Measurement) httpSizeColumn {
+	if measurement.Type != "http" {
+		return httpSizeNone
+	}
+	if hasHTTPContentLength(measurement.Results) {
+		return httpSizeContentLength
+	}
+	if hasHTTPBody(measurement.Results) {
+		return httpSizeBytes
+	}
+	return httpSizeNone
+}
+
+func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
+	for i := range results {
+		if results[i].Result.Status == globalping.StatusFinished {
+			if _, ok := contentLength(results[i].Result.HeadersRaw); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasHTTPBody(results []globalping.ProbeMeasurement) bool {
+	for i := range results {
+		if results[i].Result.Status == globalping.StatusFinished {
+			if length, ok := httpBodyLength(results[i].Result.RawOutput); ok && length > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []string {
 	values := []string{"-", "-", "-", "-"}
 	if result.StatusCode > 0 {
 		values[0] = strconv.Itoa(result.StatusCode)
@@ -255,8 +308,18 @@ func httpTableValues(result *globalping.ProbeResult) []string {
 	} else if result.StatusCodeName != "" {
 		values[0] = result.StatusCodeName
 	}
-	if length, ok := contentLength(result.HeadersRaw); ok {
-		values[1] = strconv.FormatUint(length, 10) + " B"
+	if httpSize == httpSizeContentLength {
+		if length, ok := contentLength(result.HeadersRaw); ok {
+			values[1] = strconv.FormatUint(length, 10) + " B"
+		}
+	} else if httpSize == httpSizeBytes {
+		if length, ok := httpBodyLength(result.RawOutput); ok {
+			suffix := " B"
+			if result.Truncated {
+				suffix = "+ B"
+			}
+			values[1] = strconv.Itoa(length) + suffix
+		}
 	}
 	if total, ok := decodeTotalTiming(result.TimingsRaw); ok {
 		values[2] = formatTotalDuration(total)
@@ -264,7 +327,18 @@ func httpTableValues(result *globalping.ProbeResult) []string {
 	if result.ResolvedAddress != "" {
 		values[3] = result.ResolvedAddress
 	}
+	if httpSize == httpSizeNone {
+		return append(values[:1], values[2:]...)
+	}
 	return values
+}
+
+func httpBodyLength(rawOutput string) (int, bool) {
+	separator := httpBodySeparator.FindStringIndex(rawOutput)
+	if separator == nil {
+		return 0, false
+	}
+	return len(rawOutput[separator[1]:]), true
 }
 
 func decodeTotalTiming(raw json.RawMessage) (float64, bool) {
@@ -312,7 +386,7 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType) string {
 	options := tableRenderOptions{}
 	if measurementType == "http" {
-		options.shrinkableColumns = []int{4}
+		options.shrinkableColumns = []int{len(rows[0]) - 1}
 		options.compactStatusColumn = 1
 	}
 	return v.renderTable(rows, areaWidth, options)

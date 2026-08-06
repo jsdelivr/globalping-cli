@@ -297,16 +297,41 @@ func Test_OutputTable_HTTP(t *testing.T) {
 	})
 }
 
-func Test_OutputTable_HTTP_StatusNameWithoutCode(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "HTTP Network", globalping.StatusFinished)
-	result.Result.StatusCodeName = "Connection failed"
+func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {
+	crlf := tableProbe("Berlin", "DE", "HTTP Network", globalping.StatusFinished)
+	crlf.Result.StatusCodeName = "Connection failed"
+	crlf.Result.RawOutput = "HTTP/1.1 200 OK\r\nServer: example\r\n\r\nhello"
 
-	output, err := renderTableForTest(t, tableMeasurement("http", result), false)
+	lf := tableProbe("Paris", "FR", "Unicode Body Network", globalping.StatusFinished)
+	lf.Result.StatusCode = 200
+	lf.Result.StatusCodeName = "OK"
+	lf.Result.RawOutput = "HTTP/1.1 200 OK\nServer: example\n\nžluťoučký"
+	lf.Result.Truncated = true
+
+	empty := tableProbe("Rome", "IT", "Empty Body Network", globalping.StatusFinished)
+	empty.Result.StatusCode = 204
+	empty.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example\r\n\r\n"
+
+	measurement := tableMeasurement("http", crlf, lf, empty)
+	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
-		{"Location", "Status", "Content-Length", "Total", "Resolved IP"},
-		{"Berlin, DE, EU, HTTP Network (AS64500)", "Connection failed", "-", "-", "-"},
+		{"Location", "Status", "Bytes", "Total", "Resolved IP"},
+		{"Berlin, DE, EU, HTTP Network (AS64500)", "Connection failed", "5 B", "-", "-"},
+		{"Paris, FR, EU, Unicode Body Network (AS64500)", "200 OK", "13+ B", "-", "-"},
+		{"Rome, IT, EU, Empty Body Network (AS64500)", "204", "0 B", "-", "-"},
+	})
+
+	noBody := tableProbe("London", "GB", "No Body Network", globalping.StatusFinished)
+	noBody.Result.StatusCode = 204
+	noBody.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example"
+	output, err = renderTableForTest(t, tableMeasurement("http", noBody), false)
+
+	require.NoError(t, err)
+	assertTableForTest(t, output, [][]string{
+		{"Location", "Status", "Total", "Resolved IP"},
+		{"London, GB, EU, No Body Network (AS64500)", "204", "-", "-"},
 	})
 }
 
