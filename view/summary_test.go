@@ -31,7 +31,7 @@ func Test_OutputSummary(t *testing.T) {
 		ctx.AggregatedStats[0].Time = 1000
 		hm := &HistoryItem{
 			Id:     measurementID2,
-			Status: globalping.StatusInProgress,
+			Status: globalping.MeasurementStatusInProgress,
 			Stats: []*MeasurementStats{
 				{Sent: 9, Rcv: 9, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 1000, Tsum: 6.93, Tsum2: 5.3361},
 			},

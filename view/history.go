@@ -14,7 +14,7 @@ type HistoryBuffer struct {
 type HistoryItem struct {
 	Id           string
 	Status       globalping.MeasurementStatus
-	ProbeStatus  []globalping.MeasurementStatus
+	ProbeStatus  []globalping.TestStatus
 	LinesPrinted int
 	StartedAt    time.Time
 	Stats        []*MeasurementStats

@@ -28,8 +28,8 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	viewer := NewViewer(ctx, printer, utilsMock)
 
 	measurement := createPingMeasurement(measurementID1)
-	measurement.Status = globalping.StatusInProgress
-	measurement.Results[0].Result.Status = globalping.StatusInProgress
+	measurement.Status = globalping.MeasurementStatusInProgress
+	measurement.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
 
 	err := viewer.OutputInfinite(measurement)
@@ -76,8 +76,8 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 		Avg: 12.8, Max: 12.9, Time: 500, Tsum: 25.6, Tsum2: 327.7, Mdev: 0.0999}
 	assertMeasurementStats(t, expectedStats, hm.Stats[0])
 
-	measurement.Status = globalping.StatusFinished
-	measurement.Results[0].Result.Status = globalping.StatusFinished
+	measurement.Status = globalping.MeasurementStatusFinished
+	measurement.Results[0].Result.Status = globalping.TestStatusFinished
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms
@@ -134,8 +134,8 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 
 func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
-	measurement.Status = globalping.StatusFailed
-	measurement.Results[0].Result.Status = globalping.StatusFailed
+	measurement.Status = globalping.MeasurementStatusFinished
+	measurement.Results[0].Result.Status = globalping.TestStatusFailed
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 
 	ctx := createDefaultContext("ping")
@@ -164,8 +164,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	measurement.Status = globalping.StatusInProgress
-	measurement.Results[0].Result.Status = globalping.StatusInProgress
+	measurement.Status = globalping.MeasurementStatusInProgress
+	measurement.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
 
 	ctx := createDefaultContext("ping")
@@ -211,8 +211,8 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
 	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
 
-	measurement.Status = globalping.StatusFinished
-	measurement.Results[0].Result.Status = globalping.StatusFinished
+	measurement.Status = globalping.MeasurementStatusFinished
+	measurement.Results[0].Result.Status = globalping.TestStatusFinished
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
 no answer yet for icmp_seq=2
@@ -282,16 +282,16 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 
 	// Call 1
 	measurement1 := createPingMeasurement_MultipleProbes(measurementID1)
-	measurement1.Status = globalping.StatusInProgress
-	measurement1.Results[0].Result.Status = globalping.StatusInProgress
+	measurement1.Status = globalping.MeasurementStatusInProgress
+	measurement1.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms`
-	measurement1.Results[1].Result.Status = globalping.StatusInProgress
+	measurement1.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
 
 	ctx := createDefaultContext("ping")
 	hm1 := ctx.History.Find(measurementID1)
-	hm1.Status = globalping.StatusInProgress
+	hm1.Status = globalping.MeasurementStatusInProgress
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -308,15 +308,15 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 
 	// Call 2
 	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
-	measurement2.Status = globalping.StatusInProgress
-	measurement2.Results[0].Result.Status = globalping.StatusInProgress
+	measurement2.Status = globalping.MeasurementStatusInProgress
+	measurement2.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
-	measurement2.Results[1].Result.Status = globalping.StatusInProgress
+	measurement2.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms`
 	ctx.History.Push(&HistoryItem{
 		Id:        measurementID2,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
 	})
 	ctx.MeasurementsCreated = 2
@@ -349,8 +349,8 @@ Consuming ~360 API credits/minute.
 	assert.NoError(t, err)
 
 	// Call 4
-	measurement1.Status = globalping.StatusFinished
-	measurement1.Results[0].Result.Status = globalping.StatusFinished
+	measurement1.Status = globalping.MeasurementStatusFinished
+	measurement1.Results[0].Result.Status = globalping.TestStatusFinished
 	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=15 ms
@@ -359,7 +359,7 @@ Consuming ~360 API credits/minute.
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 10/15/25/5 ms`
-	measurement1.Results[1].Result.Status = globalping.StatusFinished
+	measurement1.Results[1].Result.Status = globalping.TestStatusFinished
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms
@@ -368,7 +368,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 200ms
 rtt min/avg/max/mdev = 20/25/30/5 ms`
-	hm1.Status = globalping.StatusFinished
+	hm1.Status = globalping.MeasurementStatusFinished
 
 	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -382,7 +382,7 @@ Consuming ~360 API credits/minute.
 	assert.NoError(t, err)
 
 	// Call 5
-	measurement2.Results[0].Result.Status = globalping.StatusFinished
+	measurement2.Results[0].Result.Status = globalping.TestStatusFinished
 	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=15 ms
@@ -439,9 +439,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 
 func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	measurement.Status = globalping.StatusFinished
+	measurement.Status = globalping.MeasurementStatusFinished
 	for i := range measurement.Results {
-		measurement.Results[i].Result.Status = globalping.StatusFailed
+		measurement.Results[i].Result.Status = globalping.TestStatusFailed
 		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 	}
 
@@ -466,8 +466,8 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 
 func Test_OutputInfinite_SingleProbe_Offline(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
-	measurement.Status = globalping.StatusFinished
-	measurement.Results[0].Result.Status = "offline"
+	measurement.Status = globalping.MeasurementStatusFinished
+	measurement.Results[0].Result.Status = globalping.TestStatusOffline
 	measurement.Results[0].Result.RawOutput = `This probe is currently offline. Please try again later.`
 
 	ctx := createDefaultContext("ping")
