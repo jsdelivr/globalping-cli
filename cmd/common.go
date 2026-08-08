@@ -114,6 +114,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if r.ctx.Limit < 1 {
+		return errors.New("limit must be at least 1")
+	}
+
 	// Check env for CI
 	if os.Getenv("CI") != "" {
 		r.ctx.CIMode = true
