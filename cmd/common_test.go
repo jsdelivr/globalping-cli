@@ -16,6 +16,7 @@ func Test_UpdateContext(t *testing.T) {
 		"country":               test_updateContext_Country,
 		"country_whitespace":    test_updateContext_CountryWhitespace,
 		"no_target":             test_updateContext_NoTarget,
+		"limit_below_minimum":   test_updateContext_LimitBelowMinimum,
 		"ci_env":                test_updateContext_CIEnv,
 		"target_not_hostname":   test_updateContext_TargetIsNotAHostname,
 		"resolver_not_hostname": test_updateContext_ResolverIsNotAHostname,
@@ -82,6 +83,19 @@ func test_updateContext_NoTarget(t *testing.T) {
 
 	err := root.updateContext(cmd, []string{})
 	assert.Error(t, err)
+}
+
+func test_updateContext_LimitBelowMinimum(t *testing.T) {
+	ctx := createDefaultContext("ping")
+	ctx.Limit = 0
+	printer := view.NewPrinter(nil, nil, nil)
+	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
+
+	cmd := &cobra.Command{Use: "ping"}
+	cmd.Execute()
+
+	err := root.updateContext(cmd, []string{"1.1.1.1"})
+	assert.EqualError(t, err, "limit must be at least 1")
 }
 
 func test_updateContext_CIEnv(t *testing.T) {

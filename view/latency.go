@@ -17,7 +17,7 @@ func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) e
 		}
 
 		v.printer.ErrPrintln(v.getProbeInfo(&result))
-		if result.Result.Status != globalping.StatusFinished {
+		if result.Result.Status != globalping.TestStatusFinished {
 			v.printer.Println(result.Result.RawOutput)
 			continue
 		}

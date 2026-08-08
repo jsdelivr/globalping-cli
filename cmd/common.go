@@ -58,7 +58,7 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 
 	w, h := r.printer.GetSize()
 	// Poll API until the measurement is complete
-	for res.Status == globalping.StatusInProgress {
+	for res.Status == globalping.MeasurementStatusInProgress {
 		time.Sleep(r.ctx.APIMinInterval)
 		res, err = r.client.GetMeasurement(ctx, id)
 		if err != nil {
@@ -114,6 +114,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if r.ctx.Limit < 1 {
+		return errors.New("limit must be at least 1")
+	}
+
 	// Check env for CI
 	if os.Getenv("CI") != "" {
 		r.ctx.CIMode = true
@@ -142,7 +146,7 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (r *Root) getLocations() ([]globalping.Locations, error) {
+func (r *Root) getLocations() (globalping.LocationSelection, error) {
 	fromArr := strings.Split(r.ctx.From, ",")
 	if len(fromArr) == 1 {
 		mId, err := r.mapFromSession(fromArr[0])
@@ -150,14 +154,13 @@ func (r *Root) getLocations() ([]globalping.Locations, error) {
 			return nil, err
 		}
 		if mId == "" {
-			mId = strings.TrimSpace(fromArr[0])
-		} else {
-			r.ctx.IsLocationFromSession = true
-			r.ctx.RecordToSession = false
+			return globalping.LocationOptions{{Magic: strings.TrimSpace(fromArr[0])}}, nil
 		}
-		return []globalping.Locations{{Magic: mId}}, nil
+		r.ctx.IsLocationFromSession = true
+		r.ctx.RecordToSession = false
+		return globalping.PreviousMeasurementID(mId), nil
 	}
-	locations := make([]globalping.Locations, len(fromArr))
+	locations := make(globalping.LocationOptions, len(fromArr))
 	for i, v := range fromArr {
 		locations[i] = globalping.Locations{
 			Magic: strings.TrimSpace(v),

@@ -33,7 +33,7 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 		Target:  "jsdelivr.com",
 		Limit:   1,
 		Options: &globalping.MeasurementOptions{},
-		Locations: []globalping.Locations{
+		Locations: globalping.LocationOptions{
 			{Magic: "Berlin"},
 		},
 	}
@@ -60,39 +60,39 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 func createDefaultMeasurement(cmd globalping.MeasurementType) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
-		Status:      globalping.StatusFinished,
+		Status:      globalping.MeasurementStatusFinished,
 		Type:        cmd,
 		ProbesCount: 1,
 		Results: []globalping.ProbeMeasurement{
 			{
 				Result: globalping.ProbeResult{
-					Status: globalping.StatusFinished,
+					Status: globalping.TestStatusFinished,
 				},
 			},
 		},
 	}
 }
 
-func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, status globalping.MeasurementStatus) *globalping.Measurement {
+func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, measurementStatus globalping.MeasurementStatus, testStatus globalping.TestStatus) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
-		Status:      status,
+		Status:      measurementStatus,
 		Type:        cmd,
 		ProbesCount: 3,
 		Results: []globalping.ProbeMeasurement{
 			{
 				Result: globalping.ProbeResult{
-					Status: status,
+					Status: testStatus,
 				},
 			},
 			{
 				Result: globalping.ProbeResult{
-					Status: status,
+					Status: testStatus,
 				},
 			},
 			{
 				Result: globalping.ProbeResult{
-					Status: status,
+					Status: testStatus,
 				},
 			},
 		},
@@ -151,7 +151,7 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 	}
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
 	return ctx

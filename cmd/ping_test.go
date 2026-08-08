@@ -23,7 +23,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("ping")
-	expectedOpts.Locations[0].Magic = "world"
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	gbMock := apiMocks.NewMockClient(ctrl)
@@ -74,7 +74,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("ping")
-	expectedOpts.Locations = append(expectedOpts.Locations, globalping.Locations{Magic: "New York"})
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "Berlin"}, {Magic: "New York"}}
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
 	totalCalls := 10
@@ -108,7 +108,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-1"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -119,7 +119,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "last"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -129,7 +129,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "previous"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -139,7 +139,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: "world"}}
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedResponse.ID = measurementID2
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
@@ -152,7 +152,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@1"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -163,7 +163,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "first"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -173,7 +173,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: "world"}}
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedResponse.ID = measurementID3
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
@@ -186,7 +186,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID2}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID2)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@2"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -198,7 +198,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 
 	ctx = createDefaultContext("ping")
-	expectedOpts.Locations = []globalping.Locations{{Magic: measurementID1}}
+	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-3"}
 	err = root.Cmd.ExecuteContext(t.Context())
@@ -283,13 +283,13 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedOpts1.Options.Packets = 16
 	expectedOpts2 := createDefaultMeasurementCreate("ping")
 	expectedOpts2.Options.Packets = 16
-	expectedOpts2.Locations[0].Magic = measurementID1
+	expectedOpts2.Locations = globalping.PreviousMeasurementID(measurementID1)
 	expectedOpts3 := createDefaultMeasurementCreate("ping")
 	expectedOpts3.Options.Packets = 16
-	expectedOpts3.Locations[0].Magic = measurementID2
+	expectedOpts3.Locations = globalping.PreviousMeasurementID(measurementID2)
 	expectedOpts4 := createDefaultMeasurementCreate("ping")
 	expectedOpts4.Options.Packets = 16
-	expectedOpts4.Locations[0].Magic = measurementID3
+	expectedOpts4.Locations = globalping.PreviousMeasurementID(measurementID3)
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
 	expectedResponse2 := createDefaultMeasurementCreateResponse()
@@ -305,16 +305,16 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts3).Return(expectedResponse3, nil)
 	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts4).Return(expectedResponse4, nil)
 
-	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusFinished)
-	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusInProgress)
+	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusFinished, globalping.TestStatusFinished)
+	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement2.ID = measurementID2
-	expectedMeasurement2.Results[0].Result.Status = globalping.StatusFinished
-	expectedMeasurement3 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusInProgress)
+	expectedMeasurement2.Results[0].Result.Status = globalping.TestStatusFinished
+	expectedMeasurement3 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement3.ID = measurementID3
-	expectedMeasurement3.Results[0].Result.Status = globalping.StatusFinished
-	expectedMeasurement4 := createDefaultMeasurement_MultipleProbes("ping", globalping.StatusInProgress)
+	expectedMeasurement3.Results[0].Result.Status = globalping.TestStatusFinished
+	expectedMeasurement4 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement4.ID = measurementID4
-	expectedMeasurement4.Results[1].Result.Status = globalping.StatusFinished
+	expectedMeasurement4.Results[1].Result.Status = globalping.TestStatusFinished
 
 	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID1).Return(expectedMeasurement1, nil)
 	gbMock.EXPECT().GetMeasurement(t.Context(), measurementID2).Return(expectedMeasurement2, nil)
@@ -381,36 +381,36 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Slice: []*view.HistoryItem{
 			{
 				Id:        measurementID1,
-				Status:    globalping.StatusFinished,
+				Status:    globalping.MeasurementStatusFinished,
 				StartedAt: defaultCurrentTime,
 			},
 			{
 				Id:     measurementID2,
-				Status: globalping.StatusInProgress,
-				ProbeStatus: []globalping.MeasurementStatus{
-					globalping.StatusFinished,
-					globalping.StatusInProgress,
-					globalping.StatusInProgress,
+				Status: globalping.MeasurementStatusInProgress,
+				ProbeStatus: []globalping.TestStatus{
+					globalping.TestStatusFinished,
+					globalping.TestStatusInProgress,
+					globalping.TestStatusInProgress,
 				},
 				StartedAt: defaultCurrentTime,
 			},
 			{
 				Id:     measurementID3,
-				Status: globalping.StatusInProgress,
-				ProbeStatus: []globalping.MeasurementStatus{
-					globalping.StatusFinished,
-					globalping.StatusInProgress,
-					globalping.StatusInProgress,
+				Status: globalping.MeasurementStatusInProgress,
+				ProbeStatus: []globalping.TestStatus{
+					globalping.TestStatusFinished,
+					globalping.TestStatusInProgress,
+					globalping.TestStatusInProgress,
 				},
 				StartedAt: defaultCurrentTime,
 			},
 			{
 				Id:     measurementID4,
-				Status: globalping.StatusInProgress,
-				ProbeStatus: []globalping.MeasurementStatus{
-					globalping.StatusInProgress,
-					globalping.StatusFinished,
-					globalping.StatusInProgress,
+				Status: globalping.MeasurementStatusInProgress,
+				ProbeStatus: []globalping.TestStatus{
+					globalping.TestStatusInProgress,
+					globalping.TestStatusFinished,
+					globalping.TestStatusInProgress,
 				},
 				StartedAt: defaultCurrentTime,
 			},
@@ -469,7 +469,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	assert.Equal(t, "Error: error message\n", w.String())
 
 	expectedCtx := createDefaultExpectedContext("ping")
-	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished
+	expectedCtx.History.Find(measurementID1).Status = globalping.MeasurementStatusFinished
 	expectedCtx.Packets = 16
 	expectedCtx.Infinite = true
 	assert.Equal(t, expectedCtx, ctx)
@@ -497,7 +497,7 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	expectedOpts1.Options.Packets = 16
 	expectedOpts2 := createDefaultMeasurementCreate("ping")
 	expectedOpts2.Options.Packets = 16
-	expectedOpts2.Locations[0].Magic = measurementID1
+	expectedOpts2.Locations = globalping.PreviousMeasurementID(measurementID1)
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
 
@@ -536,7 +536,7 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	assert.Equal(t, "", w.String())
 
 	expectedCtx := createDefaultExpectedContext("ping")
-	expectedCtx.History.Find(measurementID1).Status = globalping.StatusFinished
+	expectedCtx.History.Find(measurementID1).Status = globalping.MeasurementStatusFinished
 	expectedCtx.Packets = 16
 	expectedCtx.Infinite = true
 	expectedCtx.Share = true
@@ -562,7 +562,7 @@ func Test_Execute_Ping_IPv4(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("ping")
-	expectedOpts.Locations[0].Magic = "world"
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedOpts.Options.IPVersion = globalping.IPVersion4
 	expectedResponse := createDefaultMeasurementCreateResponse()
 
@@ -601,7 +601,7 @@ func Test_Execute_Ping_IPv6(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("ping")
-	expectedOpts.Locations[0].Magic = "world"
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedOpts.Options.IPVersion = globalping.IPVersion6
 	expectedResponse := createDefaultMeasurementCreateResponse()
 

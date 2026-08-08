@@ -23,7 +23,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 					Tags:      []string{"tag-1"},
 				},
 				Result: globalping.ProbeResult{
-					Status:   globalping.StatusFinished,
+					Status:   globalping.TestStatusFinished,
 					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
@@ -38,7 +38,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 					Tags:      []string{"tag B"},
 				},
 				Result: globalping.ProbeResult{
-					Status:   globalping.StatusFinished,
+					Status:   globalping.TestStatusFinished,
 					StatsRaw: json.RawMessage(`{"min":9,"avg":15,"max":22}`),
 				},
 			},
@@ -83,7 +83,7 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
-					Status:   globalping.StatusFinished,
+					Status:   globalping.TestStatusFinished,
 					StatsRaw: json.RawMessage(`{"min":8,"avg":12,"max":20}`),
 				},
 			},
@@ -127,7 +127,7 @@ func Test_Output_Latency_DNS(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
-					Status:     globalping.StatusFinished,
+					Status:     globalping.TestStatusFinished,
 					TimingsRaw: []byte(`{"total": 44}`),
 				},
 			},
@@ -165,7 +165,7 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
-					Status:     globalping.StatusFinished,
+					Status:     globalping.TestStatusFinished,
 					TimingsRaw: []byte(`{"total": 44}`),
 				},
 			},
@@ -207,7 +207,7 @@ func Test_Output_Latency_Http(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
-					Status:     globalping.StatusFinished,
+					Status:     globalping.TestStatusFinished,
 					TimingsRaw: []byte(`{"total": 44,"download":11,"firstByte":20,"dns":5,"tls":2,"tcp":4}`),
 				},
 			},
@@ -250,7 +250,7 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 					Tags:      []string{"tag"},
 				},
 				Result: globalping.ProbeResult{
-					Status:     globalping.StatusFinished,
+					Status:     globalping.TestStatusFinished,
 					TimingsRaw: []byte(`{"total": 44,"download":11,"firstByte":20,"dns":5,"tls":2,"tcp":4}`),
 				},
 			},
@@ -298,7 +298,7 @@ func Test_Output_Latency_Offline(t *testing.T) {
 					Network:   "Network",
 				},
 				Result: globalping.ProbeResult{
-					Status:    globalping.MeasurementStatus("offline"),
+					Status:    globalping.TestStatusOffline,
 					RawOutput: "This probe is currently offline. Please try again later.",
 				},
 			},

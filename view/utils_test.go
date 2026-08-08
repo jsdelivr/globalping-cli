@@ -19,7 +19,7 @@ func createPingMeasurement(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      globalping.StatusFinished,
+		Status:      globalping.MeasurementStatusFinished,
 		CreatedAt:   "2024-01-18T14:09:41.250Z",
 		UpdatedAt:   "2024-01-18T14:09:41.488Z",
 		Target:      "cdn.jsdelivr.net",
@@ -37,7 +37,7 @@ func createPingMeasurement(id string) *globalping.Measurement {
 					Tags:      []string{"eyeball-network"},
 				},
 				Result: globalping.ProbeResult{
-					Status: globalping.StatusFinished,
+					Status: globalping.TestStatusFinished,
 					RawOutput: `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=17.6 ms
 
@@ -58,7 +58,7 @@ func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
 		Type:        "ping",
-		Status:      globalping.StatusFinished,
+		Status:      globalping.MeasurementStatusFinished,
 		CreatedAt:   "2024-01-18T14:17:41.471Z",
 		UpdatedAt:   "2024-01-18T14:17:41.571Z",
 		Target:      "cdn.jsdelivr.net",
@@ -75,7 +75,7 @@ func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: globalping.ProbeResult{
-					Status: globalping.StatusFinished,
+					Status: globalping.TestStatusFinished,
 					RawOutput: `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=0.770 ms
 
@@ -99,7 +99,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: globalping.ProbeResult{
-					Status: globalping.StatusFinished,
+					Status: globalping.TestStatusFinished,
 					RawOutput: `PING  (104.16.85.20) 56(84) bytes of data.
 64 bytes from 104.16.85.20 (104.16.85.20): icmp_seq=1 ttl=55 time=5.46 ms
 
@@ -123,7 +123,7 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 					Tags:      []string{"datacenter-network"},
 				},
 				Result: globalping.ProbeResult{
-					Status: globalping.StatusFinished,
+					Status: globalping.TestStatusFinished,
 					RawOutput: `PING  (104.16.88.20) 56(84) bytes of data.
 64 bytes from 104.16.88.20 (104.16.88.20): icmp_seq=1 ttl=58 time=4.07 ms
 
