@@ -312,7 +312,7 @@ func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
 func hasHTTPBody(results []globalping.ProbeMeasurement) bool {
 	for i := range results {
 		if results[i].Result.Status == globalping.TestStatusFinished {
-			if length, ok := httpBodyLength(results[i].Result.RawOutput); ok && length > 0 {
+			if _, ok := httpBodyLength(results[i].Result.RawOutput); ok {
 				return true
 			}
 		}

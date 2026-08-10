@@ -414,6 +414,20 @@ func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {
 	})
 }
 
+func Test_OutputTable_HTTP_EmptyBodyKeepsBytesColumn(t *testing.T) {
+	empty := tableProbe("Rome", "IT", "Empty Body Network", globalping.TestStatusFinished)
+	empty.Result.StatusCode = 204
+	empty.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example\r\n\r\n"
+
+	output, err := renderTableForTest(t, tableMeasurement("http", empty), false)
+
+	require.NoError(t, err)
+	assertTableForTest(t, output, [][]string{
+		{"Location", "Status", "Bytes", "Total", "Resolved IP"},
+		{"Rome, IT, EU, Empty Body Network (AS64500)", "204", "0 B", "-", "-"},
+	})
+}
+
 func Test_RenderMeasurementTable_UnicodeCellsAlignByDisplayWidth(t *testing.T) {
 	rows := [][]string{
 		{"Location", "Status", "Resolver"},
