@@ -36,7 +36,8 @@ type tableRenderOptions struct {
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
 	v.ctx.TableOutputRows = 0
-	if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
+	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
+	if allProbesFailed && !(v.ctx.Infinite && v.ctx.Table && hasFailedPingStats(measurement)) {
 		return v.outputFailSummary(measurement)
 	}
 	v.ctx.TableOutputRows = len(measurement.Results)

@@ -175,11 +175,60 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	assert.Equal(t, 1, ctx.TableOutputRows)
 }
 
+func Test_OutputInfinite_Table_AllFailedWithoutStats(t *testing.T) {
+	measurement := createPingMeasurement(measurementID1)
+	measurement.Results[0].Result.Status = globalping.TestStatusFailed
+	measurement.Results[0].Result.RawOutput = "ping: unknown host"
+	measurement.Results[0].Result.StatsRaw = nil
+	measurement.Results[0].Result.TimingsRaw = nil
+
+	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
+	ctx.Table = true
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+
+	err := viewer.OutputInfinite(measurement)
+
+	assert.EqualError(t, err, "all probes failed")
+	assert.Contains(t, w.String(), "ping: unknown host")
+	assert.Nil(t, ctx.AggregatedStats)
+}
+
+func Test_OutputInfinite_Table_FailedWithPacketStats(t *testing.T) {
+	measurement := createPingMeasurement(measurementID1)
+	measurement.Results[0].Result.Status = globalping.TestStatusFailed
+	measurement.Results[0].Result.RawOutput = "The measurement command timed out."
+
+	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
+	ctx.Table = true
+	ctx.CIMode = true
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+
+	require.NoError(t, viewer.OutputInfinite(measurement))
+	viewer.OutputSummary()
+
+	assert.Contains(t, w.String(), "Location")
+	assert.Contains(t, w.String(), "|    1 |   0.00% |  17.6 ms")
+	assert.NotContains(t, w.String(), measurement.Results[0].Result.RawOutput)
+	assert.Equal(t, 1, ctx.TableOutputRows)
+	assert.Equal(t, 1, ctx.AggregatedStats[0].Sent)
+	assert.Equal(t, 1, ctx.AggregatedStats[0].Rcv)
+}
+
 func Test_OutputInfinite_FailedProbePreservesPriorAggregate(t *testing.T) {
 	first := createPingMeasurement_MultipleProbes(measurementID1)
 	first.Results = first.Results[:2]
 	first.ProbesCount = len(first.Results)
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
+	ctx.Table = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -193,6 +242,8 @@ func Test_OutputInfinite_FailedProbePreservesPriorAggregate(t *testing.T) {
 	second.ProbesCount = len(second.Results)
 	second.Results[1].Result.Status = globalping.TestStatusFailed
 	second.Results[1].Result.RawOutput = "probe failed"
+	second.Results[1].Result.StatsRaw = nil
+	second.Results[1].Result.TimingsRaw = nil
 	ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
 
 	require.NoError(t, viewer.OutputInfinite(second))

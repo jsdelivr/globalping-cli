@@ -80,10 +80,16 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	o, newStats, newAggregatedStats := v.generateTable(hm, m, width-2)
 	hm.Stats = newStats
 	output := *o + v.getAPICreditConsumptionInfo(width)
-	v.printer.AreaUpdate(&output)
 	if m.Status != globalping.MeasurementStatusInProgress {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
+	if v.ctx.CIMode && v.ctx.Infinite && v.ctx.Table {
+		v.infiniteTableOutputMu.Lock()
+		v.infiniteTableOutput = output
+		v.infiniteTableOutputMu.Unlock()
+		return nil
+	}
+	v.printer.AreaUpdate(&output)
 	return nil
 }
 
@@ -121,7 +127,11 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
 		var row []string
-		if probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline {
+		var resultStats *MeasurementStats
+		if v.ctx.Infinite && v.ctx.Table && probeMeasurement.Result.Status == globalping.TestStatusFailed {
+			resultStats, _ = decodePingMeasurementStats(&probeMeasurement.Result)
+		}
+		if (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && resultStats == nil {
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
@@ -131,9 +141,11 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 				row = []string{"", "-", "-", "-", "-", "-", "-"}
 			}
 		} else {
-			parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
-			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)
-			newStats[i] = parsedOutput.Stats
+			if resultStats == nil {
+				resultStats = v.parsePingRawOutput(hm, probeMeasurement, -1).Stats
+			}
+			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], resultStats)
+			newStats[i] = resultStats
 			values := getRowValues(v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID))
 			row = values[:]
 		}
@@ -142,6 +154,44 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	}
 	output := v.renderPingTable(rows, areaWidth)
 	return &output, newStats, newAggregatedStats
+}
+
+func hasFailedPingStats(m *globalping.Measurement) bool {
+	for i := range m.Results {
+		if m.Results[i].Result.Status == globalping.TestStatusFailed {
+			if _, ok := decodePingMeasurementStats(&m.Results[i].Result); ok {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementStats, bool) {
+	stats, err := globalping.DecodePingStats(result.StatsRaw)
+	if err != nil || stats.Total == 0 {
+		return nil, false
+	}
+
+	decoded := NewMeasurementStats()
+	decoded.Sent = stats.Total
+	decoded.Rcv = stats.Rcv
+	decoded.Lost = stats.Drop
+	decoded.Loss = stats.Loss
+	if stats.Rcv == 0 {
+		return decoded, true
+	}
+
+	decoded.Min = stats.Min
+	decoded.Avg = stats.Avg
+	decoded.Max = stats.Max
+	decoded.Mdev = stats.Mdev
+	decoded.Tsum = stats.Avg * float64(stats.Rcv)
+	decoded.Tsum2 = float64(stats.Rcv) * (stats.Mdev*stats.Mdev + stats.Avg*stats.Avg)
+	if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
+		decoded.Last = timings[len(timings)-1].RTT
+	}
+	return decoded, true
 }
 
 func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {

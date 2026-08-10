@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/signal"
 	"slices"
@@ -91,7 +92,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		Type:              "ping",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
-		InProgressUpdates: !r.ctx.CIMode,
+		InProgressUpdates: !r.ctx.CIMode || (r.ctx.Infinite && r.ctx.Table),
 		Options: &globalping.MeasurementOptions{
 			Packets:  r.ctx.Packets,
 			Protocol: r.ctx.Protocol,
@@ -127,19 +128,31 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 		return fmt.Errorf("continuous mode is currently limited to 5 probes")
 	}
 
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	signal.Notify(r.cancel, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(r.cancel)
 
+	done := make(chan struct{})
 	var err error
 	go func() {
-		err = r.ping(ctx, opts)
-		if err != nil {
-			r.cancel <- syscall.SIGINT
-			return
-		}
+		defer close(done)
+		err = r.ping(runCtx, opts)
 	}()
-	<-r.cancel
+
+	select {
+	case <-done:
+	case <-r.cancel:
+		cancel()
+		<-done
+		if errors.Is(err, context.Canceled) {
+			err = nil
+		}
+	}
 
 	if !r.ctx.Table && !r.ctx.ToLatency {
+		r.viewer.OutputSummary()
+	} else if r.ctx.Table && r.ctx.CIMode {
 		r.viewer.OutputSummary()
 	}
 	r.evaluateError(err)
@@ -152,6 +165,9 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	r.ctx.RunSessionStartedAt = r.utils.Now()
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
 		el := mbuf.Next()
@@ -169,6 +185,9 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			err = r.viewer.OutputInfinite(measurement)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
+				return err
+			}
+			if err := ctx.Err(); err != nil {
 				return err
 			}
 			if measurement.Status != globalping.MeasurementStatusInProgress {
