@@ -36,7 +36,7 @@ type tableRenderOptions struct {
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
 	v.ctx.TableOutputRows = 0
-	if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
+	if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
 		return v.outputFailSummary(measurement)
 	}
 	v.ctx.TableOutputRows = len(measurement.Results)
@@ -93,7 +93,7 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 	row[0] = getLocationText(measurement)
 
-	if measurement.Result.Status != globalping.StatusFinished {
+	if measurement.Result.Status != globalping.TestStatusFinished {
 		return row
 	}
 
@@ -278,7 +278,7 @@ func httpTableSizeColumn(measurement *globalping.Measurement) httpSizeColumn {
 
 func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
 	for i := range results {
-		if results[i].Result.Status == globalping.StatusFinished {
+		if results[i].Result.Status == globalping.TestStatusFinished {
 			if _, ok := contentLength(results[i].Result.HeadersRaw); ok {
 				return true
 			}
@@ -289,7 +289,7 @@ func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
 
 func hasHTTPBody(results []globalping.ProbeMeasurement) bool {
 	for i := range results {
-		if results[i].Result.Status == globalping.StatusFinished {
+		if results[i].Result.Status == globalping.TestStatusFinished {
 			if length, ok := httpBodyLength(results[i].Result.RawOutput); ok && length > 0 {
 				return true
 			}

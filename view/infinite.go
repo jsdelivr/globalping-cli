@@ -21,7 +21,7 @@ var (
 
 func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
 	if len(measurement.Results) == 1 && !v.ctx.ToLatency && !v.ctx.Table {
-		if measurement.Status != globalping.StatusInProgress && !isSomeTestFinished(measurement) {
+		if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
 			return v.outputFailSummary(measurement)
 		}
 		return v.outputStreamingPackets(measurement)
@@ -61,7 +61,7 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 			v.printer.Println(parsedOutput.RawPacketLines[hm.LinesPrinted])
 			hm.LinesPrinted++
 		}
-		if m.Status != globalping.StatusInProgress {
+		if m.Status != globalping.MeasurementStatusInProgress {
 			v.ctx.AggregatedStats[0] = mergeMeasurementStats(*v.ctx.AggregatedStats[0], parsedOutput.Stats)
 		}
 	}
@@ -81,7 +81,7 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	hm.Stats = newStats
 	output := *o + v.getAPICreditConsumptionInfo(width)
 	v.printer.AreaUpdate(&output)
-	if m.Status != globalping.StatusInProgress {
+	if m.Status != globalping.MeasurementStatusInProgress {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
 	return nil
@@ -97,7 +97,7 @@ func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 
 func isSomeTestFinished(m *globalping.Measurement) bool {
 	for i := range m.Results {
-		if m.Results[i].Result.Status == globalping.StatusFinished {
+		if m.Results[i].Result.Status == globalping.TestStatusFinished {
 			return true
 		}
 	}
@@ -121,7 +121,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
 		var row []string
-		if probeMeasurement.Result.Status == globalping.StatusFailed || probeMeasurement.Result.Status == globalping.StatusOffline {
+		if probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline {
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
@@ -141,7 +141,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 }
 
 func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
-	inProgressStats := v.ctx.History.FilterByStatus(globalping.StatusInProgress)
+	inProgressStats := v.ctx.History.FilterByStatus(globalping.MeasurementStatusInProgress)
 	for i := range inProgressStats {
 		if inProgressStats[i].Id == excludeId {
 			continue

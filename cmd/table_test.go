@@ -38,7 +38,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 		t.Run(string(measurementType), func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			expectedOpts := createDefaultMeasurementCreate(measurementType)
-			expectedOpts.Locations[0].Magic = "world"
+			expectedOpts.Locations.(globalping.LocationOptions)[0].Magic = "world"
 			switch measurementType {
 			case "dns":
 				expectedOpts.Options.Query = &globalping.QueryOptions{}

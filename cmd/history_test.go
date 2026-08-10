@@ -28,7 +28,7 @@ func Test_Execute_History_Default(t *testing.T) {
 
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
 	root.UpdateHistory()
@@ -37,7 +37,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	ctx.IsLocationFromSession = true
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID2,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
 	root.UpdateHistory()
@@ -49,7 +49,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	root.UpdateHistory()
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID3,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
 	root.UpdateHistory()

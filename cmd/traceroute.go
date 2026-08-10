@@ -111,7 +111,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	r.ctx.MeasurementsCreated++
 	hm := &view.HistoryItem{
 		Id:        res.ID,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)

@@ -29,7 +29,7 @@ func Test_OutputTable_Ping_Success(t *testing.T) {
 
 func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
-	measurement.Results = append(measurement.Results, tableProbe("Paris", "FR", "Offline Network", globalping.StatusOffline))
+	measurement.Results = append(measurement.Results, tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline))
 	measurement.ProbesCount = len(measurement.Results)
 
 	output, err := renderTableForTest(t, measurement, false)
@@ -44,7 +44,7 @@ func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
 
 func Test_OutputTable_Ping_PartialFailureDoesNotParseFailureOutput(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
-	failed := tableProbe("Paris", "FR", "Failed Network", globalping.StatusFailed)
+	failed := tableProbe("Paris", "FR", "Failed Network", globalping.TestStatusFailed)
 	failed.Result.RawOutput = "short failure output"
 	measurement.Results = append(measurement.Results, failed)
 	measurement.ProbesCount = len(measurement.Results)
@@ -62,13 +62,13 @@ func Test_OutputTable_Ping_PartialFailureDoesNotParseFailureOutput(t *testing.T)
 }
 
 func Test_OutputTable_Traceroute(t *testing.T) {
-	success := tableProbe("Berlin", "DE", "Trace Network", globalping.StatusFinished)
+	success := tableProbe("Berlin", "DE", "Trace Network", globalping.TestStatusFinished)
 	success.Result.HopsRaw = json.RawMessage(`[
 		{"resolvedAddress":"192.0.2.1","timings":[{"rtt":9}]},
 		{"resolvedAddress":"192.0.2.2","timings":[{"rtt":8}]},
 		{"resolvedAddress":"192.0.2.3","timings":[{"rtt":1.2},{"rtt":2.345},{"rtt":100.4}]}
 	]`)
-	offline := tableProbe("Paris", "FR", "Offline Network", globalping.StatusOffline)
+	offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
 	measurement := tableMeasurement("traceroute", success, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
@@ -82,7 +82,7 @@ func Test_OutputTable_Traceroute(t *testing.T) {
 }
 
 func Test_OutputTable_Traceroute_LastSkipsTrailingTimeouts(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "Trace Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "Trace Network", globalping.TestStatusFinished)
 	result.Result.HopsRaw = json.RawMessage(`[
 		{"timings":[{"rtt":1.5},{"rtt":8.25},{"rtt":null}]}
 	]`)
@@ -97,7 +97,7 @@ func Test_OutputTable_Traceroute_LastSkipsTrailingTimeouts(t *testing.T) {
 }
 
 func Test_OutputTable_Traceroute_EmptyHops(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "Trace Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "Trace Network", globalping.TestStatusFinished)
 	result.Result.HopsRaw = json.RawMessage(`[]`)
 
 	output, err := renderTableForTest(t, tableMeasurement("traceroute", result), false)
@@ -110,7 +110,7 @@ func Test_OutputTable_Traceroute_EmptyHops(t *testing.T) {
 }
 
 func Test_OutputTable_Traceroute_MalformedDecodedFieldsUsePlaceholders(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "Trace Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "Trace Network", globalping.TestStatusFinished)
 	result.Result.HopsRaw = json.RawMessage(`{"not":"an array"}`)
 
 	output, err := renderTableForTest(t, tableMeasurement("traceroute", result), false)
@@ -123,12 +123,12 @@ func Test_OutputTable_Traceroute_MalformedDecodedFieldsUsePlaceholders(t *testin
 }
 
 func Test_OutputTable_MTR(t *testing.T) {
-	success := tableProbe("Berlin", "DE", "MTR Network", globalping.StatusFinished)
+	success := tableProbe("Berlin", "DE", "MTR Network", globalping.TestStatusFinished)
 	success.Result.HopsRaw = json.RawMessage(`[
 		{"resolvedAddress":"192.0.2.1","stats":{"min":2,"avg":3,"max":4},"timings":[{"rtt":3}]},
 		{"resolvedAddress":"192.0.2.2","stats":{"min":1.2345,"avg":8.3456,"max":123.4567},"timings":[{"rtt":5.5},{"rtt":12.345}]}
 	]`)
-	offline := tableProbe("Paris", "FR", "Offline Network", globalping.StatusOffline)
+	offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
 	measurement := tableMeasurement("mtr", success, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
@@ -142,7 +142,7 @@ func Test_OutputTable_MTR(t *testing.T) {
 }
 
 func Test_OutputTable_MTR_LastSkipsTrailingTimeouts(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "MTR Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "MTR Network", globalping.TestStatusFinished)
 	result.Result.HopsRaw = json.RawMessage(`[
 		{"stats":{"min":1,"avg":2,"max":3},"timings":[{"rtt":7.5},{"rtt":null}]}
 	]`)
@@ -157,7 +157,7 @@ func Test_OutputTable_MTR_LastSkipsTrailingTimeouts(t *testing.T) {
 }
 
 func Test_OutputTable_MTR_EmptyHops(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "MTR Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "MTR Network", globalping.TestStatusFinished)
 	result.Result.HopsRaw = json.RawMessage(`[]`)
 
 	output, err := renderTableForTest(t, tableMeasurement("mtr", result), false)
@@ -170,7 +170,7 @@ func Test_OutputTable_MTR_EmptyHops(t *testing.T) {
 }
 
 func Test_OutputTable_MTR_MissingDecodedFieldsUsePlaceholders(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "MTR Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "MTR Network", globalping.TestStatusFinished)
 
 	output, err := renderTableForTest(t, tableMeasurement("mtr", result), false)
 
@@ -182,7 +182,7 @@ func Test_OutputTable_MTR_MissingDecodedFieldsUsePlaceholders(t *testing.T) {
 }
 
 func Test_OutputTable_DNS(t *testing.T) {
-	success := tableProbe("Berlin", "DE", "DNS Network", globalping.StatusFinished)
+	success := tableProbe("Berlin", "DE", "DNS Network", globalping.TestStatusFinished)
 	success.Result.StatusCode = 0
 	success.Result.StatusCodeName = "NOERROR"
 	success.Result.AnswersRaw = json.RawMessage(`[
@@ -191,11 +191,11 @@ func Test_OutputTable_DNS(t *testing.T) {
 	]`)
 	success.Result.TimingsRaw = json.RawMessage(`{"total":4.567}`)
 	success.Result.Resolver = "1.1.1.1"
-	empty := tableProbe("London", "GB", "Empty DNS Network", globalping.StatusFinished)
+	empty := tableProbe("London", "GB", "Empty DNS Network", globalping.TestStatusFinished)
 	empty.Result.StatusCode = 3
 	empty.Result.AnswersRaw = json.RawMessage(`[]`)
 	empty.Result.TimingsRaw = json.RawMessage(`{"total":0}`)
-	offline := tableProbe("Paris", "FR", "Offline Network", globalping.StatusOffline)
+	offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
 	measurement := tableMeasurement("dns", success, empty, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
@@ -210,7 +210,7 @@ func Test_OutputTable_DNS(t *testing.T) {
 }
 
 func Test_OutputTable_DNS_MalformedDecodedFieldsUsePlaceholders(t *testing.T) {
-	result := tableProbe("Berlin", "DE", "DNS Network", globalping.StatusFinished)
+	result := tableProbe("Berlin", "DE", "DNS Network", globalping.TestStatusFinished)
 	result.Result.StatusCodeName = "SERVFAIL"
 	result.Result.AnswersRaw = json.RawMessage(`{"not":"an array"}`)
 	result.Result.TimingsRaw = json.RawMessage(`[]`)
@@ -225,12 +225,12 @@ func Test_OutputTable_DNS_MalformedDecodedFieldsUsePlaceholders(t *testing.T) {
 }
 
 func Test_OutputTable_DNSTraceUsesFinalHopAndOmitsStatus(t *testing.T) {
-	success := tableProbe("Berlin", "DE", "DNS Trace Network", globalping.StatusFinished)
+	success := tableProbe("Berlin", "DE", "DNS Trace Network", globalping.TestStatusFinished)
 	success.Result.HopsRaw = json.RawMessage(`[
 		{"resolver":"root.example","answers":[],"timings":{"total":1}},
 		{"resolver":"final.example","answers":[{"name":"example.com.","type":"A","ttl":60,"class":"IN","value":"192.0.2.1"}],"timings":{"total":9.876}}
 	]`)
-	malformed := tableProbe("Paris", "FR", "Malformed Trace Network", globalping.StatusFinished)
+	malformed := tableProbe("Paris", "FR", "Malformed Trace Network", globalping.TestStatusFinished)
 	malformed.Result.HopsRaw = json.RawMessage(`{"not":"an array"}`)
 	measurement := tableMeasurement("dns", success, malformed)
 
@@ -245,21 +245,21 @@ func Test_OutputTable_DNSTraceUsesFinalHopAndOmitsStatus(t *testing.T) {
 }
 
 func Test_OutputTable_HTTP(t *testing.T) {
-	validString := tableProbe("Berlin", "DE", "HTTP Network", globalping.StatusFinished)
+	validString := tableProbe("Berlin", "DE", "HTTP Network", globalping.TestStatusFinished)
 	validString.Result.StatusCode = 200
 	validString.Result.StatusCodeName = "OK"
 	validString.Result.HeadersRaw = json.RawMessage(`{"CoNtEnT-LeNgTh":" 00123 "}`)
 	validString.Result.TimingsRaw = json.RawMessage(`{"total":44}`)
 	validString.Result.ResolvedAddress = "192.0.2.10"
 
-	validNumber := tableProbe("London", "GB", "Numeric Header Network", globalping.StatusFinished)
+	validNumber := tableProbe("London", "GB", "Numeric Header Network", globalping.TestStatusFinished)
 	validNumber.Result.StatusCode = 204
 	validNumber.Result.StatusCodeName = "No Content"
 	validNumber.Result.HeadersRaw = json.RawMessage(`{"content-length":42}`)
 	validNumber.Result.TimingsRaw = json.RawMessage(`{"total":5}`)
 	validNumber.Result.ResolvedAddress = "192.0.2.11"
 
-	missing := tableProbe("Paris", "FR", "Missing Header Network", globalping.StatusFinished)
+	missing := tableProbe("Paris", "FR", "Missing Header Network", globalping.TestStatusFinished)
 	missing.Result.StatusCode = 304
 	missing.Result.HeadersRaw = json.RawMessage(`{"server":"example"}`)
 	missing.Result.RawHeaders = "content-length: 999"
@@ -267,20 +267,20 @@ func Test_OutputTable_HTTP(t *testing.T) {
 	missing.Result.TimingsRaw = json.RawMessage(`{"total":100}`)
 	missing.Result.ResolvedAddress = "192.0.2.12"
 
-	invalid := tableProbe("Prague", "CZ", "Invalid Header Network", globalping.StatusFinished)
+	invalid := tableProbe("Prague", "CZ", "Invalid Header Network", globalping.TestStatusFinished)
 	invalid.Result.StatusCode = 500
 	invalid.Result.StatusCodeName = "Internal Server Error"
 	invalid.Result.HeadersRaw = json.RawMessage(`{"CONTENT-LENGTH":"-4"}`)
 	invalid.Result.TimingsRaw = json.RawMessage(`{"total":1}`)
 	invalid.Result.ResolvedAddress = "192.0.2.13"
 
-	malformed := tableProbe("Rome", "IT", "Malformed Header Network", globalping.StatusFinished)
+	malformed := tableProbe("Rome", "IT", "Malformed Header Network", globalping.TestStatusFinished)
 	malformed.Result.StatusCode = 200
 	malformed.Result.StatusCodeName = "OK"
 	malformed.Result.HeadersRaw = json.RawMessage(`{"content-length":["12"]}`)
 	malformed.Result.TimingsRaw = json.RawMessage(`not-json`)
 
-	offline := tableProbe("Madrid", "ES", "Offline Network", globalping.StatusOffline)
+	offline := tableProbe("Madrid", "ES", "Offline Network", globalping.TestStatusOffline)
 	measurement := tableMeasurement("http", validString, validNumber, missing, invalid, malformed, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
@@ -298,17 +298,17 @@ func Test_OutputTable_HTTP(t *testing.T) {
 }
 
 func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {
-	crlf := tableProbe("Berlin", "DE", "HTTP Network", globalping.StatusFinished)
+	crlf := tableProbe("Berlin", "DE", "HTTP Network", globalping.TestStatusFinished)
 	crlf.Result.StatusCodeName = "Connection failed"
 	crlf.Result.RawOutput = "HTTP/1.1 200 OK\r\nServer: example\r\n\r\nhello"
 
-	lf := tableProbe("Paris", "FR", "Unicode Body Network", globalping.StatusFinished)
+	lf := tableProbe("Paris", "FR", "Unicode Body Network", globalping.TestStatusFinished)
 	lf.Result.StatusCode = 200
 	lf.Result.StatusCodeName = "OK"
 	lf.Result.RawOutput = "HTTP/1.1 200 OK\nServer: example\n\nžluťoučký"
 	lf.Result.Truncated = true
 
-	empty := tableProbe("Rome", "IT", "Empty Body Network", globalping.StatusFinished)
+	empty := tableProbe("Rome", "IT", "Empty Body Network", globalping.TestStatusFinished)
 	empty.Result.StatusCode = 204
 	empty.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example\r\n\r\n"
 
@@ -323,7 +323,7 @@ func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {
 		{"Rome, IT, EU, Empty Body Network (AS64500)", "204", "0 B", "-", "-"},
 	})
 
-	noBody := tableProbe("London", "GB", "No Body Network", globalping.StatusFinished)
+	noBody := tableProbe("London", "GB", "No Body Network", globalping.TestStatusFinished)
 	noBody.Result.StatusCode = 204
 	noBody.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example"
 	output, err = renderTableForTest(t, tableMeasurement("http", noBody), false)
@@ -417,11 +417,11 @@ func Test_RenderMeasurementTable_TruncatesLocationBeforeTimings(t *testing.T) {
 }
 
 func Test_OutputTableThenShare_SeparatesMultiRowTable(t *testing.T) {
-	first := tableProbe("Berlin", "DE", "DNS Network", globalping.StatusFinished)
+	first := tableProbe("Berlin", "DE", "DNS Network", globalping.TestStatusFinished)
 	first.Result.StatusCodeName = "NOERROR"
 	first.Result.AnswersRaw = json.RawMessage(`[]`)
 	first.Result.TimingsRaw = json.RawMessage(`{"total":1}`)
-	second := tableProbe("Paris", "FR", "DNS Network", globalping.StatusFinished)
+	second := tableProbe("Paris", "FR", "DNS Network", globalping.TestStatusFinished)
 	second.Result.StatusCodeName = "NOERROR"
 	second.Result.AnswersRaw = json.RawMessage(`[]`)
 	second.Result.TimingsRaw = json.RawMessage(`{"total":2}`)
@@ -445,9 +445,9 @@ func Test_OutputTableThenShare_SeparatesMultiRowTable(t *testing.T) {
 func Test_OutputTable_AllFailedPreservesProbeErrors(t *testing.T) {
 	for _, measurementType := range []globalping.MeasurementType{"ping", "traceroute", "mtr", "dns", "http"} {
 		t.Run(string(measurementType), func(t *testing.T) {
-			failed := tableProbe("Berlin", "DE", "Failed Network", globalping.StatusFailed)
+			failed := tableProbe("Berlin", "DE", "Failed Network", globalping.TestStatusFailed)
 			failed.Result.RawOutput = "measurement failed"
-			offline := tableProbe("Paris", "FR", "Offline Network", globalping.StatusOffline)
+			offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
 			offline.Result.RawOutput = "This probe is currently offline. Please try again later."
 			measurement := tableMeasurement(measurementType, failed, offline)
 
@@ -468,13 +468,13 @@ func tableMeasurement(measurementType globalping.MeasurementType, results ...glo
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Type:        measurementType,
-		Status:      globalping.StatusFinished,
+		Status:      globalping.MeasurementStatusFinished,
 		ProbesCount: len(results),
 		Results:     results,
 	}
 }
 
-func tableProbe(city, country, network string, status globalping.MeasurementStatus) globalping.ProbeMeasurement {
+func tableProbe(city, country, network string, status globalping.TestStatus) globalping.ProbeMeasurement {
 	return globalping.ProbeMeasurement{
 		Probe: globalping.ProbeDetails{
 			City:      city,

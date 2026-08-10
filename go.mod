@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/icza/backscanner v0.0.0-20241124160932-dff01ac50250
-	github.com/jsdelivr/globalping-go v0.1.1-0.20251125110013-2813a850a61f
+	github.com/jsdelivr/globalping-go v0.2.0
 	github.com/mattn/go-runewidth v0.0.19
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible

@@ -171,16 +171,16 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 				r.Cmd.SilenceUsage = true
 				return err
 			}
-			if measurement.Status != globalping.StatusInProgress {
+			if measurement.Status != globalping.MeasurementStatusInProgress {
 				mbuf.Remove(el)
 			} else {
-				el.ProbeStatus = make([]globalping.MeasurementStatus, len(measurement.Results))
+				el.ProbeStatus = make([]globalping.TestStatus, len(measurement.Results))
 				for i := range measurement.Results {
 					el.ProbeStatus[i] = measurement.Results[i].Result.Status
 				}
 			}
 			if runErr == nil && mbuf.CanAppend() {
-				opts.Locations = []globalping.Locations{{Magic: r.ctx.History.Last().Id}}
+				opts.Locations = globalping.PreviousMeasurementID(r.ctx.History.Last().Id)
 				start := r.utils.Now()
 				hm, err := r.createMeasurement(ctx, opts)
 				if err != nil {
@@ -201,7 +201,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 		}
 		last := r.ctx.History.Last()
 		if last != nil {
-			opts.Locations = []globalping.Locations{{Magic: last.Id}}
+			opts.Locations = globalping.PreviousMeasurementID(last.Id)
 		}
 		hm, err := r.createMeasurement(ctx, opts)
 		if err != nil {
@@ -220,7 +220,7 @@ func (r *Root) createMeasurement(ctx context.Context, opts *globalping.Measureme
 	r.ctx.MeasurementsCreated++
 	hm := &view.HistoryItem{
 		Id:        res.ID,
-		Status:    globalping.StatusInProgress,
+		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
@@ -296,7 +296,7 @@ func (b *MeasurementsBuffer) CanAppend() bool {
 			return false
 		}
 		for j := range b.items[i].ProbeStatus {
-			inProgressMat[j] = inProgressMat[j] || b.items[i].ProbeStatus[j] != globalping.StatusFinished
+			inProgressMat[j] = inProgressMat[j] || b.items[i].ProbeStatus[j] != globalping.TestStatusFinished
 		}
 	}
 	for _, inProgress := range inProgressMat {
