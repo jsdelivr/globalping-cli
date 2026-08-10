@@ -2,6 +2,7 @@ package view
 
 import (
 	"bytes"
+	"encoding/json"
 	"math"
 	"testing"
 	"time"
@@ -263,6 +264,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	measurement.Status = globalping.MeasurementStatusInProgress
 	measurement.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
+	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
+	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
 
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
@@ -291,6 +294,8 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
 no answer yet for icmp_seq=2`
+	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":17.6,"avg":17.6,"max":17.6,"total":2,"rcv":1,"drop":1,"loss":50,"mdev":0}`)
+	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":52,"rtt":17.6}]`)
 
 	// Call 2
 	expectedOutput += "\033[4A\033[0J" +
@@ -318,6 +323,8 @@ no answer yet for icmp_seq=2
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 2002ms
 rtt min/avg/max/mdev = 17.006/17.333/17.648/0.321 ms`
+	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":17.006,"avg":17.333,"max":17.648,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":0.321}`)
+	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":17.6},{"ttl":30,"rtt":17.3},{"ttl":10,"rtt":17}]`)
 
 	// Call 3
 	expectedOutput += "\033[4A\033[0J" +
@@ -331,9 +338,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
-		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 2002, Tsum: 51.9, Tsum2: 898.05, Mdev: 0.2449},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Tsum: 51.999, Tsum2: 901.60779, Mdev: 0.321},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}
 	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
@@ -342,6 +349,8 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	// Call 4
 	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
 	measurement2.Results[0].Result.RawOutput = measurement.Results[0].Result.RawOutput
+	measurement2.Results[0].Result.StatsRaw = measurement.Results[0].Result.StatsRaw
+	measurement2.Results[0].Result.TimingsRaw = measurement.Results[0].Result.TimingsRaw
 
 	ctx.History.Push(&HistoryItem{
 		Id:        measurementID2,
@@ -352,9 +361,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
-		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17, Avg: 17.3, Max: 17.6, Time: 4004, Tsum: 103.8, Tsum2: 1796.1, Mdev: 0.2449},
-		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 400, Tsum: 10.92, Tsum2: 59.6232},
-		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 600, Tsum: 8.14, Tsum2: 33.1298},
+		{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 17, Min: 17.006, Avg: 17.333, Max: 17.648, Tsum: 103.998, Tsum2: 1803.21558, Mdev: 0.321},
+		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 10.914, Tsum2: 59.557698},
+		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 8.138, Tsum2: 33.113522},
 	}
 	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
 	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
@@ -382,8 +391,12 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	measurement1.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms`
+	measurement1.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":10,"max":10,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`)
+	measurement1.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":10}]`)
 	measurement1.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
+	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
+	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[]`)
 
 	ctx := createDefaultContext("ping")
 	hm1 := ctx.History.Find(measurementID1)
@@ -407,9 +420,13 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	measurement2.Status = globalping.MeasurementStatusInProgress
 	measurement2.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
+	measurement2.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
+	measurement2.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
 	measurement2.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms`
+	measurement2.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":20,"max":20,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`)
+	measurement2.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20}]`)
 	ctx.History.Push(&HistoryItem{
 		Id:        measurementID2,
 		Status:    globalping.MeasurementStatusInProgress,
@@ -432,6 +449,8 @@ Consuming ~360 API credits/minute.
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
+	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":22.5,"max":25,"total":2,"rcv":2,"drop":0,"loss":0,"mdev":2.5}`)
+	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20},{"ttl":30,"rtt":25}]`)
 
 	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -455,6 +474,8 @@ Consuming ~360 API credits/minute.
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 10/15/25/5 ms`
+	measurement1.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":16.667,"max":25,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":6.236}`)
+	measurement1.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":10},{"ttl":30,"rtt":15},{"ttl":30,"rtt":25}]`)
 	measurement1.Results[1].Result.Status = globalping.TestStatusFinished
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
@@ -464,6 +485,8 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 200ms
 rtt min/avg/max/mdev = 20/25/30/5 ms`
+	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":25,"max":30,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":4.082}`)
+	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20},{"ttl":30,"rtt":25},{"ttl":30,"rtt":30}]`)
 	hm1.Status = globalping.MeasurementStatusFinished
 
 	expectedOutput += "\033[5A\033[0J" +
@@ -487,6 +510,8 @@ Consuming ~360 API credits/minute.
 ---  ping statistics ---
 3 packets transmitted, 3 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 10/15/25/5 ms`
+	measurement2.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":16.667,"max":25,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":6.236}`)
+	measurement2.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":10},{"ttl":30,"rtt":15},{"ttl":30,"rtt":25}]`)
 
 	err = viewer.OutputInfinite(measurement2)
 	assert.NoError(t, err)
@@ -525,9 +550,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assert.Equal(t, expectedOutput, w.String())
 	assert.Equal(t,
 		[]*MeasurementStats{
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 		},
 		ctx.AggregatedStats,
 	)
@@ -599,12 +624,14 @@ func Test_GenerateTable_Full(t *testing.T) {
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	viewer := &viewer{ctx: ctx, printer: printer}
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generateTable(hm, measurement, 500)
+	for i := range measurement.Results {
+		measurement.Results[i].Result.RawOutput = "ping: unknown host"
+	}
+	table, _, stats := viewer.generateTable(measurement, 500)
 
 	expectedTable := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -613,9 +640,9 @@ func Test_GenerateTable_Full(t *testing.T) {
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, "", w.String())
 	assert.Equal(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}, stats)
 }
 
@@ -627,14 +654,13 @@ func Test_GenerateTable_StylingDisabled(t *testing.T) {
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generateTable(hm, measurement, 500)
+	table, _, stats := viewer.generateTable(measurement, 500)
 
 	expectedTable := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
@@ -644,9 +670,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, "", w.String())
 	assert.Equal(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}, stats)
 }
 
@@ -657,13 +683,12 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	hm := ctx.History.Find(measurementID1)
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
-	table, _, stats := viewer.generateTable(hm, measurement, 104)
+	table, _, stats := viewer.generateTable(measurement, 104)
 
 	expectedTable := "\033[96mLocation                                    \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -672,9 +697,9 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}, stats)
 }
 
@@ -685,13 +710,12 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	hm := ctx.History.Find(measurementID1)
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
-	table, _, stats := viewer.generateTable(hm, measurement, 99)
+	table, _, stats := viewer.generateTable(measurement, 99)
 
 	expectedTable := "\033[96mLocation                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -702,9 +726,9 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}, stats)
 }
 
@@ -715,12 +739,11 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	hm := ctx.History.Find(measurementID1)
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generateTable(hm, measurement, 0)
+	table, _, stats := viewer.generateTable(measurement, 0)
 
 	expectedTable := "\033[96mLoc...\033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"Lon... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -729,9 +752,9 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 	assert.Equal(t, expectedTable, *table)
 
 	assert.Equal(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Time: 100, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.46, Avg: 5.46, Max: 5.46, Time: 200, Tsum: 5.46, Tsum2: 29.8116},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.07, Avg: 4.07, Max: 4.07, Time: 300, Tsum: 4.07, Tsum2: 16.5649},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
 	}, stats)
 }
 

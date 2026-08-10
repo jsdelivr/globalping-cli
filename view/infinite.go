@@ -77,7 +77,7 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	}
 	hm := v.ctx.History.Find(m.ID)
 	width, _ := v.printer.GetSize()
-	o, newStats, newAggregatedStats := v.generateTable(hm, m, width-2)
+	o, newStats, newAggregatedStats := v.generateTable(m, width-2)
 	hm.Stats = newStats
 	output := *o + v.getAPICreditConsumptionInfo(width)
 	if m.Status != globalping.MeasurementStatusInProgress {
@@ -120,18 +120,16 @@ func formatDuration(ms float64) string {
 	return fmt.Sprintf("%.0f ms", ms)
 }
 
-func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
+func (v *viewer) generateTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
 	rows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
 	newStats := make([]*MeasurementStats, len(m.Results))
 	for i := range m.Results {
 		probeMeasurement := &m.Results[i]
 		var row []string
-		var resultStats *MeasurementStats
-		if v.ctx.Infinite && v.ctx.Table && probeMeasurement.Result.Status == globalping.TestStatusFailed {
-			resultStats, _ = decodePingMeasurementStats(&probeMeasurement.Result)
-		}
-		if (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && resultStats == nil {
+		resultStats, hasPacketStats := decodePingMeasurementStats(&probeMeasurement.Result)
+		useFailedPacketStats := v.ctx.Infinite && v.ctx.Table && probeMeasurement.Result.Status == globalping.TestStatusFailed && hasPacketStats
+		if (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !useFailedPacketStats {
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
@@ -142,7 +140,7 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 			}
 		} else {
 			if resultStats == nil {
-				resultStats = v.parsePingRawOutput(hm, probeMeasurement, -1).Stats
+				resultStats = NewMeasurementStats()
 			}
 			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], resultStats)
 			newStats[i] = resultStats
