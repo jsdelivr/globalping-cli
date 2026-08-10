@@ -29,6 +29,10 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 	if r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency || r.ctx.Table {
 		res, err := r.client.AwaitMeasurement(ctx, id)
 		if err != nil {
+			if r.ctx.Table {
+				r.Cmd.SilenceUsage = true
+				r.viewer.OutputShare()
+			}
 			return err
 		}
 
