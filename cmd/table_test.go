@@ -108,4 +108,20 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 
 		require.NoError(t, root.handleMeasurement(t.Context(), measurement.ID, nil))
 	})
+
+	t.Run("table output error suppresses usage", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		measurement := createDefaultMeasurement("ping")
+		client := apiMocks.NewMockClient(ctrl)
+		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		viewer := viewMocks.NewMockViewer(ctrl)
+		viewer.EXPECT().OutputTable(measurement).Return(assert.AnError)
+		viewer.EXPECT().OutputShare()
+		ctx := createDefaultContext("ping")
+		ctx.Table = true
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+
+		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), assert.AnError)
+		assert.True(t, root.Cmd.SilenceUsage)
+	})
 }

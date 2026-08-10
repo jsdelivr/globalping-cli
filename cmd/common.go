@@ -35,6 +35,9 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		if r.ctx.Table {
 			err := r.viewer.OutputTable(res)
 			r.viewer.OutputShare()
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+			}
 			return err
 		}
 
