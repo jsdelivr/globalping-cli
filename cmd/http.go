@@ -143,8 +143,7 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	r.handleMeasurement(ctx, res.ID, opts)
-	return nil
+	return r.handleMeasurement(ctx, res.ID, opts)
 }
 
 const PostMeasurementTypeHttp = "http"
