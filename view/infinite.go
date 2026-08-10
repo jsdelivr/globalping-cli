@@ -125,7 +125,11 @@ func (v *viewer) generateTable(hm *HistoryItem, m *globalping.Measurement, areaW
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
-			row = []string{"", "-", "-", "-", "-", "-", "-"}
+			if probeMeasurement.Result.Status == globalping.TestStatusFailed && !v.ctx.Infinite {
+				row = []string{"", failureTableMessage(&probeMeasurement.Result)}
+			} else {
+				row = []string{"", "-", "-", "-", "-", "-", "-"}
+			}
 		} else {
 			parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, -1)
 			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], parsedOutput.Stats)

@@ -42,23 +42,102 @@ func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
 	})
 }
 
-func Test_OutputTable_Ping_PartialFailureDoesNotParseFailureOutput(t *testing.T) {
+func Test_OutputTable_Ping_PartialFailureShowsFailureDetails(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
 	failed := tableProbe("Paris", "FR", "Failed Network", globalping.TestStatusFailed)
-	failed.Result.RawOutput = "short failure output"
+	failed.Result.FailureSource = globalping.FailureSourceResolver
+	failed.Result.RawOutput = "\r\n \r\n resolver lookup failed \r\nignored"
 	measurement.Results = append(measurement.Results, failed)
 	measurement.ProbesCount = len(measurement.Results)
 
 	output, ctx, err := renderTableWithContextForTest(t, measurement, false, 0)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, Deutsche Telekom AG (AS3320)", "1", "0.00%", "17.6 ms", "17.6 ms", "17.6 ms", "17.6 ms"},
-		{"Paris, FR, EU, Failed Network (AS64500)", "-", "-", "-", "-", "-", "-"},
-	})
+	}, "Paris, FR, EU, Failed Network (AS64500)", "Resolver error: resolver lookup failed")
 	assert.Equal(t, NewMeasurementStats(), ctx.AggregatedStats[1])
 	assert.Equal(t, NewMeasurementStats(), ctx.History.Find(measurement.ID).Stats[1])
+}
+
+func Test_FailureTableMessage_MapsFailureSources(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		failureSource globalping.FailureSource
+		expected      string
+	}{
+		{name: "target", failureSource: globalping.FailureSourceTarget, expected: "Target error: details"},
+		{name: "resolver", failureSource: globalping.FailureSourceResolver, expected: "Resolver error: details"},
+		{name: "internal", failureSource: globalping.FailureSourceInternal, expected: "Internal error: details"},
+		{name: "null", expected: "Error: details"},
+		{name: "unknown", failureSource: globalping.FailureSource("other"), expected: "Error: details"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result := globalping.ProbeResult{FailureSource: test.failureSource, RawOutput: "details"}
+
+			assert.Equal(t, test.expected, failureTableMessage(&result))
+		})
+	}
+}
+
+func Test_FailureTableMessage_SelectsFirstNonEmptyLine(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		rawOutput string
+		expected  string
+	}{
+		{name: "LF", rawOutput: "\n \n first line \nsecond line", expected: "Error: first line"},
+		{name: "CRLF", rawOutput: "\r\n\t\r\n first line \r\nsecond line", expected: "Error: first line"},
+		{name: "empty", expected: "Error"},
+		{name: "whitespace", rawOutput: " \r\n\t\n  ", expected: "Error"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			result := globalping.ProbeResult{RawOutput: test.rawOutput}
+
+			assert.Equal(t, test.expected, failureTableMessage(&result))
+		})
+	}
+}
+
+func Test_OutputTable_DNS_MixedSuccessAndFailure(t *testing.T) {
+	success := tableProbe("Berlin", "DE", "DNS Network", globalping.TestStatusFinished)
+	success.Result.StatusCodeName = "NOERROR"
+	success.Result.AnswersRaw = json.RawMessage(`[]`)
+	success.Result.TimingsRaw = json.RawMessage(`{"total":1}`)
+	success.Result.Resolver = "192.0.2.53"
+	failed := tableProbe("Paris", "FR", "Failed Network", globalping.TestStatusFailed)
+	failed.Result.FailureSource = globalping.FailureSourceTarget
+	failed.Result.RawOutput = "connection refused"
+
+	output, err := renderTableForTest(t, tableMeasurement("dns", success, failed), false)
+
+	require.NoError(t, err)
+	assertTableWithFailureForTest(t, output, [][]string{
+		{"Location", "Status", "Answers", "Time", "Resolver"},
+		{"Berlin, DE, EU, DNS Network (AS64500)", "NOERROR", "0", "1 ms", "192.0.2.53"},
+	}, "Paris, FR, EU, Failed Network (AS64500)", "Target error: connection refused")
+}
+
+func Test_GenerateMeasurementTable_TruncatesFailureToWidth(t *testing.T) {
+	success := tableProbe("Berlin", "DE", "DNS Network", globalping.TestStatusFinished)
+	success.Result.StatusCodeName = "NOERROR"
+	failed := tableProbe("Paris", "FR", "Failed Network", globalping.TestStatusFailed)
+	failed.Result.FailureSource = globalping.FailureSourceInternal
+	failed.Result.RawOutput = "世界世界世界世界世界世界世界世界世界世界 long failure details"
+	measurement := tableMeasurement("dns", success, failed)
+	printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
+	printer.DisableStyling()
+	v := &viewer{ctx: createDefaultContext("dns"), printer: printer}
+
+	output := v.generateMeasurementTable(measurement, 56)
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+
+	require.Len(t, lines, 3)
+	assert.LessOrEqual(t, runewidth.StringWidth(lines[2]), 56)
+	assert.Equal(t, 1, strings.Count(lines[2], colSeparator))
+	assert.Contains(t, lines[2], "Internal error:")
+	assert.True(t, strings.HasSuffix(strings.TrimSpace(lines[2]), "..."))
 }
 
 func Test_OutputTable_Traceroute(t *testing.T) {
@@ -527,6 +606,20 @@ func assertTableForTest(t *testing.T, output string, expected [][]string) {
 		}
 		assert.Equal(t, expected[i], parts, "unexpected cells on output line %d", i+1)
 	}
+}
+
+func assertTableWithFailureForTest(t *testing.T, output string, expectedRows [][]string, failureLocation, failureMessage string) {
+	t.Helper()
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	require.Len(t, lines, len(expectedRows)+1)
+	assertTableForTest(t, strings.Join(lines[:len(expectedRows)], "\n")+"\n", expectedRows)
+
+	headerSeparatorOffsets := tableSeparatorOffsetsForTest(lines[0])
+	failureParts := strings.Split(lines[len(lines)-1], colSeparator)
+	require.Len(t, failureParts, 2)
+	assert.Equal(t, headerSeparatorOffsets[0], tableSeparatorOffsetsForTest(lines[len(lines)-1])[0])
+	assert.Equal(t, failureLocation, strings.TrimSpace(failureParts[0]))
+	assert.Equal(t, failureMessage, strings.TrimSpace(failureParts[1]))
 }
 
 func tableSeparatorOffsetsForTest(line string) []int {

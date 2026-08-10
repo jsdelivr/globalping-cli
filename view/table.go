@@ -93,6 +93,9 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 	row[0] = getLocationText(measurement)
 
+	if measurement.Result.Status == globalping.TestStatusFailed {
+		return []string{row[0], failureTableMessage(&measurement.Result)}
+	}
 	if measurement.Result.Status != globalping.TestStatusFinished {
 		return row
 	}
@@ -113,6 +116,25 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 
 	return row
+}
+
+func failureTableMessage(result *globalping.ProbeResult) string {
+	label := "Error"
+	switch result.FailureSource {
+	case globalping.FailureSourceTarget:
+		label = "Target error"
+	case globalping.FailureSourceResolver:
+		label = "Resolver error"
+	case globalping.FailureSourceInternal:
+		label = "Internal error"
+	}
+
+	for _, line := range strings.Split(result.RawOutput, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			return label + ": " + line
+		}
+	}
+	return label
 }
 
 type tracerouteTableTiming struct {
@@ -408,9 +430,12 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 	}
 
 	columnWidths := make([]int, len(rows[0]))
-	for _, row := range rows {
+	for rowIndex, row := range rows {
 		for column, value := range row {
 			if column < len(columnWidths) {
+				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == 1 {
+					continue
+				}
 				width := runewidth.StringWidth(value)
 				if column == 0 && options.measureLocationBytes {
 					width = len(value)
@@ -438,6 +463,9 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 				if len(rows[rowIndex]) <= statusColumn {
 					continue
 				}
+				if isSpanningRow(rows[rowIndex], len(columnWidths)) {
+					continue
+				}
 				status := rows[rowIndex][statusColumn]
 				if code, ok := httpStatusCode(status); ok {
 					adjustedRows[rowIndex] = append([]string(nil), rows[rowIndex]...)
@@ -453,6 +481,9 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 	if options.minimumTrailingWidth > 0 {
 		trailingWidth := options.minimumTrailingWidth
 		for _, row := range rows[1:] {
+			if isSpanningRow(row, len(columnWidths)) {
+				continue
+			}
 			rowWidth := 0
 			for column := 1; column < len(row); column++ {
 				rowWidth += len(row[column]) + len(colSeparator)
@@ -487,6 +518,23 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 				line = v.printer.Color(line, color)
 			}
 			output.WriteString(line)
+			if isSpanningRow(row, len(columnWidths)) {
+				output.WriteString(colSeparator)
+				value := ""
+				if lineIndex == 0 {
+					value = strings.ReplaceAll(row[1], "\t", "  ")
+				}
+				availableWidth := max(areaWidth-columnWidths[0]-runewidth.StringWidth(colSeparator), 0)
+				spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 2)
+				for _, width := range columnWidths[1:] {
+					spanWidth += width
+				}
+				spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
+				value = truncateTableCell(value, spanWidth)
+				output.WriteString(padTableCell(value, spanWidth, false))
+				output.WriteByte('\n')
+				continue
+			}
 
 			for column := 1; column < len(row); column++ {
 				output.WriteString(colSeparator)
@@ -505,6 +553,10 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 		}
 	}
 	return output.String()
+}
+
+func isSpanningRow(row []string, columns int) bool {
+	return columns > 2 && len(row) == 2
 }
 
 func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkableColumns []int) {
