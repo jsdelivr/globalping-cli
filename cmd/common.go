@@ -33,11 +33,9 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		}
 
 		if r.ctx.Table {
-			if err := r.viewer.OutputTable(res); err != nil {
-				return err
-			}
+			err := r.viewer.OutputTable(res)
 			r.viewer.OutputShare()
-			return nil
+			return err
 		}
 
 		if r.ctx.ToLatency {
