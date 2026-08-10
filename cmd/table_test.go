@@ -65,7 +65,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
 			oldArgs := os.Args
 			t.Cleanup(func() { os.Args = oldArgs })
-			os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--ci"}
+			os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--latency", "--ci"}
 
 			err := root.Cmd.ExecuteContext(t.Context())
 

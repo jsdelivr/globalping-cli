@@ -70,7 +70,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
-	if r.ctx.ToLatency {
+	if r.ctx.ToLatency && !r.ctx.Table {
 		return fmt.Errorf("the latency flag is not supported by the mtr command")
 	}
 
