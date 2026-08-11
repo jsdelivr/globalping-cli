@@ -210,7 +210,13 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			el = mbuf.Next()
 		}
 		if mbuf.Len() > 0 {
-			time.Sleep(r.ctx.APIMinInterval - elapsedTime)
+			timer := time.NewTimer(r.ctx.APIMinInterval - elapsedTime)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
 			continue
 		}
 		if runErr != nil {
