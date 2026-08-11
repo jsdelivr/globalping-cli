@@ -41,7 +41,8 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
 	v.ctx.TableOutputRows = 0
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
 	renderFailedTable := allProbesFailed && v.ctx.Table && !v.ctx.Infinite
-	if allProbesFailed && !renderFailedTable && !(v.ctx.Infinite && v.ctx.Table && hasFailedPingStats(measurement)) {
+	renderFailedInfiniteTable := allProbesFailed && v.ctx.Infinite && v.ctx.Table && hasFailedPingStats(measurement)
+	if allProbesFailed && !renderFailedTable && !renderFailedInfiniteTable {
 		if v.ctx.Infinite {
 			v.clearInfiniteTableOutput()
 		}
