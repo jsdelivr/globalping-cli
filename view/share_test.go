@@ -31,6 +31,7 @@ func Test_OutputShare(t *testing.T) {
 		ctx.History.Push(&HistoryItem{Id: measurementID1})
 		ctx.Share = true
 		ctx.Table = true
+		ctx.TableOutputRows = 1
 		w := new(bytes.Buffer)
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
@@ -39,7 +40,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
-		expectedOutput := fmt.Sprintf("> View the results online: https://globalping.io?measurement=%s&display=table\n", measurementID1)
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://globalping.io?measurement=%s&display=table\n", measurementID1)
 		assert.Equal(t, expectedOutput, errw.String())
 	})
 
