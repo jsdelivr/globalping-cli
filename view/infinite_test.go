@@ -245,13 +245,13 @@ func Test_OutputInfinite_FailedProbePreservesPriorAggregate(t *testing.T) {
 	first.ProbesCount = len(first.Results)
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
-	ctx.Table = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
 	viewer := NewViewer(ctx, printer, nil)
 
 	require.NoError(t, viewer.OutputInfinite(first))
+	assert.True(t, ctx.Table)
 	priorAggregate := *ctx.AggregatedStats[1]
 
 	second := createPingMeasurement_MultipleProbes(measurementID2)

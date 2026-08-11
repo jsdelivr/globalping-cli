@@ -22,6 +22,9 @@ var (
 )
 
 func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
+	if v.ctx.Infinite && len(measurement.Results) > 1 && !v.ctx.ToLatency {
+		v.ctx.Table = true
+	}
 	if len(measurement.Results) == 1 && !v.ctx.ToLatency && !v.ctx.Table {
 		if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
 			return v.outputFailSummary(measurement)
