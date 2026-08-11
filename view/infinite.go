@@ -101,6 +101,13 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	return nil
 }
 
+func (v *viewer) clearInfiniteTableOutput() {
+	v.printer.AreaClear()
+	v.infiniteTableOutputMu.Lock()
+	v.infiniteTableOutput = ""
+	v.infiniteTableOutputMu.Unlock()
+}
+
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
 		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))

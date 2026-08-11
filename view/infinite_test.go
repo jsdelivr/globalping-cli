@@ -185,12 +185,6 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 }
 
 func Test_OutputInfinite_Table_AllFailedWithoutStats(t *testing.T) {
-	measurement := createPingMeasurement(measurementID1)
-	measurement.Results[0].Result.Status = globalping.TestStatusFailed
-	measurement.Results[0].Result.RawOutput = "ping: unknown host"
-	measurement.Results[0].Result.StatsRaw = nil
-	measurement.Results[0].Result.TimingsRaw = nil
-
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
 	ctx.Table = true
@@ -198,12 +192,26 @@ func Test_OutputInfinite_Table_AllFailedWithoutStats(t *testing.T) {
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
 	viewer := NewViewer(ctx, printer, nil)
+	require.NoError(t, viewer.OutputInfinite(createPingMeasurement(measurementID1)))
+	w.Reset()
+
+	measurement := createPingMeasurement(measurementID2)
+	measurement.Results[0].Result.Status = globalping.TestStatusFailed
+	measurement.Results[0].Result.RawOutput = "ping: unknown host"
+	measurement.Results[0].Result.StatsRaw = nil
+	measurement.Results[0].Result.TimingsRaw = nil
+	ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
 
 	err := viewer.OutputInfinite(measurement)
+	failureOutput := w.String()
+	viewer.OutputSummary()
 
 	assert.EqualError(t, err, "all probes failed")
-	assert.Contains(t, w.String(), "ping: unknown host")
-	assert.Nil(t, ctx.AggregatedStats)
+	assert.Equal(t, failureOutput, w.String())
+	assert.Equal(t, "\033[2A\033[0J"+`> Berlin, DE, EU, Deutsche Telekom AG (AS3320)
+ping: unknown host
+`, failureOutput)
+	assert.Equal(t, 0, ctx.TableOutputRows)
 }
 
 func Test_OutputInfinite_Table_FailedWithPacketStats(t *testing.T) {

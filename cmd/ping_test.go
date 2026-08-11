@@ -453,7 +453,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).Return(errors.New("error message"))
-	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputSummary().Times(0)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
@@ -518,7 +518,7 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(waitFn)
 
-	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputSummary().Times(0)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
