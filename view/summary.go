@@ -6,11 +6,18 @@ import (
 )
 
 func (v *viewer) OutputSummary() {
-	if v.ctx.Infinite && v.ctx.Table && v.ctx.CIMode {
+	if v.ctx.Infinite && v.ctx.Table {
 		v.infiniteTableOutputMu.RLock()
 		output := v.infiniteTableOutput
 		v.infiniteTableOutputMu.RUnlock()
-		v.printer.Print(output)
+		if output == "" {
+			return
+		}
+		if v.ctx.CIMode {
+			v.printer.Print(output)
+		} else {
+			v.printer.AreaUpdate(&output)
+		}
 		return
 	}
 

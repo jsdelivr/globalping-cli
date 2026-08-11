@@ -148,7 +148,12 @@ func Test_OutputTable_Traceroute(t *testing.T) {
 		{"resolvedAddress":"192.0.2.3","timings":[{"rtt":1.2},{"rtt":2.345},{"rtt":100.4}]}
 	]`)
 	offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
-	measurement := tableMeasurement("traceroute", success, offline)
+	timedOut := tableProbe("Falkenstein", "DE", "Timed Out Network", globalping.TestStatusFinished)
+	timedOut.Result.HopsRaw = json.RawMessage(`[
+		{"timings":[{"rtt":1.5}]},
+		{"timings":[]}
+	]`)
+	measurement := tableMeasurement("traceroute", success, timedOut, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
 
@@ -156,6 +161,7 @@ func Test_OutputTable_Traceroute(t *testing.T) {
 	assertTableForTest(t, output, [][]string{
 		{"Location", "Hops", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, Trace Network (AS64500)", "3", "100 ms", "1.20 ms", "34.6 ms", "100 ms"},
+		{"Falkenstein, DE, EU, Timed Out Network (AS64500)", "2", tableTimeoutValue, tableTimeoutValue, tableTimeoutValue, tableTimeoutValue},
 		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
 	})
 }
@@ -208,7 +214,12 @@ func Test_OutputTable_MTR(t *testing.T) {
 		{"resolvedAddress":"192.0.2.2","stats":{"min":1.2345,"avg":8.3456,"max":123.4567},"timings":[{"rtt":5.5},{"rtt":12.345}]}
 	]`)
 	offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
-	measurement := tableMeasurement("mtr", success, offline)
+	timedOut := tableProbe("Falkenstein", "DE", "Timed Out Network", globalping.TestStatusFinished)
+	timedOut.Result.HopsRaw = json.RawMessage(`[
+		{"stats":{"min":1,"avg":2,"max":3},"timings":[{"rtt":2}]},
+		{"stats":{"min":null,"avg":null,"max":null},"timings":[]}
+	]`)
+	measurement := tableMeasurement("mtr", success, timedOut, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
 
@@ -216,6 +227,7 @@ func Test_OutputTable_MTR(t *testing.T) {
 	assertTableForTest(t, output, [][]string{
 		{"Location", "Hops", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, MTR Network (AS64500)", "2", "12.3 ms", "1.23 ms", "8.35 ms", "123 ms"},
+		{"Falkenstein, DE, EU, Timed Out Network (AS64500)", "2", tableTimeoutValue, tableTimeoutValue, tableTimeoutValue, tableTimeoutValue},
 		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
 	})
 }

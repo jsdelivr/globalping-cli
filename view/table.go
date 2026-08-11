@@ -12,7 +12,10 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
-const colSeparator = " | "
+const (
+	colSeparator      = " | "
+	tableTimeoutValue = "time out"
+)
 
 var httpBodySeparator = regexp.MustCompile(`\r?\n\r?\n`)
 
@@ -157,6 +160,9 @@ func tracerouteTableValues(raw json.RawMessage) []string {
 	if len(hops) == 0 {
 		return values
 	}
+	for i := 1; i < len(values); i++ {
+		values[i] = tableTimeoutValue
+	}
 	timings := hops[len(hops)-1].Timings
 	if len(timings) == 0 {
 		return values
@@ -216,6 +222,9 @@ func mtrTableValues(raw json.RawMessage) []string {
 	values[0] = strconv.Itoa(len(hops))
 	if len(hops) == 0 {
 		return values
+	}
+	for i := 1; i < len(values); i++ {
+		values[i] = tableTimeoutValue
 	}
 	lastHop := hops[len(hops)-1]
 	if lastRTT := lastTimingRTT(lastHop.Timings); lastRTT != nil {

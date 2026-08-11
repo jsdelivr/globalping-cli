@@ -160,7 +160,10 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 
 func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
+	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":3,"rcv":0,"drop":3,"loss":100,"mdev":0}`)
+	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	ctx.Table = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
@@ -173,6 +176,11 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	assert.Contains(t, w.String(), "Location")
 	assert.Contains(t, w.String(), "Sent")
 	assert.NotContains(t, w.String(), "PING ")
+	assert.NotContains(t, w.String(), tableTimeoutValue)
+
+	viewer.OutputSummary()
+
+	assert.Contains(t, w.String(), tableTimeoutValue)
 	assert.Equal(t, 1, ctx.TableOutputRows)
 }
 
@@ -617,7 +625,7 @@ func Test_FormatDuration(t *testing.T) {
 	assert.Equal(t, "123 ms", d)
 }
 
-func Test_GenerateTable_Full(t *testing.T) {
+func Test_GeneratePingTable_Full(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
@@ -631,7 +639,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 	for i := range measurement.Results {
 		measurement.Results[i].Result.RawOutput = "ping: unknown host"
 	}
-	table, _, stats := viewer.generateTable(measurement, 500)
+	table, _, stats := viewer.generatePingTable(measurement, 500)
 
 	expectedTable := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -646,7 +654,7 @@ func Test_GenerateTable_Full(t *testing.T) {
 	}, stats)
 }
 
-func Test_GenerateTable_StylingDisabled(t *testing.T) {
+func Test_GeneratePingTable_StylingDisabled(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.CIMode = true
 	ctx.AggregatedStats = []*MeasurementStats{
@@ -660,7 +668,7 @@ func Test_GenerateTable_StylingDisabled(t *testing.T) {
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generateTable(measurement, 500)
+	table, _, stats := viewer.generatePingTable(measurement, 500)
 
 	expectedTable := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
@@ -676,7 +684,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	}, stats)
 }
 
-func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
+func Test_GeneratePingTable_OneRow_Truncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
@@ -688,7 +696,7 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
-	table, _, stats := viewer.generateTable(measurement, 104)
+	table, _, stats := viewer.generatePingTable(measurement, 104)
 
 	expectedTable := "\033[96mLocation                                    \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -703,7 +711,7 @@ func Test_GenerateTable_OneRow_Truncated(t *testing.T) {
 	}, stats)
 }
 
-func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
+func Test_GeneratePingTable_MultiLine_Truncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
@@ -715,7 +723,7 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
-	table, _, stats := viewer.generateTable(measurement, 99)
+	table, _, stats := viewer.generatePingTable(measurement, 99)
 
 	expectedTable := "\033[96mLocation                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -732,7 +740,7 @@ func Test_GenerateTable_MultiLine_Truncated(t *testing.T) {
 	}, stats)
 }
 
-func Test_GenerateTable_MaxTruncated(t *testing.T) {
+func Test_GeneratePingTable_MaxTruncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.AggregatedStats = []*MeasurementStats{
 		NewMeasurementStats(),
@@ -743,7 +751,7 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generateTable(measurement, 0)
+	table, _, stats := viewer.generatePingTable(measurement, 0)
 
 	expectedTable := "\033[96mLoc...\033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"Lon... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -758,24 +766,37 @@ func Test_GenerateTable_MaxTruncated(t *testing.T) {
 	}, stats)
 }
 
-func Test_GetRowValues_NoPacketsRcv(t *testing.T) {
-	stats := &MeasurementStats{Sent: 1, Lost: 0, Loss: 0, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
-	rowValues := getRowValues(stats)
+func Test_PingTableRowValues_NoPacketsReceived(t *testing.T) {
+	stats := &MeasurementStats{Sent: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
+	rowValues := pingTableRowValues(stats, false)
 	assert.Equal(t, [7]string{
 		"",
 		"1",
-		"0.00%",
+		"100.00%",
 		"-",
 		"-",
 		"-",
 		"-",
 	},
 		rowValues)
+
+	finalRowValues := pingTableRowValues(stats, true)
+	assert.Equal(t, [7]string{
+		"",
+		"1",
+		"100.00%",
+		tableTimeoutValue,
+		tableTimeoutValue,
+		tableTimeoutValue,
+		tableTimeoutValue,
+	},
+		finalRowValues)
 }
 
-func Test_GetRowValues(t *testing.T) {
+func Test_PingTableRowValues(t *testing.T) {
 	stats := &MeasurementStats{
 		Sent: 100,
+		Rcv:  90,
 		Lost: 10,
 		Loss: 10,
 		Last: 12.345,
@@ -783,7 +804,7 @@ func Test_GetRowValues(t *testing.T) {
 		Avg:  8.3456,
 		Max:  123.4567,
 	}
-	rowValues := getRowValues(stats)
+	rowValues := pingTableRowValues(stats, true)
 	assert.Equal(t, [7]string{
 		"",
 		"100",

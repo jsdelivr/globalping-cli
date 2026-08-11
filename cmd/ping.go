@@ -150,9 +150,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 		}
 	}
 
-	if !r.ctx.Table && !r.ctx.ToLatency {
-		r.viewer.OutputSummary()
-	} else if r.ctx.Table && r.ctx.CIMode {
+	if r.ctx.Table || !r.ctx.ToLatency {
 		r.viewer.OutputSummary()
 	}
 	r.evaluateError(err)
