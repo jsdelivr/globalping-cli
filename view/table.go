@@ -130,22 +130,16 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 }
 
 func failureTableMessage(result *globalping.ProbeResult) string {
-	label := "Error"
 	switch result.FailureSource {
 	case globalping.FailureSourceTarget:
-		label = "Target error"
+		return "Target error"
 	case globalping.FailureSourceResolver:
-		label = "Resolver error"
+		return "Resolver error"
 	case globalping.FailureSourceInternal:
-		label = "Internal error"
+		return "Internal error"
+	default:
+		return "Error"
 	}
-
-	for _, line := range strings.Split(result.RawOutput, "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			return label + ": " + line
-		}
-	}
-	return label
 }
 
 type tracerouteTableTiming struct {
