@@ -77,7 +77,7 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	}
 	hm := v.ctx.History.Find(m.ID)
 	width, _ := v.printer.GetSize()
-	liveTable, completedTable, newStats, newAggregatedStats := v.generatePingTableVariants(m, width-2)
+	liveTable, completedTable, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, width-2)
 	hm.Stats = newStats
 	creditInfo := v.getAPICreditConsumptionInfo(width)
 	liveOutput := *liveTable + creditInfo
@@ -127,11 +127,12 @@ func formatDuration(ms float64) string {
 }
 
 func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
-	output, _, newStats, newAggregatedStats := v.generatePingTableVariants(m, areaWidth)
+	hm := v.ctx.History.Find(m.ID)
+	output, _, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, areaWidth)
 	return output, newStats, newAggregatedStats
 }
 
-func (v *viewer) generatePingTableVariants(m *globalping.Measurement, areaWidth int) (*string, *string, []*MeasurementStats, []*MeasurementStats) {
+func (v *viewer) generatePingTableVariants(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, *string, []*MeasurementStats, []*MeasurementStats) {
 	liveRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	completedRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
@@ -141,6 +142,9 @@ func (v *viewer) generatePingTableVariants(m *globalping.Measurement, areaWidth 
 		var liveRow []string
 		var completedRow []string
 		resultStats, hasPacketStats := decodePingMeasurementStats(&probeMeasurement.Result)
+		if probeMeasurement.Result.Status == globalping.TestStatusInProgress {
+			resultStats = v.parsePingRawOutput(hm, probeMeasurement, -1).Stats
+		}
 		useFailedPacketStats := v.ctx.Infinite && v.ctx.Table && probeMeasurement.Result.Status == globalping.TestStatusFailed && hasPacketStats
 		if (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !useFailedPacketStats {
 			preservedStats := *v.ctx.AggregatedStats[i]

@@ -272,8 +272,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	measurement.Status = globalping.MeasurementStatusInProgress
 	measurement.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.`
-	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
-	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
+	measurement.Results[0].Result.StatsRaw = nil
+	measurement.Results[0].Result.TimingsRaw = nil
 
 	ctx := createDefaultContext("ping")
 	w := new(bytes.Buffer)
@@ -302,8 +302,6 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
 no answer yet for icmp_seq=2`
-	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":17.6,"avg":17.6,"max":17.6,"total":2,"rcv":1,"drop":1,"loss":50,"mdev":0}`)
-	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":52,"rtt":17.6}]`)
 
 	// Call 2
 	expectedOutput += "\033[4A\033[0J" +
@@ -399,12 +397,12 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	measurement1.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=10 ms`
-	measurement1.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":10,"max":10,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`)
-	measurement1.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":10}]`)
+	measurement1.Results[0].Result.StatsRaw = nil
+	measurement1.Results[0].Result.TimingsRaw = nil
 	measurement1.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
-	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
-	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[]`)
+	measurement1.Results[1].Result.StatsRaw = nil
+	measurement1.Results[1].Result.TimingsRaw = nil
 
 	ctx := createDefaultContext("ping")
 	hm1 := ctx.History.Find(measurementID1)
@@ -428,13 +426,13 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	measurement2.Status = globalping.MeasurementStatusInProgress
 	measurement2.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
-	measurement2.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":0,"rcv":0,"drop":0,"loss":0,"mdev":0}`)
-	measurement2.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
+	measurement2.Results[0].Result.StatsRaw = nil
+	measurement2.Results[0].Result.TimingsRaw = nil
 	measurement2.Results[1].Result.Status = globalping.TestStatusInProgress
 	measurement2.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms`
-	measurement2.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":20,"max":20,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`)
-	measurement2.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20}]`)
+	measurement2.Results[1].Result.StatsRaw = nil
+	measurement2.Results[1].Result.TimingsRaw = nil
 	ctx.History.Push(&HistoryItem{
 		Id:        measurementID2,
 		Status:    globalping.MeasurementStatusInProgress,
@@ -457,8 +455,6 @@ Consuming ~360 API credits/minute.
 	measurement1.Results[1].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=30 time=25 ms`
-	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":22.5,"max":25,"total":2,"rcv":2,"drop":0,"loss":0,"mdev":2.5}`)
-	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20},{"ttl":30,"rtt":25}]`)
 
 	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
