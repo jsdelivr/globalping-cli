@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"syscall"
@@ -322,7 +323,11 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID4).Return(expectedMeasurement4, nil)
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID2).Return(expectedMeasurement2, nil)
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID3).Return(expectedMeasurement3, nil)
-	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID4).Return(expectedMeasurement4, nil)
+	var finalRunCtx context.Context
+	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID4).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
+		finalRunCtx = ctx
+		return expectedMeasurement4, nil
+	})
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
 	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
@@ -335,7 +340,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	finalOutputStarted := make(chan struct{})
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) error {
 		close(finalOutputStarted)
-		time.Sleep(50 * time.Millisecond)
+		<-finalRunCtx.Done()
 		return nil
 	})
 
