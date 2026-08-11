@@ -538,7 +538,7 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 			failed.Result.RawOutput = "measurement failed\nignored"
 			measurement := tableMeasurement(measurementType, offline, failed)
 
-			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 2)
+			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 7)
 
 			require.EqualError(t, err, "all probes failed")
 			assert.ErrorIs(t, err, ErrAllProbesFailed)
@@ -626,9 +626,9 @@ func assertTableForTest(t *testing.T, output string, expected [][]string) {
 	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
 	require.Len(t, lines, len(expected))
 
-	separatorOffsets := tableSeparatorOffsetsForTest(lines[0])
+	separatorOffsets := displaySeparatorOffsetsForTest(lines[0])
 	for i, line := range lines {
-		assert.Equal(t, separatorOffsets, tableSeparatorOffsetsForTest(line), "columns must align on output line %d", i+1)
+		assert.Equal(t, separatorOffsets, displaySeparatorOffsetsForTest(line), "columns must align on output line %d", i+1)
 		parts := strings.Split(line, colSeparator)
 		require.Len(t, parts, len(expected[i]), "unexpected column count on output line %d", i+1)
 		for j := range parts {
@@ -644,25 +644,12 @@ func assertTableWithFailureForTest(t *testing.T, output string, expectedRows [][
 	require.Len(t, lines, len(expectedRows)+1)
 	assertTableForTest(t, strings.Join(lines[:len(expectedRows)], "\n")+"\n", expectedRows)
 
-	headerSeparatorOffsets := tableSeparatorOffsetsForTest(lines[0])
+	headerSeparatorOffsets := displaySeparatorOffsetsForTest(lines[0])
 	failureParts := strings.Split(lines[len(lines)-1], colSeparator)
 	require.Len(t, failureParts, 2)
-	assert.Equal(t, headerSeparatorOffsets[0], tableSeparatorOffsetsForTest(lines[len(lines)-1])[0])
+	assert.Equal(t, headerSeparatorOffsets[0], displaySeparatorOffsetsForTest(lines[len(lines)-1])[0])
 	assert.Equal(t, failureLocation, strings.TrimSpace(failureParts[0]))
 	assert.Equal(t, failureMessage, strings.TrimSpace(failureParts[1]))
-}
-
-func tableSeparatorOffsetsForTest(line string) []int {
-	offsets := []int{}
-	for offset := 0; ; {
-		i := strings.Index(line[offset:], colSeparator)
-		if i == -1 {
-			return offsets
-		}
-		offset += i
-		offsets = append(offsets, offset)
-		offset += len(colSeparator)
-	}
 }
 
 var ansiPatternForTest = regexp.MustCompile(`\x1b\[[0-9;]*m`)

@@ -560,7 +560,7 @@ Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 	assert.Equal(t, expectedOutput, w.String())
-	assert.Equal(t,
+	assertMeasurementStatsSlice(t,
 		[]*MeasurementStats{
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
@@ -640,6 +640,7 @@ func Test_GeneratePingTable_Full(t *testing.T) {
 	printer := NewPrinter(nil, w, w)
 	viewer := &viewer{ctx: ctx, printer: printer}
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
+	// Replace RawOutput to verify that finished probes use structured StatsRaw data.
 	for i := range measurement.Results {
 		measurement.Results[i].Result.RawOutput = "ping: unknown host"
 	}
@@ -651,7 +652,7 @@ func Test_GeneratePingTable_Full(t *testing.T) {
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, "", w.String())
-	assert.Equal(t, []*MeasurementStats{
+	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
@@ -681,7 +682,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 `
 	assert.Equal(t, expectedTable, *table)
 	assert.Equal(t, "", w.String())
-	assert.Equal(t, []*MeasurementStats{
+	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
@@ -708,7 +709,7 @@ func Test_GeneratePingTable_OneRow_Truncated(t *testing.T) {
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
-	assert.Equal(t, []*MeasurementStats{
+	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
@@ -737,7 +738,7 @@ func Test_GeneratePingTable_MultiLine_Truncated(t *testing.T) {
 		"Nuremberg, DE, EU, Hetzner Online Gm... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
-	assert.Equal(t, []*MeasurementStats{
+	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
@@ -763,7 +764,7 @@ func Test_GeneratePingTable_MaxTruncated(t *testing.T) {
 		"Nur... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, *table)
 
-	assert.Equal(t, []*MeasurementStats{
+	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
@@ -1091,4 +1092,12 @@ func assertMeasurementStats(t *testing.T, expected *MeasurementStats, actual *Me
 	assert.InDelta(t, expected.Tsum, actual.Tsum, 0.0001, "Tsum")
 	assert.InDelta(t, expected.Tsum2, actual.Tsum2, 0.0001, "Tsum2")
 	assert.InDelta(t, expected.Mdev, actual.Mdev, 0.0001, "Mdev")
+}
+
+func assertMeasurementStatsSlice(t *testing.T, expected []*MeasurementStats, actual []*MeasurementStats) {
+	t.Helper()
+	require.Len(t, actual, len(expected))
+	for i := range expected {
+		assertMeasurementStats(t, expected[i], actual[i])
+	}
 }

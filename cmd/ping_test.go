@@ -441,6 +441,58 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	assert.Equal(t, expectedHistoryItems, items)
 }
 
+func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Options.Packets = 16
+	expectedOpts.InProgressUpdates = true
+
+	expectedResponse := createDefaultMeasurementCreateResponse()
+	expectedMeasurement := createDefaultMeasurement("ping")
+
+	gbMock := apiMocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(gomock.Any(), expectedOpts).Return(expectedResponse, nil)
+	var runCtx context.Context
+	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
+		runCtx = ctx
+		return expectedMeasurement, nil
+	})
+
+	outputStarted := make(chan struct{})
+	viewerMock := viewMocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(func(*globalping.Measurement) error {
+		close(outputStarted)
+		<-runCtx.Done()
+		return nil
+	})
+	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputShare().Times(1)
+
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	w := new(bytes.Buffer)
+	ctx := createDefaultContext("ping")
+	storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "--table", "--latency", "--ci", "from", "Berlin"}
+
+	go func() {
+		<-outputStarted
+		root.cancel <- syscall.SIGINT
+	}()
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.NoError(t, err)
+	assert.True(t, ctx.Infinite)
+	assert.True(t, ctx.Table)
+	assert.True(t, ctx.ToLatency)
+	assert.True(t, ctx.CIMode)
+	assert.Empty(t, w.String())
+}
+
 func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
