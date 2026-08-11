@@ -12,6 +12,8 @@ import (
 	"github.com/jsdelivr/globalping-go"
 )
 
+var ErrAllProbesFailed = errors.New("all probes failed")
+
 var (
 	apiCreditInfo                 = "Consuming 1 API credit for every 16 packets until stopped.\n"
 	apiCreditConsumptionInfo      = "Consuming ~%s/minute.\n"
@@ -104,7 +106,7 @@ func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
-	return errors.New("all probes failed")
+	return ErrAllProbesFailed
 }
 
 func isSomeTestFinished(m *globalping.Measurement) bool {

@@ -547,24 +547,47 @@ func Test_OutputTableThenShare_SeparatesMultiRowTable(t *testing.T) {
 	assert.Contains(t, w.String(), "\n\n> View the results online:")
 }
 
-func Test_OutputTable_AllFailedPreservesProbeErrors(t *testing.T) {
+func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 	for _, measurementType := range []globalping.MeasurementType{"ping", "traceroute", "mtr", "dns", "http"} {
 		t.Run(string(measurementType), func(t *testing.T) {
-			failed := tableProbe("Berlin", "DE", "Failed Network", globalping.TestStatusFailed)
-			failed.Result.RawOutput = "measurement failed"
 			offline := tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline)
 			offline.Result.RawOutput = "This probe is currently offline. Please try again later."
-			measurement := tableMeasurement(measurementType, failed, offline)
+			failed := tableProbe("Berlin", "DE", "Failed Network", globalping.TestStatusFailed)
+			failed.Result.FailureSource = globalping.FailureSourceTarget
+			failed.Result.RawOutput = "measurement failed\nignored"
+			measurement := tableMeasurement(measurementType, offline, failed)
 
 			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 2)
 
 			require.EqualError(t, err, "all probes failed")
-			assert.Equal(t, 0, ctx.TableOutputRows)
-			assert.Equal(t, `> Berlin, DE, EU, Failed Network (AS64500)
-measurement failed
-> Paris, FR, EU, Offline Network (AS64500)
-This probe is currently offline. Please try again later.
-`, output)
+			assert.ErrorIs(t, err, ErrAllProbesFailed)
+			assert.Equal(t, 2, ctx.TableOutputRows)
+
+			var expectedRows [][]string
+			switch measurementType {
+			case "ping":
+				expectedRows = [][]string{
+					{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
+					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-", "-"},
+				}
+			case "traceroute", "mtr":
+				expectedRows = [][]string{
+					{"Location", "Hops", "Last", "Min", "Avg", "Max"},
+					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
+				}
+			case "dns":
+				expectedRows = [][]string{
+					{"Location", "Answers", "Time", "Resolver"},
+					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-"},
+				}
+			case "http":
+				expectedRows = [][]string{
+					{"Location", "Status", "Total", "Resolved IP"},
+					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-"},
+				}
+			}
+			assertTableWithFailureForTest(t, output, expectedRows,
+				"Berlin, DE, EU, Failed Network (AS64500)", "Target error: measurement failed")
 		})
 	}
 }

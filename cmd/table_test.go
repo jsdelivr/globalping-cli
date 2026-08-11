@@ -123,6 +123,24 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 
 		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), assert.AnError)
 		assert.True(t, root.Cmd.SilenceUsage)
+		assert.False(t, root.Cmd.SilenceErrors)
+	})
+
+	t.Run("all-failed table output suppresses error text", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		measurement := createDefaultMeasurement("ping")
+		client := apiMocks.NewMockClient(ctrl)
+		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		viewer := viewMocks.NewMockViewer(ctrl)
+		viewer.EXPECT().OutputTable(measurement).Return(view.ErrAllProbesFailed)
+		viewer.EXPECT().OutputShare()
+		ctx := createDefaultContext("ping")
+		ctx.Table = true
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+
+		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), view.ErrAllProbesFailed)
+		assert.True(t, root.Cmd.SilenceUsage)
+		assert.True(t, root.Cmd.SilenceErrors)
 	})
 
 	t.Run("await error finalizes table output", func(t *testing.T) {
