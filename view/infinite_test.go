@@ -21,6 +21,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).Times(3)
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
@@ -140,6 +141,7 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -180,6 +182,26 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	viewer.OutputSummary(output)
 
 	assert.Contains(t, w.String(), tableTimeoutValue)
+	assert.Equal(t, 1, ctx.TableOutputRows)
+}
+
+func Test_OutputInfinite_SingleProbe_LatencyUsesCompletedOutput(t *testing.T) {
+	measurement := createPingMeasurement(measurementID1)
+	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
+	ctx.ToLatency = true
+	w := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	viewer := NewViewer(ctx, printer, nil)
+
+	output, err := viewer.OutputInfinite(measurement)
+
+	require.NoError(t, err)
+	assert.Contains(t, output, "Location")
+	assert.Contains(t, output, "|    1 |   0.00% |  17.6 ms")
+	assert.Equal(t, output, w.String())
+	assert.False(t, ctx.Table)
 	assert.Equal(t, 1, ctx.TableOutputRows)
 }
 
@@ -287,6 +309,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	measurement.Results[0].Result.TimingsRaw = nil
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -416,6 +439,7 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 	measurement1.Results[1].Result.TimingsRaw = nil
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	hm1 := ctx.History.Find(measurementID1)
 	hm1.Status = globalping.MeasurementStatusInProgress
 	w := new(bytes.Buffer)
@@ -551,6 +575,7 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime.Add(500 * time.Millisecond)).AnyTimes()
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	w := new(bytes.Buffer)
 	v := NewViewer(ctx, NewPrinter(nil, w, w), utilsMock)
 	_, err := v.OutputInfinite(measurement)
@@ -579,9 +604,12 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	for i := range measurement.Results {
 		measurement.Results[i].Result.Status = globalping.TestStatusFailed
 		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
+		measurement.Results[i].Result.StatsRaw = nil
+		measurement.Results[i].Result.TimingsRaw = nil
 	}
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
@@ -607,6 +635,7 @@ func Test_OutputInfinite_SingleProbe_Offline(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `This probe is currently offline. Please try again later.`
 
 	ctx := createDefaultContext("ping")
+	ctx.Infinite = true
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()

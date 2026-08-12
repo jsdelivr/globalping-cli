@@ -22,13 +22,100 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 	if v.ctx.Infinite && len(measurement.Results) > 1 && !v.ctx.ToLatency {
 		v.ctx.Table = true
 	}
-	if len(measurement.Results) == 1 && !v.ctx.ToLatency && !v.ctx.Table {
+
+	if v.ctx.ToLatency {
+		return v.outputInfinitePingLatency(measurement)
+	}
+
+	if len(measurement.Results) == 1 && !v.ctx.Table {
 		if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
 			return "", v.outputFailSummary(measurement)
 		}
 		return "", v.outputStreamingPackets(measurement)
 	}
 	return v.OutputTable(measurement)
+}
+
+type infinitePingProbeStats struct {
+	measurement    *globalping.ProbeMeasurement
+	stats          *MeasurementStats
+	statsAvailable bool
+}
+
+type infinitePingStats struct {
+	probes []infinitePingProbeStats
+}
+
+func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFailedPacketStats bool) *infinitePingStats {
+	if len(v.ctx.AggregatedStats) == 0 {
+		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
+		for i := range m.Results {
+			v.ctx.AggregatedStats[i] = NewMeasurementStats()
+		}
+	}
+
+	hm := v.ctx.History.Find(m.ID)
+	measurementHistory := hm
+	if measurementHistory == nil {
+		measurementHistory = &HistoryItem{Id: m.ID, StartedAt: v.ctx.RunSessionStartedAt}
+	}
+
+	processed := &infinitePingStats{probes: make([]infinitePingProbeStats, len(m.Results))}
+	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
+	newStats := make([]*MeasurementStats, len(m.Results))
+
+	for i := range m.Results {
+		probeMeasurement := &m.Results[i]
+		resultStats, hasPacketStats := decodePingMeasurementStats(&probeMeasurement.Result)
+
+		if probeMeasurement.Result.Status == globalping.TestStatusInProgress {
+			resultStats = v.parsePingRawOutput(measurementHistory, probeMeasurement, -1).Stats
+		}
+
+		statsUnavailable := (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !(useFailedPacketStats && hasPacketStats)
+
+		if statsUnavailable {
+			preservedStats := *v.ctx.AggregatedStats[i]
+			newAggregatedStats[i] = &preservedStats
+			newStats[i] = NewMeasurementStats()
+			processed.probes[i] = infinitePingProbeStats{measurement: probeMeasurement}
+			continue
+		}
+
+		if resultStats == nil {
+			resultStats = NewMeasurementStats()
+		}
+
+		newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], resultStats)
+		newStats[i] = resultStats
+		processed.probes[i] = infinitePingProbeStats{
+			measurement:    probeMeasurement,
+			stats:          v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID),
+			statsAvailable: true,
+		}
+	}
+
+	if hm != nil {
+		hm.Stats = newStats
+	}
+
+	if m.Status != globalping.MeasurementStatusInProgress {
+		v.ctx.AggregatedStats = newAggregatedStats
+	}
+
+	return processed
+}
+
+func (v *viewer) outputInfinitePingLatency(m *globalping.Measurement) (string, error) {
+	if m.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(m) {
+		v.clearInfiniteTableOutput()
+
+		return "", v.outputFailSummary(m)
+	}
+
+	stats := v.processInfinitePingMeasurement(m, false)
+
+	return v.outputInfinitePingLatencyTable(m, stats)
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {

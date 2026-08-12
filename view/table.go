@@ -67,8 +67,8 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
-	if m.Type == "ping" {
-		return v.outputPingTableView(m)
+	if v.ctx.Infinite {
+		return v.outputInfinitePingTableView(m)
 	}
 
 	width, _ := v.printer.GetSize()
@@ -78,35 +78,24 @@ func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
 	return "", nil
 }
 
-func (v *viewer) outputPingTableView(m *globalping.Measurement) (string, error) {
-	if len(v.ctx.AggregatedStats) == 0 {
-		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
-		for i := range m.Results {
-			v.ctx.AggregatedStats[i] = NewMeasurementStats()
-		}
+func (v *viewer) outputInfinitePingTableView(m *globalping.Measurement) (string, error) {
+	stats := v.processInfinitePingMeasurement(m, true)
+	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
+
+	if v.ctx.CIMode {
+		return completedOutput, nil
 	}
 
-	hm := v.ctx.History.Find(m.ID)
-	width, _ := v.printer.GetSize()
-	liveTable, completedTable, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, width-2)
+	v.printer.AreaUpdate(&liveOutput)
 
-	if hm != nil {
-		hm.Stats = newStats
-	}
+	return completedOutput, nil
+}
 
-	creditInfo := v.getAPICreditConsumptionInfo(width)
-	liveOutput := *liveTable + creditInfo
-	completedOutput := *completedTable + creditInfo
+func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats *infinitePingStats) (string, error) {
+	v.ctx.TableOutputRows = len(stats.probes)
+	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
 	if m.Status != globalping.MeasurementStatusInProgress {
-		v.ctx.AggregatedStats = newAggregatedStats
-	}
-
-	if v.ctx.Infinite && v.ctx.Table {
-		if v.ctx.CIMode {
-			return completedOutput, nil
-		}
-	} else if m.Status != globalping.MeasurementStatusInProgress {
 		liveOutput = completedOutput
 	}
 
@@ -115,62 +104,39 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) (string, error) 
 	return completedOutput, nil
 }
 
-func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
-	hm := v.ctx.History.Find(m.ID)
-	output, _, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, areaWidth)
-
-	return output, newStats, newAggregatedStats
+func (v *viewer) clearInfiniteTableOutput() {
+	v.ctx.TableOutputRows = 0
+	v.printer.AreaClear()
 }
 
-func (v *viewer) generatePingTableVariants(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, *string, []*MeasurementStats, []*MeasurementStats) {
-	if hm == nil {
-		hm = &HistoryItem{Id: m.ID, StartedAt: v.ctx.RunSessionStartedAt}
-	}
+func (v *viewer) generateInfinitePingTableOutputs(stats *infinitePingStats) (string, string) {
+	width, _ := v.printer.GetSize()
+	liveOutput, completedOutput := v.renderInfinitePingTableVariants(stats, width-2)
+	creditInfo := v.getAPICreditConsumptionInfo(width)
 
+	return liveOutput + creditInfo, completedOutput + creditInfo
+}
+
+func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaWidth int) (string, string) {
 	liveRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	completedRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
-	newAggregatedStats := make([]*MeasurementStats, len(m.Results))
-	newStats := make([]*MeasurementStats, len(m.Results))
 
-	for i := range m.Results {
-		probeMeasurement := &m.Results[i]
+	for i := range stats.probes {
+		probeStats := &stats.probes[i]
 		var liveRow []string
 		var completedRow []string
-		resultStats, hasPacketStats := decodePingMeasurementStats(&probeMeasurement.Result)
 
-		if probeMeasurement.Result.Status == globalping.TestStatusInProgress {
-			resultStats = v.parsePingRawOutput(hm, probeMeasurement, -1).Stats
-		}
-
-		useFailedPacketStats := v.ctx.Infinite && v.ctx.Table && probeMeasurement.Result.Status == globalping.TestStatusFailed && hasPacketStats
-
-		if (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !useFailedPacketStats {
-			preservedStats := *v.ctx.AggregatedStats[i]
-			newAggregatedStats[i] = &preservedStats
-			newStats[i] = NewMeasurementStats()
-
-			if probeMeasurement.Result.Status == globalping.TestStatusFailed && !v.ctx.Infinite {
-				liveRow = []string{"", failureTableMessage(&probeMeasurement.Result)}
-			} else {
-				liveRow = []string{"", "-", "-", "-", "-", "-", "-"}
-			}
-
+		if !probeStats.statsAvailable {
+			liveRow = []string{"", "-", "-", "-", "-", "-", "-"}
 			completedRow = append([]string(nil), liveRow...)
 		} else {
-			if resultStats == nil {
-				resultStats = NewMeasurementStats()
-			}
-
-			newAggregatedStats[i] = mergeMeasurementStats(*v.ctx.AggregatedStats[i], resultStats)
-			newStats[i] = resultStats
-			stats := v.aggregateConcurrentStats(newAggregatedStats[i], i, m.ID)
-			liveValues := pingTableRowValues(stats, false)
+			liveValues := pingTableRowValues(probeStats.stats, false)
 			liveRow = liveValues[:]
-			completedValues := pingTableRowValues(stats, true)
+			completedValues := pingTableRowValues(probeStats.stats, true)
 			completedRow = completedValues[:]
 		}
 
-		liveRow[0] = getLocationText(probeMeasurement)
+		liveRow[0] = getLocationText(probeStats.measurement)
 		completedRow[0] = liveRow[0]
 		liveRows = append(liveRows, liveRow)
 		completedRows = append(completedRows, completedRow)
@@ -179,7 +145,7 @@ func (v *viewer) generatePingTableVariants(hm *HistoryItem, m *globalping.Measur
 	liveOutput := v.renderPingTable(liveRows, areaWidth)
 	completedOutput := v.renderPingTable(completedRows, areaWidth)
 
-	return &liveOutput, &completedOutput, newStats, newAggregatedStats
+	return liveOutput, completedOutput
 }
 
 func hasFailedPingStats(m *globalping.Measurement) bool {
@@ -286,6 +252,8 @@ func (v *viewer) generateMeasurementTable(m *globalping.Measurement, areaWidth i
 
 func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSize httpSizeColumn) []string {
 	switch measurementType {
+	case "ping":
+		return []string{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}
 	case "traceroute", "mtr":
 		return []string{"Location", "Hops", "Last", "Min", "Avg", "Max"}
 	case "dns":
@@ -326,6 +294,14 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 
 	switch measurementType {
+	case "ping":
+		stats, _ := decodePingMeasurementStats(&measurement.Result)
+		if stats == nil {
+			stats = NewMeasurementStats()
+		}
+
+		values := pingTableRowValues(stats, true)
+		copy(row[1:], values[1:])
 	case "traceroute":
 		copy(row[1:], tracerouteTableValues(measurement.Result.HopsRaw))
 	case "mtr":
@@ -689,7 +665,15 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType) string {
 	options := tableRenderOptions{}
 
-	if measurementType == "http" {
+	if measurementType == "ping" {
+		options = tableRenderOptions{
+			minimumWidths:        []int{0, 4, 7, 8, 8, 8, 8},
+			minimumLocationWidth: 6,
+			minimumTrailingWidth: 60,
+			multilineLocation:    true,
+			measureLocationBytes: true,
+		}
+	} else if measurementType == "http" {
 		options.shrinkableColumns = []int{len(rows[0]) - 1}
 		options.compactStatusColumn = 1
 	}
@@ -698,13 +682,7 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurem
 }
 
 func (v *viewer) renderPingTable(rows [][]string, areaWidth int) string {
-	return v.renderTable(rows, areaWidth, tableRenderOptions{
-		minimumWidths:        []int{0, 4, 7, 8, 8, 8, 8},
-		minimumLocationWidth: 6,
-		minimumTrailingWidth: 60,
-		multilineLocation:    true,
-		measureLocationBytes: true,
-	})
+	return v.renderMeasurementTable(rows, areaWidth, "ping")
 }
 
 func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRenderOptions) string {

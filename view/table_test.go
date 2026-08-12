@@ -23,13 +23,8 @@ func Test_FormatDuration(t *testing.T) {
 	assert.Equal(t, "123 ms", d)
 }
 
-func Test_GeneratePingTable_Full(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_Full(t *testing.T) {
 	ctx := createDefaultContext("ping")
-	ctx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	viewer := &viewer{ctx: ctx, printer: printer}
@@ -38,91 +33,60 @@ func Test_GeneratePingTable_Full(t *testing.T) {
 	for i := range measurement.Results {
 		measurement.Results[i].Result.RawOutput = "ping: unknown host"
 	}
-	table, _, stats := viewer.generatePingTable(measurement, 500)
+	table := viewer.generateMeasurementTable(measurement, 500)
 
 	expectedTable := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	assert.Equal(t, expectedTable, *table)
+	assert.Equal(t, expectedTable, table)
 	assert.Equal(t, "", w.String())
-	assertMeasurementStatsSlice(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
-	}, stats)
 }
 
-func Test_GeneratePingTable_StylingDisabled(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_StylingDisabled(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.CIMode = true
-	ctx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generatePingTable(measurement, 500)
+	table := viewer.generateMeasurementTable(measurement, 500)
 
 	expectedTable := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	assert.Equal(t, expectedTable, *table)
+	assert.Equal(t, expectedTable, table)
 	assert.Equal(t, "", w.String())
-	assertMeasurementStatsSlice(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
-	}, stats)
 }
 
-func Test_GeneratePingTable_OneRow_Truncated(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_OneRow_Truncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
-	ctx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
-	table, _, stats := viewer.generatePingTable(measurement, 104)
+	table := viewer.generateMeasurementTable(measurement, 104)
 
 	expectedTable := "\033[96mLocation                                    \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)                |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"Falkenstein, DE, EU, 作者聚集的原创内容平... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	assert.Equal(t, expectedTable, *table)
-
-	assertMeasurementStatsSlice(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
-	}, stats)
+	assert.Equal(t, expectedTable, table)
 }
 
-func Test_GeneratePingTable_MultiLine_Truncated(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_MultiLine_Truncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
-	ctx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
-	table, _, stats := viewer.generatePingTable(measurement, 99)
+	table := viewer.generateMeasurementTable(measurement, 99)
 
 	expectedTable := "\033[96mLocation                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"London, GB, EU, OVH SAS (AS0)           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
@@ -130,39 +94,22 @@ func Test_GeneratePingTable_MultiLine_Truncated(t *testing.T) {
 		"Lorem ipsum                             |      |         |          |          |          |         \n" +
 		"Lorem ipsum dolor sit amet (AS0)        |      |         |          |          |          |         \n" +
 		"Nuremberg, DE, EU, Hetzner Online Gm... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	assert.Equal(t, expectedTable, *table)
-
-	assertMeasurementStatsSlice(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
-	}, stats)
+	assert.Equal(t, expectedTable, table)
 }
 
-func Test_GeneratePingTable_MaxTruncated(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_MaxTruncated(t *testing.T) {
 	ctx := createDefaultContext("ping")
-	ctx.AggregatedStats = []*MeasurementStats{
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-		NewMeasurementStats(),
-	}
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	table, _, stats := viewer.generatePingTable(measurement, 0)
+	table := viewer.generateMeasurementTable(measurement, 0)
 
 	expectedTable := "\033[96mLoc...\033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
 		"Lon... |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
 		"Fal... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Nur... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
-	assert.Equal(t, expectedTable, *table)
-
-	assertMeasurementStatsSlice(t, []*MeasurementStats{
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
-	}, stats)
+	assert.Equal(t, expectedTable, table)
 }
 
 func Test_PingTableRowValues_NoPacketsReceived(t *testing.T) {
@@ -285,15 +232,13 @@ func Test_OutputTable_Ping_PartialFailureShowsFailureLabel(t *testing.T) {
 	measurement.Results = append(measurement.Results, failed)
 	measurement.ProbesCount = len(measurement.Results)
 
-	output, ctx, err := renderTableWithContextForTest(t, measurement, false, 0)
+	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
 	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, Deutsche Telekom AG (AS3320)", "1", "0.00%", "17.6 ms", "17.6 ms", "17.6 ms", "17.6 ms"},
 	}, "Paris, FR, EU, Failed Network (AS64500)", "Resolver error")
-	assert.Equal(t, NewMeasurementStats(), ctx.AggregatedStats[1])
-	assert.Equal(t, NewMeasurementStats(), ctx.History.Find(measurement.ID).Stats[1])
 }
 
 func Test_FailureTableMessage_MapsFailureSources(t *testing.T) {
