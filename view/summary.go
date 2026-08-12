@@ -7,9 +7,7 @@ import (
 
 func (v *viewer) OutputSummary() {
 	if v.ctx.Infinite && v.ctx.Table {
-		v.infiniteTableOutputMu.RLock()
 		output := v.infiniteTableOutput
-		v.infiniteTableOutputMu.RUnlock()
 		if output == "" {
 			return
 		}

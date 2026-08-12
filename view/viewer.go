@@ -1,8 +1,6 @@
 package view
 
 import (
-	"sync"
-
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-go"
 )
@@ -19,11 +17,10 @@ type Viewer interface {
 }
 
 type viewer struct {
-	ctx                   *Context
-	printer               *Printer
-	utils                 utils.Utils
-	infiniteTableOutputMu sync.RWMutex
-	infiniteTableOutput   string
+	ctx                 *Context
+	printer             *Printer
+	utils               utils.Utils
+	infiniteTableOutput string
 }
 
 func NewViewer(

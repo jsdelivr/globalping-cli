@@ -90,9 +90,7 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
 	if v.ctx.Infinite && v.ctx.Table {
-		v.infiniteTableOutputMu.Lock()
 		v.infiniteTableOutput = completedOutput
-		v.infiniteTableOutputMu.Unlock()
 		if v.ctx.CIMode {
 			return nil
 		}
@@ -105,9 +103,7 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 
 func (v *viewer) clearInfiniteTableOutput() {
 	v.printer.AreaClear()
-	v.infiniteTableOutputMu.Lock()
 	v.infiniteTableOutput = ""
-	v.infiniteTableOutputMu.Unlock()
 }
 
 func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
