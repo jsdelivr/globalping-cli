@@ -30,8 +30,6 @@ const (
 
 type tableRenderOptions struct {
 	minimumWidths        []int
-	shrinkableColumns    []int
-	compactStatusColumn  int
 	multilineLocation    bool
 	measureLocationBytes bool
 }
@@ -672,19 +670,16 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurem
 		}
 	case "traceroute", "mtr":
 		options.minimumWidths = []int{0, 4, 8, 8, 8, 8}
-	case "http":
-		options.shrinkableColumns = []int{len(rows[0]) - 1}
-		options.compactStatusColumn = 1
 	}
 
-	return v.renderTable(rows, areaWidth, options)
+	return v.renderTable(rows, areaWidth, measurementType, options)
 }
 
 func (v *viewer) renderPingTable(rows [][]string, areaWidth int) string {
 	return v.renderMeasurementTable(rows, areaWidth, "ping")
 }
 
-func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRenderOptions) string {
+func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType, options tableRenderOptions) string {
 	if len(rows) == 0 || len(rows[0]) == 0 {
 		return ""
 	}
@@ -715,45 +710,18 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 		}
 	}
 
-	if options.compactStatusColumn > 0 && options.compactStatusColumn < len(rows[0]) {
-		tableWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 1)
+	var shrinkableColumns []int
 
-		for _, width := range columnWidths {
-			tableWidth += width
+	if measurementType == "http" && len(rows[0]) > 1 {
+		if tableWidth(columnWidths) > areaWidth {
+			statusColumn := 1
+			rows, columnWidths[statusColumn] = compactHTTPStatuses(rows, statusColumn, len(columnWidths))
 		}
 
-		if tableWidth > areaWidth {
-			statusColumn := options.compactStatusColumn
-			adjustedRows := make([][]string, len(rows))
-			copy(adjustedRows, rows)
-			statusWidth := runewidth.StringWidth(rows[0][statusColumn])
-
-			for rowIndex := 1; rowIndex < len(rows); rowIndex++ {
-				if len(rows[rowIndex]) <= statusColumn {
-					continue
-				}
-
-				if isSpanningRow(rows[rowIndex], len(columnWidths)) {
-					continue
-				}
-
-				status := rows[rowIndex][statusColumn]
-
-				if code, ok := httpStatusCode(status); ok {
-					adjustedRows[rowIndex] = append([]string(nil), rows[rowIndex]...)
-					adjustedRows[rowIndex][statusColumn] = code
-					status = code
-				}
-
-				statusWidth = max(statusWidth, runewidth.StringWidth(status))
-			}
-
-			rows = adjustedRows
-			columnWidths[statusColumn] = statusWidth
-		}
+		shrinkableColumns = []int{len(rows[0]) - 1}
 	}
 
-	fitTableColumnWidths(columnWidths, rows[0], areaWidth, options.shrinkableColumns)
+	fitTableColumnWidths(columnWidths, rows[0], areaWidth, shrinkableColumns)
 
 	var output bytes.Buffer
 
@@ -836,6 +804,42 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 
 func isSpanningRow(row []string, columns int) bool {
 	return columns > 2 && len(row) == 2
+}
+
+func tableWidth(columnWidths []int) int {
+	width := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 1)
+
+	for _, columnWidth := range columnWidths {
+		width += columnWidth
+	}
+
+	return width
+}
+
+func compactHTTPStatuses(rows [][]string, statusColumn int, columns int) ([][]string, int) {
+	adjustedRows := make([][]string, len(rows))
+	copy(adjustedRows, rows)
+	statusWidth := runewidth.StringWidth(rows[0][statusColumn])
+
+	for rowIndex := 1; rowIndex < len(rows); rowIndex++ {
+		row := rows[rowIndex]
+
+		if len(row) <= statusColumn || isSpanningRow(row, columns) {
+			continue
+		}
+
+		status := row[statusColumn]
+
+		if code, ok := httpStatusCode(status); ok {
+			adjustedRows[rowIndex] = append([]string(nil), row...)
+			adjustedRows[rowIndex][statusColumn] = code
+			status = code
+		}
+
+		statusWidth = max(statusWidth, runewidth.StringWidth(status))
+	}
+
+	return adjustedRows, statusWidth
 }
 
 func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkableColumns []int) {
