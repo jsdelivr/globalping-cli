@@ -65,12 +65,14 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
 			oldArgs := os.Args
 			t.Cleanup(func() { os.Args = oldArgs })
-			os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--latency", "--ci"}
+			os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--latency", "--json", "--ci"}
 
 			err := root.Cmd.ExecuteContext(t.Context())
 
 			require.NoError(t, err)
 			assert.True(t, ctx.Table)
+			assert.False(t, ctx.ToLatency)
+			assert.False(t, ctx.ToJSON)
 			assert.Empty(t, w.String())
 		})
 	}

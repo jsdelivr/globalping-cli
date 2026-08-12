@@ -112,6 +112,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.Target = targetQuery.Target
+	if r.ctx.Table {
+		r.ctx.ToLatency = false
+		r.ctx.ToJSON = false
+	}
 
 	if targetQuery.From != "" {
 		r.ctx.From = targetQuery.From

@@ -488,7 +488,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, ctx.Infinite)
 	assert.True(t, ctx.Table)
-	assert.True(t, ctx.ToLatency)
+	assert.False(t, ctx.ToLatency)
 	assert.True(t, ctx.CIMode)
 	assert.Empty(t, w.String())
 }

@@ -72,7 +72,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
-	if r.ctx.ToLatency && !r.ctx.Table {
+	if r.ctx.ToLatency {
 		return fmt.Errorf("the latency flag is not supported by the traceroute command")
 	}
 
