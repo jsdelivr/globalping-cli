@@ -86,13 +86,16 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	r.ctx.RecordToSession = true
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16
+		if r.ctx.Limit > 1 && !r.ctx.ToLatency {
+			r.ctx.Table = true
+		}
 	}
 
 	opts := &globalping.MeasurementCreate{
 		Type:              "ping",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
-		InProgressUpdates: !r.ctx.CIMode || (r.ctx.Infinite && r.ctx.Table),
+		InProgressUpdates: !r.ctx.CIMode || (r.ctx.Infinite && !r.ctx.ToLatency),
 		Options: &globalping.MeasurementOptions{
 			Packets:  r.ctx.Packets,
 			Protocol: r.ctx.Protocol,

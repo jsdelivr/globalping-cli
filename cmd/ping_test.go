@@ -282,14 +282,18 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 
 	expectedOpts1 := createDefaultMeasurementCreate("ping")
 	expectedOpts1.Options.Packets = 16
+	expectedOpts1.InProgressUpdates = true
 	expectedOpts2 := createDefaultMeasurementCreate("ping")
 	expectedOpts2.Options.Packets = 16
+	expectedOpts2.InProgressUpdates = true
 	expectedOpts2.Locations = globalping.PreviousMeasurementID(measurementID1)
 	expectedOpts3 := createDefaultMeasurementCreate("ping")
 	expectedOpts3.Options.Packets = 16
+	expectedOpts3.InProgressUpdates = true
 	expectedOpts3.Locations = globalping.PreviousMeasurementID(measurementID2)
 	expectedOpts4 := createDefaultMeasurementCreate("ping")
 	expectedOpts4.Options.Packets = 16
+	expectedOpts4.InProgressUpdates = true
 	expectedOpts4.Locations = globalping.PreviousMeasurementID(measurementID3)
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
@@ -446,6 +450,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	defer ctrl.Finish()
 
 	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Limit = 2
 	expectedOpts.Options.Packets = 16
 	expectedOpts.InProgressUpdates = true
 
@@ -477,7 +482,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
-	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "--table", "--latency", "--ci", "from", "Berlin"}
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "--limit", "2", "--ci", "from", "Berlin"}
 
 	go func() {
 		<-outputStarted
@@ -499,6 +504,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	expectedOpts1 := createDefaultMeasurementCreate("ping")
 	expectedOpts1.Options.Packets = 16
+	expectedOpts1.InProgressUpdates = true
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
 
@@ -554,8 +560,10 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 
 	expectedOpts1 := createDefaultMeasurementCreate("ping")
 	expectedOpts1.Options.Packets = 16
+	expectedOpts1.InProgressUpdates = true
 	expectedOpts2 := createDefaultMeasurementCreate("ping")
 	expectedOpts2.Options.Packets = 16
+	expectedOpts2.InProgressUpdates = true
 	expectedOpts2.Locations = globalping.PreviousMeasurementID(measurementID1)
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
