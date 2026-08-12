@@ -28,7 +28,7 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 		}
 		return "", v.outputStreamingPackets(measurement)
 	}
-	return v.outputTable(measurement)
+	return v.OutputTable(measurement)
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {

@@ -10,7 +10,7 @@ type Viewer interface {
 	OutputJSON(id string, measurement []byte)
 	OutputLatency(id string, measurement *globalping.Measurement) error
 	OutputInfinite(measurement *globalping.Measurement) (string, error)
-	OutputTable(measurement *globalping.Measurement) error
+	OutputTable(measurement *globalping.Measurement) (string, error)
 	OutputLive(measurement *globalping.Measurement, opts *globalping.MeasurementCreate, w, h int)
 	OutputSummary(infiniteTableOutput string)
 	OutputShare()

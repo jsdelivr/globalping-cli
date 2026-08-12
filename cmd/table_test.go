@@ -53,7 +53,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
 
 			viewerMock := viewMocks.NewMockViewer(ctrl)
-			viewerMock.EXPECT().OutputTable(expectedMeasurement).Return(nil)
+			viewerMock.EXPECT().OutputTable(expectedMeasurement).Return("", nil)
 			viewerMock.EXPECT().OutputShare()
 
 			utilsMock := utilsMocks.NewMockUtils(ctrl)
@@ -85,7 +85,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		client := apiMocks.NewMockClient(ctrl)
 		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
-		viewer.EXPECT().OutputTable(measurement).Return(nil)
+		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")
 		ctx.Table = true
@@ -101,7 +101,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		client := apiMocks.NewMockClient(ctrl)
 		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
-		viewer.EXPECT().OutputTable(measurement).Return(nil)
+		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")
 		ctx.Table = true
@@ -117,7 +117,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		client := apiMocks.NewMockClient(ctrl)
 		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
-		viewer.EXPECT().OutputTable(measurement).Return(assert.AnError)
+		viewer.EXPECT().OutputTable(measurement).Return("", assert.AnError)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")
 		ctx.Table = true
@@ -134,7 +134,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		client := apiMocks.NewMockClient(ctrl)
 		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
-		viewer.EXPECT().OutputTable(measurement).Return(view.ErrAllProbesFailed)
+		viewer.EXPECT().OutputTable(measurement).Return("", view.ErrAllProbesFailed)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")
 		ctx.Table = true

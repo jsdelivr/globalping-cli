@@ -38,12 +38,7 @@ type tableRenderOptions struct {
 	measureLocationBytes bool
 }
 
-func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
-	_, err := v.outputTable(measurement)
-	return err
-}
-
-func (v *viewer) outputTable(measurement *globalping.Measurement) (string, error) {
+func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error) {
 	v.ctx.TableOutputRows = 0
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
 	renderFailedTable := allProbesFailed && v.ctx.Table && !v.ctx.Infinite

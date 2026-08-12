@@ -20,6 +20,7 @@ import (
 type MockViewer struct {
 	ctrl     *gomock.Controller
 	recorder *MockViewerMockRecorder
+	isgomock struct{}
 }
 
 // MockViewerMockRecorder is the mock recorder for MockViewer.
@@ -129,11 +130,12 @@ func (mr *MockViewerMockRecorder) OutputSummary(infiniteTableOutput any) *gomock
 }
 
 // OutputTable mocks base method.
-func (m *MockViewer) OutputTable(measurement *globalping.Measurement) error {
+func (m *MockViewer) OutputTable(measurement *globalping.Measurement) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "OutputTable", measurement)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // OutputTable indicates an expected call of OutputTable.
