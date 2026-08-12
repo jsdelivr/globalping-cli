@@ -134,10 +134,11 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	defer signal.Stop(r.cancel)
 
 	done := make(chan struct{})
+	var infiniteTableOutput string
 	var err error
 	go func() {
 		defer close(done)
-		err = r.ping(runCtx, opts)
+		infiniteTableOutput, err = r.ping(runCtx, opts)
 	}()
 
 	select {
@@ -151,20 +152,21 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	}
 
 	if err == nil && !r.ctx.ToLatency {
-		r.viewer.OutputSummary()
+		r.viewer.OutputSummary(infiniteTableOutput)
 	}
 	r.evaluateError(err)
 	r.viewer.OutputShare()
 	return err
 }
 
-func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) error {
+func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (string, error) {
+	var infiniteTableOutput string
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	r.ctx.RunSessionStartedAt = r.utils.Now()
 	for {
 		if err := ctx.Err(); err != nil {
-			return err
+			return infiniteTableOutput, err
 		}
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
@@ -173,20 +175,20 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			measurement, err := r.client.GetMeasurement(ctx, el.Id)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
-				return err
+				return infiniteTableOutput, err
 			}
 			el.Status = measurement.Status
 			if len(measurement.Results) == 0 {
 				el = mbuf.Next()
 				continue
 			}
-			err = r.viewer.OutputInfinite(measurement)
+			infiniteTableOutput, err = r.viewer.OutputInfinite(measurement)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
-				return err
+				return infiniteTableOutput, err
 			}
 			if err := ctx.Err(); err != nil {
-				return err
+				return infiniteTableOutput, err
 			}
 			if measurement.Status != globalping.MeasurementStatusInProgress {
 				mbuf.Remove(el)
@@ -214,13 +216,13 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			select {
 			case <-ctx.Done():
 				timer.Stop()
-				return ctx.Err()
+				return infiniteTableOutput, ctx.Err()
 			case <-timer.C:
 			}
 			continue
 		}
 		if runErr != nil {
-			return runErr
+			return infiniteTableOutput, runErr
 		}
 		last := r.ctx.History.Last()
 		if last != nil {
@@ -228,7 +230,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 		}
 		hm, err := r.createMeasurement(ctx, opts)
 		if err != nil {
-			return err
+			return infiniteTableOutput, err
 		}
 		mbuf.Append(hm)
 	}

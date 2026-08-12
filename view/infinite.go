@@ -18,17 +18,17 @@ var (
 	apiCreditLastMeasurementCount = 0
 )
 
-func (v *viewer) OutputInfinite(measurement *globalping.Measurement) error {
+func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, error) {
 	if v.ctx.Infinite && len(measurement.Results) > 1 && !v.ctx.ToLatency {
 		v.ctx.Table = true
 	}
 	if len(measurement.Results) == 1 && !v.ctx.ToLatency && !v.ctx.Table {
 		if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
-			return v.outputFailSummary(measurement)
+			return "", v.outputFailSummary(measurement)
 		}
-		return v.outputStreamingPackets(measurement)
+		return "", v.outputStreamingPackets(measurement)
 	}
-	return v.OutputTable(measurement)
+	return v.outputTable(measurement)
 }
 
 func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {

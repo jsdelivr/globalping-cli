@@ -13,7 +13,7 @@ func Test_OutputSummary(t *testing.T) {
 		w := new(bytes.Buffer)
 		ctx := createDefaultContext("ping")
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
-		viewer.OutputSummary()
+		viewer.OutputSummary("")
 
 		assert.Equal(t, "", w.String())
 	})
@@ -38,7 +38,7 @@ func Test_OutputSummary(t *testing.T) {
 		}
 		ctx.History.Push(hm)
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
-		viewer.OutputSummary()
+		viewer.OutputSummary("")
 
 		assert.Equal(t, `
 ---  ping statistics ---
@@ -56,7 +56,7 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.000 ms
 			NewMeasurementStats(),
 		}
 		viewer := NewViewer(ctx, NewPrinter(nil, w, w), nil)
-		viewer.OutputSummary()
+		viewer.OutputSummary("")
 
 		assert.Equal(t, "", w.String())
 	})

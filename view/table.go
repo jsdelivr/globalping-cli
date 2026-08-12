@@ -39,27 +39,33 @@ type tableRenderOptions struct {
 }
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) error {
+	_, err := v.outputTable(measurement)
+	return err
+}
+
+func (v *viewer) outputTable(measurement *globalping.Measurement) (string, error) {
 	v.ctx.TableOutputRows = 0
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
 	renderFailedTable := allProbesFailed && v.ctx.Table && !v.ctx.Infinite
 	renderFailedInfiniteTable := allProbesFailed && v.ctx.Infinite && v.ctx.Table && hasFailedPingStats(measurement)
 	if allProbesFailed && !renderFailedTable && !renderFailedInfiniteTable {
 		if v.ctx.Infinite {
-			v.clearInfiniteTableOutput()
+			v.printer.AreaClear()
 		}
-		return v.outputFailSummary(measurement)
+		return "", v.outputFailSummary(measurement)
 	}
 	v.ctx.TableOutputRows = len(measurement.Results)
-	if err := v.outputTableView(measurement); err != nil {
-		return err
+	completedOutput, err := v.outputTableView(measurement)
+	if err != nil {
+		return "", err
 	}
 	if renderFailedTable {
-		return ErrAllProbesFailed
+		return completedOutput, ErrAllProbesFailed
 	}
-	return nil
+	return completedOutput, nil
 }
 
-func (v *viewer) outputTableView(m *globalping.Measurement) error {
+func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
 	if m.Type == "ping" {
 		return v.outputPingTableView(m)
 	}
@@ -67,10 +73,10 @@ func (v *viewer) outputTableView(m *globalping.Measurement) error {
 	width, _ := v.printer.GetSize()
 	output := v.generateMeasurementTable(m, width-2)
 	v.printer.AreaUpdate(&output)
-	return nil
+	return "", nil
 }
 
-func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
+func (v *viewer) outputPingTableView(m *globalping.Measurement) (string, error) {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
 		for i := range m.Results {
@@ -90,20 +96,14 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 		v.ctx.AggregatedStats = newAggregatedStats
 	}
 	if v.ctx.Infinite && v.ctx.Table {
-		v.infiniteTableOutput = completedOutput
 		if v.ctx.CIMode {
-			return nil
+			return completedOutput, nil
 		}
 	} else if m.Status != globalping.MeasurementStatusInProgress {
 		liveOutput = completedOutput
 	}
 	v.printer.AreaUpdate(&liveOutput)
-	return nil
-}
-
-func (v *viewer) clearInfiniteTableOutput() {
-	v.printer.AreaClear()
-	v.infiniteTableOutput = ""
+	return completedOutput, nil
 }
 
 func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {

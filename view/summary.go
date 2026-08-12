@@ -5,16 +5,15 @@ import (
 	"math"
 )
 
-func (v *viewer) OutputSummary() {
+func (v *viewer) OutputSummary(infiniteTableOutput string) {
 	if v.ctx.Infinite && v.ctx.Table {
-		output := v.infiniteTableOutput
-		if output == "" {
+		if infiniteTableOutput == "" {
 			return
 		}
 		if v.ctx.CIMode {
-			v.printer.Print(output)
+			v.printer.Print(infiniteTableOutput)
 		} else {
-			v.printer.AreaUpdate(&output)
+			v.printer.AreaUpdate(&infiniteTableOutput)
 		}
 		return
 	}

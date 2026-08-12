@@ -330,7 +330,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	})
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
+	waitFn := func(m *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
@@ -338,13 +338,13 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
 	finalOutputStarted := make(chan struct{})
-	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) error {
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) (string, error) {
 		close(finalOutputStarted)
 		<-finalRunCtx.Done()
-		return nil
+		return "", nil
 	})
 
-	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputSummary("").Times(1)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
@@ -462,12 +462,12 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 
 	outputStarted := make(chan struct{})
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(func(*globalping.Measurement) error {
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(func(*globalping.Measurement) (string, error) {
 		close(outputStarted)
 		<-runCtx.Done()
-		return nil
+		return "final table", nil
 	})
-	viewerMock.EXPECT().OutputSummary().Times(1)
+	viewerMock.EXPECT().OutputSummary("final table").Times(1)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
@@ -509,8 +509,8 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).Return(expectedMeasurement, nil)
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).Return(errors.New("error message"))
-	viewerMock.EXPECT().OutputSummary().Times(0)
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).Return("", errors.New("error message"))
+	viewerMock.EXPECT().OutputSummary(gomock.Any()).Times(0)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
@@ -572,10 +572,10 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).Return(expectedMeasurement, nil)
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	waitFn := func(m *globalping.Measurement) error { time.Sleep(5 * time.Millisecond); return nil }
+	waitFn := func(m *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(waitFn)
 
-	viewerMock.EXPECT().OutputSummary().Times(0)
+	viewerMock.EXPECT().OutputSummary(gomock.Any()).Times(0)
 	viewerMock.EXPECT().OutputShare().Times(1)
 
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
