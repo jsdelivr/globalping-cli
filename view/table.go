@@ -101,6 +101,13 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	return nil
 }
 
+func (v *viewer) clearInfiniteTableOutput() {
+	v.printer.AreaClear()
+	v.infiniteTableOutputMu.Lock()
+	v.infiniteTableOutput = ""
+	v.infiniteTableOutputMu.Unlock()
+}
+
 func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*string, []*MeasurementStats, []*MeasurementStats) {
 	hm := v.ctx.History.Find(m.ID)
 	output, _, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, areaWidth)

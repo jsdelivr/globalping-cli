@@ -70,13 +70,6 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 	return nil
 }
 
-func (v *viewer) clearInfiniteTableOutput() {
-	v.printer.AreaClear()
-	v.infiniteTableOutputMu.Lock()
-	v.infiniteTableOutput = ""
-	v.infiniteTableOutputMu.Unlock()
-}
-
 func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
 	inProgressStats := v.ctx.History.FilterByStatus(globalping.MeasurementStatusInProgress)
 	for i := range inProgressStats {
