@@ -48,8 +48,8 @@ func Test_GeneratePingTable_Full(t *testing.T) {
 	assert.Equal(t, "", w.String())
 	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}, stats)
 }
 
@@ -78,8 +78,8 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	assert.Equal(t, "", w.String())
 	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}, stats)
 }
 
@@ -105,8 +105,8 @@ func Test_GeneratePingTable_OneRow_Truncated(t *testing.T) {
 
 	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}, stats)
 }
 
@@ -134,8 +134,8 @@ func Test_GeneratePingTable_MultiLine_Truncated(t *testing.T) {
 
 	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}, stats)
 }
 
@@ -160,8 +160,8 @@ func Test_GeneratePingTable_MaxTruncated(t *testing.T) {
 
 	assertMeasurementStatsSlice(t, []*MeasurementStats{
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 0.77, Min: 0.77, Avg: 0.77, Max: 0.77, Tsum: 0.77, Tsum2: 0.5929},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778848999999997},
-		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556760999999998},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
+		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}, stats)
 }
 
