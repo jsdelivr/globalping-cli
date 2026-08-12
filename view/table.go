@@ -138,8 +138,8 @@ func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaW
 		completedRows = append(completedRows, completedRow)
 	}
 
-	liveOutput := v.renderPingTable(liveRows, areaWidth)
-	completedOutput := v.renderPingTable(completedRows, areaWidth)
+	liveOutput := v.renderMeasurementTable(liveRows, areaWidth, "ping")
+	completedOutput := v.renderMeasurementTable(completedRows, areaWidth, "ping")
 
 	return liveOutput, completedOutput
 }
@@ -673,10 +673,6 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurem
 	}
 
 	return v.renderTable(rows, areaWidth, measurementType, options)
-}
-
-func (v *viewer) renderPingTable(rows [][]string, areaWidth int) string {
-	return v.renderMeasurementTable(rows, areaWidth, "ping")
 }
 
 func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType, options tableRenderOptions) string {
