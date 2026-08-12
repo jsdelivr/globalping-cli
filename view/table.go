@@ -80,7 +80,9 @@ func (v *viewer) outputPingTableView(m *globalping.Measurement) error {
 	hm := v.ctx.History.Find(m.ID)
 	width, _ := v.printer.GetSize()
 	liveTable, completedTable, newStats, newAggregatedStats := v.generatePingTableVariants(hm, m, width-2)
-	hm.Stats = newStats
+	if hm != nil {
+		hm.Stats = newStats
+	}
 	creditInfo := v.getAPICreditConsumptionInfo(width)
 	liveOutput := *liveTable + creditInfo
 	completedOutput := *completedTable + creditInfo
@@ -115,6 +117,9 @@ func (v *viewer) generatePingTable(m *globalping.Measurement, areaWidth int) (*s
 }
 
 func (v *viewer) generatePingTableVariants(hm *HistoryItem, m *globalping.Measurement, areaWidth int) (*string, *string, []*MeasurementStats, []*MeasurementStats) {
+	if hm == nil {
+		hm = &HistoryItem{Id: m.ID, StartedAt: v.ctx.RunSessionStartedAt}
+	}
 	liveRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	completedRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	newAggregatedStats := make([]*MeasurementStats, len(m.Results))

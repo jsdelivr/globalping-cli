@@ -230,6 +230,37 @@ func Test_OutputTable_Ping_Success(t *testing.T) {
 	})
 }
 
+func Test_OutputTable_Ping_UnknownHistoryItem(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		inProgress bool
+	}{
+		{name: "finished"},
+		{name: "in progress", inProgress: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			measurement := createPingMeasurement_MultipleProbes(measurementID2)
+			if test.inProgress {
+				measurement.Status = globalping.MeasurementStatusInProgress
+				for i := range measurement.Results {
+					measurement.Results[i].Result.Status = globalping.TestStatusInProgress
+				}
+			}
+			ctx := createDefaultContext("ping")
+			ctx.Table = true
+			ctx.Infinite = test.inProgress
+			w := new(bytes.Buffer)
+			printer := NewPrinter(nil, w, w)
+			printer.DisableStyling()
+			viewer := NewViewer(ctx, printer, nil)
+
+			require.NoError(t, viewer.OutputTable(measurement))
+			assert.Contains(t, w.String(), "Location")
+			assert.Nil(t, ctx.History.Find(measurement.ID))
+		})
+	}
+}
+
 func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
 	measurement.Results = append(measurement.Results, tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline))
