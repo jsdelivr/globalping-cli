@@ -72,10 +72,10 @@ func Test_GenerateMeasurementTable_Ping_OneRow_Truncated(t *testing.T) {
 	measurement.Results[1].Probe.Network = "作者聚集的原创内容平台于201 1年1月正式上线让人们更"
 	table := viewer.generateMeasurementTable(measurement, 104)
 
-	expectedTable := "\033[96mLocation                                    \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
-		"London, GB, EU, OVH SAS (AS0)                |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"Falkenstein, DE, EU, 作者聚集的原创内容平... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                                   \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)               |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, 作者聚集的原创内容...  |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Nuremberg, DE, EU, Hetzner Online GmbH (... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, table)
 }
 
@@ -88,12 +88,12 @@ func Test_GenerateMeasurementTable_Ping_MultiLine_Truncated(t *testing.T) {
 	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
 	table := viewer.generateMeasurementTable(measurement, 99)
 
-	expectedTable := "\033[96mLocation                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
-		"London, GB, EU, OVH SAS (AS0)           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"Falkenstein, DE, EU, Hetzner Online ... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"Lorem ipsum                             |      |         |          |          |          |         \n" +
-		"Lorem ipsum dolor sit amet (AS0)        |      |         |          |          |          |         \n" +
-		"Nuremberg, DE, EU, Hetzner Online Gm... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                              \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)          |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, Hetzner Online... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Lorem ipsum                            |      |         |          |          |          |         \n" +
+		"Lorem ipsum dolor sit amet (AS0)       |      |         |          |          |          |         \n" +
+		"Nuremberg, DE, EU, Hetzner Online G... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, table)
 }
 
@@ -640,7 +640,7 @@ func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	}
 	assert.LessOrEqual(t, runewidth.StringWidth(wideLines[1]), 80)
 	wideHeader := strings.Split(wideLines[0], colSeparator)
-	assert.Equal(t, []string{"Location", "Status", "Content-Length", "Total", "Resolved IP"}, trimCellsForTest(wideHeader))
+	assert.Equal(t, []string{"Loc...", "Status", "Content-Length", "Total", "Resolved IP"}, trimCellsForTest(wideHeader))
 	assert.Contains(t, wideLines[1], "599")
 	assert.NotContains(t, wideLines[1], "An unusually long status name")
 	assert.Contains(t, wideLines[1], "123456789 B")
@@ -674,7 +674,7 @@ func Test_RenderMeasurementTable_TruncatesLocationBeforeTimings(t *testing.T) {
 
 	require.Len(t, lines, 2)
 	assert.LessOrEqual(t, runewidth.StringWidth(lines[1]), 88)
-	assert.Contains(t, lines[1], "Falkenstein, DE, EU, Hetzner Online")
+	assert.Contains(t, lines[1], "Falkenstein, DE, EU, Hetzner Onlin")
 	assert.Contains(t, lines[1], "...")
 	assert.NotContains(t, lines[1], "(AS24940)")
 	assert.Contains(t, lines[1], "3.65 ms")

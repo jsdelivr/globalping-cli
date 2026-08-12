@@ -32,8 +32,6 @@ type tableRenderOptions struct {
 	minimumWidths        []int
 	shrinkableColumns    []int
 	compactStatusColumn  int
-	minimumLocationWidth int
-	minimumTrailingWidth int
 	multilineLocation    bool
 	measureLocationBytes bool
 }
@@ -665,15 +663,16 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType) string {
 	options := tableRenderOptions{}
 
-	if measurementType == "ping" {
+	switch measurementType {
+	case "ping":
 		options = tableRenderOptions{
 			minimumWidths:        []int{0, 4, 7, 8, 8, 8, 8},
-			minimumLocationWidth: 6,
-			minimumTrailingWidth: 60,
 			multilineLocation:    true,
 			measureLocationBytes: true,
 		}
-	} else if measurementType == "http" {
+	case "traceroute", "mtr":
+		options.minimumWidths = []int{0, 4, 8, 8, 8, 8}
+	case "http":
 		options.shrinkableColumns = []int{len(rows[0]) - 1}
 		options.compactStatusColumn = 1
 	}
@@ -754,28 +753,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, options tableRender
 		}
 	}
 
-	if options.minimumTrailingWidth > 0 {
-		trailingWidth := options.minimumTrailingWidth
-
-		for _, row := range rows[1:] {
-			if isSpanningRow(row, len(columnWidths)) {
-				continue
-			}
-
-			rowWidth := 0
-
-			for column := 1; column < len(row); column++ {
-				rowWidth += len(row[column]) + len(colSeparator)
-			}
-
-			trailingWidth = max(trailingWidth, rowWidth)
-		}
-
-		locationWidth := max(areaWidth-trailingWidth, options.minimumLocationWidth)
-		columnWidths[0] = min(columnWidths[0], locationWidth)
-	} else {
-		fitTableColumnWidths(columnWidths, rows[0], areaWidth, options.shrinkableColumns)
-	}
+	fitTableColumnWidths(columnWidths, rows[0], areaWidth, options.shrinkableColumns)
 
 	var output bytes.Buffer
 
@@ -874,7 +852,7 @@ func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkab
 		return
 	}
 
-	minLocationWidth := runewidth.StringWidth(header[0])
+	minLocationWidth := 6
 	locationReduction := min(max(widths[0]-minLocationWidth, 0), overflow)
 	widths[0] -= locationReduction
 	overflow -= locationReduction
