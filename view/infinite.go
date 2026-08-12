@@ -33,7 +33,17 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 		}
 		return "", v.outputStreamingPackets(measurement)
 	}
-	return v.OutputTable(measurement)
+
+	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
+	if allProbesFailed && !hasFailedPingStats(measurement) {
+		v.clearInfiniteTableOutput()
+
+		return "", v.outputFailSummary(measurement)
+	}
+
+	stats := v.processInfinitePingMeasurement(measurement, true)
+
+	return v.outputInfinitePingTableView(stats)
 }
 
 type infinitePingProbeStats struct {
@@ -44,6 +54,48 @@ type infinitePingProbeStats struct {
 
 type infinitePingStats struct {
 	probes []infinitePingProbeStats
+}
+
+func hasFailedPingStats(m *globalping.Measurement) bool {
+	for i := range m.Results {
+		if m.Results[i].Result.Status == globalping.TestStatusFailed {
+			if _, ok := decodePingMeasurementStats(&m.Results[i].Result); ok {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementStats, bool) {
+	stats, err := globalping.DecodePingStats(result.StatsRaw)
+	if err != nil || stats.Total == 0 {
+		return nil, false
+	}
+
+	decoded := NewMeasurementStats()
+	decoded.Sent = stats.Total
+	decoded.Rcv = stats.Rcv
+	decoded.Lost = stats.Drop
+	decoded.Loss = stats.Loss
+
+	if stats.Rcv == 0 {
+		return decoded, true
+	}
+
+	decoded.Min = stats.Min
+	decoded.Avg = stats.Avg
+	decoded.Max = stats.Max
+	decoded.Mdev = stats.Mdev
+	decoded.Tsum = stats.Avg * float64(stats.Rcv)
+	decoded.Tsum2 = float64(stats.Rcv) * (stats.Mdev*stats.Mdev + stats.Avg*stats.Avg)
+
+	if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
+		decoded.Last = timings[len(timings)-1].RTT
+	}
+
+	return decoded, true
 }
 
 func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFailedPacketStats bool) *infinitePingStats {

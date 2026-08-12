@@ -38,13 +38,9 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 	v.ctx.TableOutputRows = 0
 
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
-	renderFailedTable := allProbesFailed && v.ctx.Table && !v.ctx.Infinite
-	renderFailedInfiniteTable := allProbesFailed && v.ctx.Infinite && v.ctx.Table && hasFailedPingStats(measurement)
+	renderFailedTable := allProbesFailed && v.ctx.Table
 
-	if allProbesFailed && !renderFailedTable && !renderFailedInfiniteTable {
-		if v.ctx.Infinite {
-			v.printer.AreaClear()
-		}
+	if allProbesFailed && !renderFailedTable {
 		return "", v.outputFailSummary(measurement)
 	}
 
@@ -63,10 +59,6 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
-	if v.ctx.Infinite {
-		return v.outputInfinitePingTableView(m)
-	}
-
 	width, _ := v.printer.GetSize()
 	output := v.generateMeasurementTable(m, width-2)
 	v.printer.AreaUpdate(&output)
@@ -74,8 +66,8 @@ func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
 	return "", nil
 }
 
-func (v *viewer) outputInfinitePingTableView(m *globalping.Measurement) (string, error) {
-	stats := v.processInfinitePingMeasurement(m, true)
+func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, error) {
+	v.ctx.TableOutputRows = len(stats.probes)
 	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
 	if v.ctx.CIMode {
@@ -144,46 +136,28 @@ func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaW
 	return liveOutput, completedOutput
 }
 
-func hasFailedPingStats(m *globalping.Measurement) bool {
-	for i := range m.Results {
-		if m.Results[i].Result.Status == globalping.TestStatusFailed {
-			if _, ok := decodePingMeasurementStats(&m.Results[i].Result); ok {
-				return true
+func finitePingTableRowValues(result *globalping.ProbeResult) [7]string {
+	decoded := NewMeasurementStats()
+	stats, err := globalping.DecodePingStats(result.StatsRaw)
+
+	if err == nil && stats.Total > 0 {
+		decoded.Sent = stats.Total
+		decoded.Rcv = stats.Rcv
+		decoded.Lost = stats.Drop
+		decoded.Loss = stats.Loss
+
+		if stats.Rcv > 0 {
+			decoded.Min = stats.Min
+			decoded.Avg = stats.Avg
+			decoded.Max = stats.Max
+
+			if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
+				decoded.Last = timings[len(timings)-1].RTT
 			}
 		}
 	}
 
-	return false
-}
-
-func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementStats, bool) {
-	stats, err := globalping.DecodePingStats(result.StatsRaw)
-	if err != nil || stats.Total == 0 {
-		return nil, false
-	}
-
-	decoded := NewMeasurementStats()
-	decoded.Sent = stats.Total
-	decoded.Rcv = stats.Rcv
-	decoded.Lost = stats.Drop
-	decoded.Loss = stats.Loss
-
-	if stats.Rcv == 0 {
-		return decoded, true
-	}
-
-	decoded.Min = stats.Min
-	decoded.Avg = stats.Avg
-	decoded.Max = stats.Max
-	decoded.Mdev = stats.Mdev
-	decoded.Tsum = stats.Avg * float64(stats.Rcv)
-	decoded.Tsum2 = float64(stats.Rcv) * (stats.Mdev*stats.Mdev + stats.Avg*stats.Avg)
-
-	if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
-		decoded.Last = timings[len(timings)-1].RTT
-	}
-
-	return decoded, true
+	return pingTableRowValues(decoded, true)
 }
 
 func pingTableRowValues(stats *MeasurementStats, showTimeoutValues bool) [7]string {
@@ -291,12 +265,7 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 
 	switch measurementType {
 	case "ping":
-		stats, _ := decodePingMeasurementStats(&measurement.Result)
-		if stats == nil {
-			stats = NewMeasurementStats()
-		}
-
-		values := pingTableRowValues(stats, true)
+		values := finitePingTableRowValues(&measurement.Result)
 		copy(row[1:], values[1:])
 	case "traceroute":
 		copy(row[1:], tracerouteTableValues(measurement.Result.HopsRaw))
