@@ -157,6 +157,9 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	if err == nil && !r.ctx.ToLatency {
 		r.viewer.OutputSummary(infiniteTableOutput)
 	}
+	if errors.Is(err, view.ErrAllProbesFailed) {
+		r.Cmd.SilenceErrors = true
+	}
 	r.evaluateError(err)
 	r.viewer.OutputShare()
 	return err
