@@ -18,7 +18,10 @@ const (
 	tableTimeoutValue = "time out"
 )
 
-var httpBodySeparator = regexp.MustCompile(`\r?\n\r?\n`)
+var (
+	httpBodySeparator      = regexp.MustCompile(`\r?\n\r?\n`)
+	tableLocationLineBreak = regexp.MustCompile(`\r?\n`)
+)
 
 type httpSizeColumn int
 
@@ -29,8 +32,7 @@ const (
 )
 
 type tableRenderOptions struct {
-	minimumWidths     []int
-	multilineLocation bool
+	minimumWidths []int
 }
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error) {
@@ -632,8 +634,7 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurem
 	switch measurementType {
 	case "ping":
 		options = tableRenderOptions{
-			minimumWidths:     []int{0, 4, 7, 8, 8, 8, 8},
-			multilineLocation: true,
+			minimumWidths: []int{0, 4, 7, 8, 8, 8, 8},
 		}
 	case "traceroute", "mtr":
 		options.minimumWidths = []int{0, 4, 8, 8, 8, 8}
@@ -654,6 +655,9 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			if column < len(columnWidths) {
 				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == 1 {
 					continue
+				}
+				if column == 0 {
+					value = normalizeTableLocation(value)
 				}
 
 				columnWidths[column] = max(columnWidths[column], runewidth.StringWidth(value))
@@ -694,69 +698,55 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			color = FGBrightCyan
 		}
 
-		location := strings.ReplaceAll(row[0], "\t", "  ")
-		locationLines := []string{location}
+		location := normalizeTableLocation(strings.ReplaceAll(row[0], "\t", "  "))
+		location = truncateTableCell(location, columnWidths[0])
+		location = padTableCell(location, columnWidths[0], false)
 
-		if options.multilineLocation {
-			locationLines = strings.Split(location, "\n")
+		if color != ColorNone {
+			location = v.printer.Color(location, color)
 		}
 
-		for lineIndex, line := range locationLines {
-			line = truncateTableCell(line, columnWidths[0])
-			line = padTableCell(line, columnWidths[0], false)
+		output.WriteString(location)
+
+		if isSpanningRow(row, len(columnWidths)) {
+			output.WriteString(colSeparator)
+			value := strings.ReplaceAll(row[1], "\t", "  ")
+			availableWidth := max(areaWidth-columnWidths[0]-runewidth.StringWidth(colSeparator), 0)
+			spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 2)
+
+			for _, width := range columnWidths[1:] {
+				spanWidth += width
+			}
+
+			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
+			value = truncateTableCell(value, spanWidth)
+			output.WriteString(padTableCell(value, spanWidth, false))
+			output.WriteByte('\n')
+
+			continue
+		}
+
+		for column := 1; column < len(row); column++ {
+			output.WriteString(colSeparator)
+			value := strings.ReplaceAll(row[column], "\t", "  ")
+			value = truncateTableCell(value, columnWidths[column])
+			value = padTableCell(value, columnWidths[column], true)
 
 			if color != ColorNone {
-				line = v.printer.Color(line, color)
+				value = v.printer.Color(value, color)
 			}
 
-			output.WriteString(line)
-
-			if isSpanningRow(row, len(columnWidths)) {
-				output.WriteString(colSeparator)
-				value := ""
-
-				if lineIndex == 0 {
-					value = strings.ReplaceAll(row[1], "\t", "  ")
-				}
-
-				availableWidth := max(areaWidth-columnWidths[0]-runewidth.StringWidth(colSeparator), 0)
-				spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 2)
-
-				for _, width := range columnWidths[1:] {
-					spanWidth += width
-				}
-
-				spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
-				value = truncateTableCell(value, spanWidth)
-				output.WriteString(padTableCell(value, spanWidth, false))
-				output.WriteByte('\n')
-
-				continue
-			}
-
-			for column := 1; column < len(row); column++ {
-				output.WriteString(colSeparator)
-				value := ""
-
-				if lineIndex == 0 {
-					value = strings.ReplaceAll(row[column], "\t", "  ")
-				}
-
-				value = truncateTableCell(value, columnWidths[column])
-				value = padTableCell(value, columnWidths[column], true)
-
-				if color != ColorNone {
-					value = v.printer.Color(value, color)
-				}
-
-				output.WriteString(value)
-			}
-
-			output.WriteByte('\n')
+			output.WriteString(value)
 		}
+
+		output.WriteByte('\n')
 	}
 
 	return output.String()
+}
+
+func normalizeTableLocation(value string) string {
+	return tableLocationLineBreak.ReplaceAllString(value, "; ")
 }
 
 func isSpanningRow(row []string, columns int) bool {

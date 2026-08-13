@@ -79,21 +79,19 @@ func Test_GenerateMeasurementTable_Ping_OneRow_Truncated(t *testing.T) {
 	assert.Equal(t, expectedTable, table)
 }
 
-func Test_GenerateMeasurementTable_Ping_MultiLine_Truncated(t *testing.T) {
+func Test_GenerateMeasurementTable_Ping_LineBreaksNormalized(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	printer := NewPrinter(nil, nil, nil)
 	viewer := &viewer{ctx: ctx, printer: printer}
 
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
-	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\nLorem ipsum\nLorem ipsum dolor sit amet"
-	table := viewer.generateMeasurementTable(measurement, 99)
+	measurement.Results[1].Probe.Network = "Hetzner Online GmbH\r\nLorem ipsum\nLorem ipsum dolor sit amet"
+	table := viewer.generateMeasurementTable(measurement, 500)
 
-	expectedTable := "\033[96mLocation                              \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
-		"London, GB, EU, OVH SAS (AS0)          |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
-		"Falkenstein, DE, EU, Hetzner Online... |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
-		"Lorem ipsum                            |      |         |          |          |          |         \n" +
-		"Lorem ipsum dolor sit amet (AS0)       |      |         |          |          |          |         \n" +
-		"Nuremberg, DE, EU, Hetzner Online G... |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
+	expectedTable := "\033[96mLocation                                                                               \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
+		"London, GB, EU, OVH SAS (AS0)                                                           |    1 |   0.00% |  0.77 ms |  0.77 ms |  0.77 ms |  0.77 ms\n" +
+		"Falkenstein, DE, EU, Hetzner Online GmbH; Lorem ipsum; Lorem ipsum dolor sit amet (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
+		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)                                            |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, table)
 }
 
