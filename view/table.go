@@ -29,9 +29,8 @@ const (
 )
 
 type tableRenderOptions struct {
-	minimumWidths        []int
-	multilineLocation    bool
-	measureLocationBytes bool
+	minimumWidths     []int
+	multilineLocation bool
 }
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error) {
@@ -633,9 +632,8 @@ func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurem
 	switch measurementType {
 	case "ping":
 		options = tableRenderOptions{
-			minimumWidths:        []int{0, 4, 7, 8, 8, 8, 8},
-			multilineLocation:    true,
-			measureLocationBytes: true,
+			minimumWidths:     []int{0, 4, 7, 8, 8, 8, 8},
+			multilineLocation: true,
 		}
 	case "traceroute", "mtr":
 		options.minimumWidths = []int{0, 4, 8, 8, 8, 8}
@@ -658,13 +656,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 					continue
 				}
 
-				width := runewidth.StringWidth(value)
-
-				if column == 0 && options.measureLocationBytes {
-					width = len(value)
-				}
-
-				columnWidths[column] = max(columnWidths[column], width)
+				columnWidths[column] = max(columnWidths[column], runewidth.StringWidth(value))
 			}
 		}
 	}
