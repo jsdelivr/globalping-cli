@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/signal"
 	"slices"
@@ -85,13 +86,16 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	r.ctx.RecordToSession = true
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16
+		if r.ctx.Limit > 1 && !r.ctx.ToLatency {
+			r.ctx.Table = true
+		}
 	}
 
 	opts := &globalping.MeasurementCreate{
 		Type:              "ping",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
-		InProgressUpdates: !r.ctx.CIMode,
+		InProgressUpdates: !r.ctx.CIMode || (r.ctx.Infinite && !r.ctx.ToLatency),
 		Options: &globalping.MeasurementOptions{
 			Packets:  r.ctx.Packets,
 			Protocol: r.ctx.Protocol,
@@ -127,29 +131,49 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 		return fmt.Errorf("continuous mode is currently limited to 5 probes")
 	}
 
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	signal.Notify(r.cancel, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(r.cancel)
 
+	done := make(chan struct{})
+	var infiniteTableOutput string
 	var err error
 	go func() {
-		err = r.ping(ctx, opts)
-		if err != nil {
-			r.cancel <- syscall.SIGINT
-			return
-		}
+		defer close(done)
+		infiniteTableOutput, err = r.ping(runCtx, opts)
 	}()
-	<-r.cancel
 
-	r.viewer.OutputSummary()
+	select {
+	case <-done:
+	case <-r.cancel:
+		cancel()
+		<-done
+		if errors.Is(err, context.Canceled) {
+			err = nil
+		}
+	}
+
+	if err == nil && !r.ctx.ToLatency {
+		r.viewer.OutputSummary(infiniteTableOutput)
+	}
+	if errors.Is(err, view.ErrAllProbesFailed) {
+		r.Cmd.SilenceErrors = true
+	}
 	r.evaluateError(err)
 	r.viewer.OutputShare()
 	return err
 }
 
-func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) error {
+func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (string, error) {
+	var infiniteTableOutput string
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	r.ctx.RunSessionStartedAt = r.utils.Now()
 	for {
+		if err := ctx.Err(); err != nil {
+			return infiniteTableOutput, err
+		}
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
 		el := mbuf.Next()
@@ -157,17 +181,20 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			measurement, err := r.client.GetMeasurement(ctx, el.Id)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
-				return err
+				return infiniteTableOutput, err
 			}
 			el.Status = measurement.Status
 			if len(measurement.Results) == 0 {
 				el = mbuf.Next()
 				continue
 			}
-			err = r.viewer.OutputInfinite(measurement)
+			infiniteTableOutput, err = r.viewer.OutputInfinite(measurement)
 			if err != nil {
 				r.Cmd.SilenceUsage = true
-				return err
+				return infiniteTableOutput, err
+			}
+			if err := ctx.Err(); err != nil {
+				return infiniteTableOutput, err
 			}
 			if measurement.Status != globalping.MeasurementStatusInProgress {
 				mbuf.Remove(el)
@@ -191,11 +218,17 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 			el = mbuf.Next()
 		}
 		if mbuf.Len() > 0 {
-			time.Sleep(r.ctx.APIMinInterval - elapsedTime)
+			timer := time.NewTimer(r.ctx.APIMinInterval - elapsedTime)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return infiniteTableOutput, ctx.Err()
+			case <-timer.C:
+			}
 			continue
 		}
 		if runErr != nil {
-			return runErr
+			return infiniteTableOutput, runErr
 		}
 		last := r.ctx.History.Last()
 		if last != nil {
@@ -203,7 +236,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) err
 		}
 		hm, err := r.createMeasurement(ctx, opts)
 		if err != nil {
-			return err
+			return infiniteTableOutput, err
 		}
 		mbuf.Append(hm)
 	}

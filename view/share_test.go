@@ -26,12 +26,31 @@ func Test_OutputShare(t *testing.T) {
 		assert.Equal(t, expectedOutput, errw.String())
 	})
 
+	t.Run("Table", func(t *testing.T) {
+		ctx := createDefaultContext("dns")
+		ctx.History.Push(&HistoryItem{Id: measurementID1})
+		ctx.Share = true
+		ctx.Table = true
+		ctx.TableOutputRows = 1
+		w := new(bytes.Buffer)
+		errw := new(bytes.Buffer)
+		printer := NewPrinter(nil, w, errw)
+		printer.DisableStyling()
+		viewer := NewViewer(ctx, printer, nil)
+		viewer.OutputShare()
+
+		assert.Equal(t, "", w.String())
+		expectedOutput := fmt.Sprintf("\n> View the results online: https://globalping.io?measurement=%s&display=table\n", measurementID1)
+		assert.Equal(t, expectedOutput, errw.String())
+	})
+
 	t.Run("Multiple_locations", func(t *testing.T) {
 		ctx := createDefaultContext("ping")
 		ctx.AggregatedStats = []*MeasurementStats{
 			NewMeasurementStats(),
 			NewMeasurementStats(),
 		}
+		ctx.TableOutputRows = 2
 		ctx.History.Push(&HistoryItem{Id: measurementID2})
 		ctx.Share = true
 		w := new(bytes.Buffer)
@@ -54,6 +73,7 @@ func Test_OutputShare(t *testing.T) {
 				NewMeasurementStats(),
 				NewMeasurementStats(),
 			},
+			TableOutputRows:     2,
 			History:             history,
 			Share:               true,
 			MeasurementsCreated: 2,

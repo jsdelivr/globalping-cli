@@ -8,7 +8,7 @@ func (v *viewer) OutputShare() {
 		return
 	}
 
-	if len(v.ctx.AggregatedStats) > 1 {
+	if v.ctx.TableOutputRows > 0 {
 		v.printer.ErrPrintln() // Add a newline in table view
 	}
 	ids := v.ctx.History.ToString(".")

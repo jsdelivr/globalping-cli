@@ -13,6 +13,7 @@ type Context struct {
 	CIMode    bool // Determine whether the output should be in a format that is easy to parse by a CI tool
 	ToJSON    bool // Determines whether the output should be in JSON format.
 	ToLatency bool // Determines whether the output should be only the stats of a measurement
+	Table     bool // Display measurement results in a table
 	Share     bool // Display share message
 
 	Packets   int // Number of packets to send
@@ -41,6 +42,7 @@ type Context struct {
 
 	Hostname            string
 	IsHeaderPrinted     bool
+	TableOutputRows     int
 	AggregatedStats     []*MeasurementStats
 	MeasurementsCreated int
 	History             *HistoryBuffer // History of measurements

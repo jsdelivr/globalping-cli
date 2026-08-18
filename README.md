@@ -125,6 +125,7 @@ Global Measurement Flags:
   -L, --limit int     define the number of probes to use (default 1)
       --share         print a link at the end of the results to visualize them online (default
                       false)
+      --table         output results in a table format (default false)
 
 Global Flags:
   -C, --ci     disable real-time terminal updates and colors, suitable for CI and scripting

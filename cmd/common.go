@@ -25,8 +25,14 @@ var (
 	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
 
-func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) error {
-	if r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency {
+func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) (err error) {
+	defer func() {
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+		}
+	}()
+
+	if !r.ctx.Table && (r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency) {
 		res, err := r.client.AwaitMeasurement(ctx, id)
 		if err != nil {
 			return err
@@ -51,9 +57,43 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		}
 	}
 
+	if r.ctx.Table {
+		defer r.viewer.OutputShare()
+	}
+
 	res, err := r.client.GetMeasurement(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if r.ctx.Table {
+		for {
+			if !r.ctx.CIMode || res.Status != globalping.MeasurementStatusInProgress {
+				_, err = r.viewer.OutputTable(res)
+				if err != nil {
+					if errors.Is(err, view.ErrAllProbesFailed) {
+						r.Cmd.SilenceErrors = true
+					}
+					return err
+				}
+			}
+
+			if res.Status != globalping.MeasurementStatusInProgress {
+				return nil
+			}
+
+			timer := time.NewTimer(r.ctx.APIMinInterval)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
+			res, err = r.client.GetMeasurement(ctx, id)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	w, h := r.printer.GetSize()
@@ -96,6 +136,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	}
 
 	r.ctx.Target = targetQuery.Target
+	if r.ctx.Table {
+		r.ctx.ToLatency = false
+		r.ctx.ToJSON = false
+	}
 
 	if targetQuery.From != "" {
 		r.ctx.From = targetQuery.From

@@ -1,6 +1,7 @@
 package view
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,25 @@ import (
 	"github.com/jsdelivr/globalping-go"
 	"github.com/mattn/go-runewidth"
 )
+
+var ErrAllProbesFailed = errors.New("all probes failed")
+
+func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
+	for i := range m.Results {
+		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))
+		v.printer.Println(m.Results[i].Result.RawOutput)
+	}
+	return ErrAllProbesFailed
+}
+
+func isSomeTestFinished(m *globalping.Measurement) bool {
+	for i := range m.Results {
+		if m.Results[i].Result.Status == globalping.TestStatusFinished {
+			return true
+		}
+	}
+	return false
+}
 
 func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalping.MeasurementCreate, w, h int) {
 	output := &strings.Builder{}
@@ -87,7 +107,11 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 }
 
 func (v *viewer) getShareMessage(id string) string {
-	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s%s", utils.ShareURL, id), BGYellow)
+	shareURL := utils.ShareURL + id
+	if v.ctx.Table {
+		shareURL += "&display=table"
+	}
+	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s", shareURL), BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {

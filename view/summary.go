@@ -5,7 +5,19 @@ import (
 	"math"
 )
 
-func (v *viewer) OutputSummary() {
+func (v *viewer) OutputSummary(infiniteTableOutput string) {
+	if v.ctx.Infinite && v.ctx.Table {
+		if infiniteTableOutput == "" {
+			return
+		}
+		if v.ctx.CIMode {
+			v.printer.Print(infiniteTableOutput)
+		} else {
+			v.printer.AreaUpdate(&infiniteTableOutput)
+		}
+		return
+	}
+
 	if len(v.ctx.AggregatedStats) != 1 {
 		return
 	}

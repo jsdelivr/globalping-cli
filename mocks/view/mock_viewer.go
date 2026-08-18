@@ -52,11 +52,12 @@ func (mr *MockViewerMockRecorder) OutputDefault(id, measurement, opts any) *gomo
 }
 
 // OutputInfinite mocks base method.
-func (m *MockViewer) OutputInfinite(measurement *globalping.Measurement) error {
+func (m *MockViewer) OutputInfinite(measurement *globalping.Measurement) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "OutputInfinite", measurement)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // OutputInfinite indicates an expected call of OutputInfinite.
@@ -116,13 +117,28 @@ func (mr *MockViewerMockRecorder) OutputShare() *gomock.Call {
 }
 
 // OutputSummary mocks base method.
-func (m *MockViewer) OutputSummary() {
+func (m *MockViewer) OutputSummary(infiniteTableOutput string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OutputSummary")
+	m.ctrl.Call(m, "OutputSummary", infiniteTableOutput)
 }
 
 // OutputSummary indicates an expected call of OutputSummary.
-func (mr *MockViewerMockRecorder) OutputSummary() *gomock.Call {
+func (mr *MockViewerMockRecorder) OutputSummary(infiniteTableOutput any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputSummary", reflect.TypeOf((*MockViewer)(nil).OutputSummary))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputSummary", reflect.TypeOf((*MockViewer)(nil).OutputSummary), infiniteTableOutput)
+}
+
+// OutputTable mocks base method.
+func (m *MockViewer) OutputTable(measurement *globalping.Measurement) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OutputTable", measurement)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OutputTable indicates an expected call of OutputTable.
+func (mr *MockViewerMockRecorder) OutputTable(measurement any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputTable", reflect.TypeOf((*MockViewer)(nil).OutputTable), measurement)
 }

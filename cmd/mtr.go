@@ -122,6 +122,5 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	r.handleMeasurement(ctx, res.ID, opts)
-	return nil
+	return r.handleMeasurement(ctx, res.ID, opts)
 }
