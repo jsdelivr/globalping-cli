@@ -82,7 +82,13 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 				return nil
 			}
 
-			time.Sleep(r.ctx.APIMinInterval)
+			timer := time.NewTimer(r.ctx.APIMinInterval)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
 			res, err = r.client.GetMeasurement(ctx, id)
 			if err != nil {
 				return err
