@@ -62,8 +62,13 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
-	width, _ := v.printer.GetSize()
+	width, height := v.printer.GetSize()
 	output := v.generateMeasurementTable(m, width-2)
+
+	if m.Status == globalping.MeasurementStatusInProgress {
+		output = limitTableRows(output, height-1)
+	}
+
 	v.printer.AreaUpdate(&output)
 
 	return "", nil
@@ -77,6 +82,8 @@ func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, 
 		return completedOutput, nil
 	}
 
+	_, height := v.printer.GetSize()
+	liveOutput = limitTableRows(liveOutput, height-1)
 	v.printer.AreaUpdate(&liveOutput)
 
 	return completedOutput, nil
@@ -90,6 +97,8 @@ func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats
 		liveOutput = completedOutput
 	}
 
+	_, height := v.printer.GetSize()
+	liveOutput = limitTableRows(liveOutput, height-1)
 	v.printer.AreaUpdate(&liveOutput)
 
 	return completedOutput, nil
@@ -751,6 +760,21 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 
 func normalizeTableLocation(value string) string {
 	return tableLocationLineBreak.ReplaceAllString(value, "; ")
+}
+
+func limitTableRows(output string, maxRows int) string {
+	if output == "" || maxRows <= 0 {
+		return ""
+	}
+
+	rows := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+	if len(rows) <= maxRows {
+		return output
+	}
+
+	visibleRows := rows[len(rows)-maxRows:]
+
+	return strings.Join(visibleRows, "\n") + "\n"
 }
 
 func isSpanningRow(row []string, columns int) bool {

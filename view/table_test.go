@@ -169,12 +169,14 @@ func Test_OutputTable_Ping_Success(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	expected := [][]string{
 		{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
 		{"London, GB, EU, OVH SAS (AS0)", "1", "0.00%", "0.77 ms", "0.77 ms", "0.77 ms", "0.77 ms"},
 		{"Falkenstein, DE, EU, Hetzner Online GmbH (AS0)", "1", "0.00%", "5.46 ms", "5.46 ms", "5.46 ms", "5.46 ms"},
 		{"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)", "1", "0.00%", "4.07 ms", "4.07 ms", "4.07 ms", "4.07 ms"},
-	})
+	}
+	assertTableForTest(t, output, expected)
+	assertTableForTest(t, limitTableRows(output, 3), expected[1:])
 }
 
 func Test_OutputTable_Ping_UnknownHistoryItem(t *testing.T) {
