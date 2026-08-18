@@ -50,7 +50,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			expectedMeasurement := createDefaultMeasurement(measurementType)
 			gbMock := apiMocks.NewMockClient(ctrl)
 			gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Return(expectedResponse, nil)
-			gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
+			gbMock.EXPECT().GetMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
 
 			viewerMock := viewMocks.NewMockViewer(ctrl)
 			viewerMock.EXPECT().OutputTable(expectedMeasurement).Return("", nil)
@@ -81,10 +81,14 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 	t.Run("table before latency", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
+		inProgressMeasurement := createDefaultMeasurement("ping")
+		inProgressMeasurement.Status = globalping.MeasurementStatusInProgress
 		measurement := createDefaultMeasurement("ping")
 		client := apiMocks.NewMockClient(ctrl)
-		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(inProgressMeasurement, nil)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
+		viewer.EXPECT().OutputTable(inProgressMeasurement).Return("", nil)
 		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")
@@ -99,7 +103,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		measurement := createDefaultMeasurement("ping")
 		client := apiMocks.NewMockClient(ctrl)
-		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
@@ -115,7 +119,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		measurement := createDefaultMeasurement("ping")
 		client := apiMocks.NewMockClient(ctrl)
-		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", assert.AnError)
 		viewer.EXPECT().OutputShare()
@@ -132,7 +136,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		measurement := createDefaultMeasurement("ping")
 		client := apiMocks.NewMockClient(ctrl)
-		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", view.ErrAllProbesFailed)
 		viewer.EXPECT().OutputShare()
@@ -145,11 +149,11 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		assert.True(t, root.Cmd.SilenceErrors)
 	})
 
-	t.Run("await error finalizes table output", func(t *testing.T) {
+	t.Run("polling error finalizes table output", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		measurement := createDefaultMeasurement("ping")
 		client := apiMocks.NewMockClient(ctrl)
-		client.EXPECT().AwaitMeasurement(t.Context(), measurement.ID).Return(nil, assert.AnError)
+		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(nil, assert.AnError)
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext("ping")

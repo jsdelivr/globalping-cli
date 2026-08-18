@@ -32,23 +32,9 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		}
 	}()
 
-	if r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency || r.ctx.Table {
+	if !r.ctx.Table && (r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency) {
 		res, err := r.client.AwaitMeasurement(ctx, id)
 		if err != nil {
-			if r.ctx.Table {
-				r.viewer.OutputShare()
-			}
-			return err
-		}
-
-		if r.ctx.Table {
-			_, err := r.viewer.OutputTable(res)
-			r.viewer.OutputShare()
-			if err != nil {
-				if errors.Is(err, view.ErrAllProbesFailed) {
-					r.Cmd.SilenceErrors = true
-				}
-			}
 			return err
 		}
 
@@ -71,9 +57,37 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		}
 	}
 
+	if r.ctx.Table {
+		defer r.viewer.OutputShare()
+	}
+
 	res, err := r.client.GetMeasurement(ctx, id)
 	if err != nil {
 		return err
+	}
+
+	if r.ctx.Table {
+		for {
+			if !r.ctx.CIMode || res.Status != globalping.MeasurementStatusInProgress {
+				_, err = r.viewer.OutputTable(res)
+				if err != nil {
+					if errors.Is(err, view.ErrAllProbesFailed) {
+						r.Cmd.SilenceErrors = true
+					}
+					return err
+				}
+			}
+
+			if res.Status != globalping.MeasurementStatusInProgress {
+				return nil
+			}
+
+			time.Sleep(r.ctx.APIMinInterval)
+			res, err = r.client.GetMeasurement(ctx, id)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	w, h := r.printer.GetSize()
