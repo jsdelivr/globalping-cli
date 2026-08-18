@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf16"
 
 	"github.com/jsdelivr/globalping-go"
 	"github.com/mattn/go-runewidth"
@@ -15,6 +16,7 @@ import (
 
 const (
 	colSeparator      = " | "
+	httpBodySizeLimit = 10000
 	tableTimeoutValue = "time out"
 )
 
@@ -512,7 +514,7 @@ func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
 func hasHTTPBody(results []globalping.ProbeMeasurement) bool {
 	for i := range results {
 		if results[i].Result.Status == globalping.TestStatusFinished {
-			if _, ok := httpBodyLength(results[i].Result.RawOutput); ok {
+			if _, _, ok := httpBodyLengths(results[i].Result.RawOutput); ok {
 				return true
 			}
 		}
@@ -539,10 +541,10 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 			values[1] = strconv.FormatUint(length, 10) + " B"
 		}
 	} else if httpSize == httpSizeBytes {
-		if length, ok := httpBodyLength(result.RawOutput); ok {
+		if length, utf16Length, ok := httpBodyLengths(result.RawOutput); ok {
 			suffix := " B"
 
-			if result.Truncated {
+			if result.Truncated && utf16Length >= httpBodySizeLimit {
 				suffix = "+ B"
 			}
 
@@ -565,13 +567,15 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 	return values
 }
 
-func httpBodyLength(rawOutput string) (int, bool) {
+func httpBodyLengths(rawOutput string) (int, int, bool) {
 	separator := httpBodySeparator.FindStringIndex(rawOutput)
 	if separator == nil {
-		return 0, false
+		return 0, 0, false
 	}
 
-	return len(rawOutput[separator[1]:]), true
+	body := rawOutput[separator[1]:]
+
+	return len(body), len(utf16.Encode([]rune(body))), true
 }
 
 func decodeTotalTiming(raw json.RawMessage) (float64, bool) {

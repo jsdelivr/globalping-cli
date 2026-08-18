@@ -557,21 +557,28 @@ func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {
 	lf := tableProbe("Paris", "FR", "Unicode Body Network", globalping.TestStatusFinished)
 	lf.Result.StatusCode = 200
 	lf.Result.StatusCodeName = "OK"
-	lf.Result.RawOutput = "HTTP/1.1 200 OK\nServer: example\n\nžluťoučký"
+	lf.Result.RawOutput = "HTTP/1.1 200 OK\nServer: example\n\n" + strings.Repeat("ž", 6000)
 	lf.Result.Truncated = true
+
+	truncated := tableProbe("Prague", "CZ", "Truncated Body Network", globalping.TestStatusFinished)
+	truncated.Result.StatusCode = 200
+	truncated.Result.StatusCodeName = "OK"
+	truncated.Result.RawOutput = "HTTP/1.1 200 OK\r\nServer: example\r\n\r\n" + strings.Repeat("😀", httpBodySizeLimit/2)
+	truncated.Result.Truncated = true
 
 	empty := tableProbe("Rome", "IT", "Empty Body Network", globalping.TestStatusFinished)
 	empty.Result.StatusCode = 204
 	empty.Result.RawOutput = "HTTP/1.1 204 No Content\r\nServer: example\r\n\r\n"
 
-	measurement := tableMeasurement("http", crlf, lf, empty)
+	measurement := tableMeasurement("http", crlf, lf, truncated, empty)
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
 	assertTableForTest(t, output, [][]string{
 		{"Location", "Status", "Bytes", "Total", "Resolved IP"},
 		{"Berlin, DE, EU, HTTP Network (AS64500)", "Connection failed", "5 B", "-", "-"},
-		{"Paris, FR, EU, Unicode Body Network (AS64500)", "200 OK", "13+ B", "-", "-"},
+		{"Paris, FR, EU, Unicode Body Network (AS64500)", "200 OK", "12000 B", "-", "-"},
+		{"Prague, CZ, EU, Truncated Body Network (AS64500)", "200 OK", "20000+ B", "-", "-"},
 		{"Rome, IT, EU, Empty Body Network (AS64500)", "204", "0 B", "-", "-"},
 	})
 
