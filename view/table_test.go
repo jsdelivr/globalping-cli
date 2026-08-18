@@ -839,7 +839,10 @@ func assertTableWithFailureForTest(t *testing.T, output string, expectedRows [][
 	require.Len(t, failureParts, 2)
 	assert.Equal(t, headerSeparatorOffsets[0], displaySeparatorOffsetsForTest(lines[len(lines)-1])[0])
 	assert.Equal(t, failureLocation, strings.TrimSpace(failureParts[0]))
-	assert.Equal(t, failureMessage, strings.TrimSpace(failureParts[1]))
+	assert.Equal(t, "--- "+failureMessage+" ---", strings.TrimSpace(failureParts[1]))
+	leftPadding := runewidth.StringWidth(failureParts[1]) - runewidth.StringWidth(strings.TrimLeft(failureParts[1], " "))
+	rightPadding := runewidth.StringWidth(failureParts[1]) - runewidth.StringWidth(strings.TrimRight(failureParts[1], " "))
+	assert.InDelta(t, leftPadding, rightPadding, 1, "failure message must be centered")
 }
 
 var ansiPatternForTest = regexp.MustCompile(`\x1b\[[0-9;]*m`)

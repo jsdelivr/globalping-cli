@@ -723,7 +723,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 
 		if isSpanningRow(row, len(columnWidths)) {
 			output.WriteString(colSeparator)
-			value := strings.ReplaceAll(row[1], "\t", "  ")
+			value := fmt.Sprintf("--- %s ---", strings.ReplaceAll(row[1], "\t", "  "))
 			availableWidth := max(areaWidth-columnWidths[0]-runewidth.StringWidth(colSeparator), 0)
 			spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 2)
 
@@ -733,7 +733,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 
 			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
 			value = truncateTableCell(value, spanWidth)
-			output.WriteString(padTableCell(value, spanWidth, false))
+			output.WriteString(centerTableCell(value, spanWidth))
 			output.WriteByte('\n')
 
 			continue
@@ -888,4 +888,11 @@ func padTableCell(value string, width int, left bool) string {
 	}
 
 	return value + padding
+}
+
+func centerTableCell(value string, width int) string {
+	padding := max(width-runewidth.StringWidth(value), 0)
+	leftPadding := padding / 2
+
+	return strings.Repeat(" ", leftPadding) + value + strings.Repeat(" ", padding-leftPadding)
 }
