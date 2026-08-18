@@ -19,7 +19,7 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 Install mockgen:
 
 ```shell
-GOBIN=$(pwd)/bin go install go.uber.org/mock/mockgen@latest
+GOBIN=$(pwd)/bin go install go.uber.org/mock/mockgen@v0.4.0
 ```
 
 Run golangci-lint:
