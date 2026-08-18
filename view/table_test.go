@@ -93,6 +93,8 @@ func Test_GenerateMeasurementTable_Ping_LineBreaksNormalized(t *testing.T) {
 		"Falkenstein, DE, EU, Hetzner Online GmbH; Lorem ipsum; Lorem ipsum dolor sit amet (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms\n" +
 		"Nuremberg, DE, EU, Hetzner Online GmbH (AS0)                                            |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms\n"
 	assert.Equal(t, expectedTable, table)
+	assert.Equal(t, "city; state; network", normalizeTableLocation("city\r\nstate\nnetwork"))
+	assert.Equal(t, "city; state; network", normalizeTableLocation("city\rstate\rnetwork"))
 }
 
 func Test_GenerateMeasurementTable_Ping_MaxTruncated(t *testing.T) {

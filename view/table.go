@@ -20,7 +20,7 @@ const (
 
 var (
 	httpBodySeparator      = regexp.MustCompile(`\r?\n\r?\n`)
-	tableLocationLineBreak = regexp.MustCompile(`\r?\n`)
+	tableLocationLineBreak = regexp.MustCompile(`\r\n|\r|\n`)
 )
 
 type httpSizeColumn int
