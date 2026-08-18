@@ -25,12 +25,17 @@ var (
 	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
 
-func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) error {
+func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) (err error) {
+	defer func() {
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+		}
+	}()
+
 	if r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency || r.ctx.Table {
 		res, err := r.client.AwaitMeasurement(ctx, id)
 		if err != nil {
 			if r.ctx.Table {
-				r.Cmd.SilenceUsage = true
 				r.viewer.OutputShare()
 			}
 			return err
@@ -40,7 +45,6 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 			_, err := r.viewer.OutputTable(res)
 			r.viewer.OutputShare()
 			if err != nil {
-				r.Cmd.SilenceUsage = true
 				if errors.Is(err, view.ErrAllProbesFailed) {
 					r.Cmd.SilenceErrors = true
 				}
