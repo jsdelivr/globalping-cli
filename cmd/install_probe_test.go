@@ -24,7 +24,7 @@ func Test_Execute_Install_Probe_Docker(t *testing.T) {
 	reader := bytes.NewReader([]byte("Y\n"))
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(reader, w, w)
-	ctx := createDefaultContext("install-probe")
+	ctx := createDefaultContext()
 	root := NewRoot(printer, ctx, nil, nil, nil, probeMock, nil)
 	os.Args = []string{"globalping", "install-probe"}
 

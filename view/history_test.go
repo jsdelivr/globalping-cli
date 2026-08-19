@@ -11,7 +11,7 @@ func Test_HistoryBuffer(t *testing.T) {
 
 	assert.Equal(t, 0, b.Index)
 	assert.Equal(t, []*HistoryItem{nil, nil, nil}, b.Slice)
-	assert.Equal(t, b.ToString("+"), "")
+	assert.Equal(t, "", b.ToString("+"))
 
 	b.Push(&HistoryItem{Id: "a"})
 	assert.Equal(t, 1, b.Index)
@@ -25,7 +25,7 @@ func Test_HistoryBuffer(t *testing.T) {
 		{Id: "b"},
 		nil,
 	}, b.Slice)
-	assert.Equal(t, b.ToString("+"), "a+b")
+	assert.Equal(t, "a+b", b.ToString("+"))
 	assert.Equal(t, &HistoryItem{Id: "b"}, b.Find("b"))
 	assert.Equal(t, &HistoryItem{Id: "a"}, b.Find("a"))
 
@@ -36,7 +36,7 @@ func Test_HistoryBuffer(t *testing.T) {
 		{Id: "b"},
 		{Id: "c"},
 	}, b.Slice)
-	assert.Equal(t, b.ToString("+"), "a+b+c")
+	assert.Equal(t, "a+b+c", b.ToString("+"))
 
 	b.Push(&HistoryItem{Id: "d"})
 	assert.Equal(t, 1, b.Index)
@@ -45,6 +45,6 @@ func Test_HistoryBuffer(t *testing.T) {
 		{Id: "b"},
 		{Id: "c"},
 	}, b.Slice)
-	assert.Equal(t, b.ToString("+"), "b+c+d")
+	assert.Equal(t, "b+c+d", b.ToString("+"))
 	assert.Nil(t, b.Find("a"))
 }

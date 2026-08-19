@@ -41,7 +41,7 @@ func Test_Execute_Ping_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -97,7 +97,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin,New York "}
@@ -108,7 +108,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.From = "Berlin,New York"
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-1"}
@@ -119,7 +119,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "last"}
@@ -129,7 +129,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.From = "last"
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "previous"}
@@ -139,7 +139,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.From = "previous"
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedResponse.ID = measurementID2
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
@@ -152,7 +152,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.IsLocationFromSession = false
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@1"}
@@ -163,7 +163,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "first"}
@@ -173,7 +173,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.From = "first"
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
 	expectedResponse.ID = measurementID3
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
@@ -186,7 +186,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.IsLocationFromSession = false
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID2)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@2"}
@@ -198,7 +198,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedCtx.IsLocationFromSession = true
 	assert.Equal(t, expectedCtx, ctx)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	expectedOpts.Locations = globalping.PreviousMeasurementID(measurementID1)
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-3"}
@@ -215,11 +215,11 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	expectedHistory := []byte(measurementID1 + "\n" + measurementID2 + "\n" + measurementID3 + "\n")
 	assert.Equal(t, expectedHistory, b)
 
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@-4"}
 	err = root.Cmd.ExecuteContext(t.Context())
-	assert.Error(t, err, storage.ErrIndexOutOfRange)
+	assert.ErrorIs(t, err, storage.ErrIndexOutOfRange)
 
 	expectedCtx.From = "@-4"
 	expectedCtx.IsLocationFromSession = false
@@ -229,47 +229,47 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: index out of range\n", w.String())
 
-	_storage.Remove()
+	assert.NoError(t, _storage.Remove())
 
 	w.Reset()
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@1"}
 	err = root.Cmd.ExecuteContext(t.Context())
-	assert.Error(t, err, storage.ErrNoPreviousMeasurements)
+	assert.ErrorIs(t, err, storage.ErrNoPreviousMeasurements)
 
 	expectedCtx.From = "@1"
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: no previous measurements found\n", w.String())
 
 	w.Reset()
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@0"}
 	err = root.Cmd.ExecuteContext(t.Context())
-	assert.Error(t, err, storage.ErrInvalidIndex)
+	assert.ErrorIs(t, err, storage.ErrInvalidIndex)
 
 	expectedCtx.From = "@0"
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: invalid index\n", w.String())
 
 	w.Reset()
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@x"}
 	err = root.Cmd.ExecuteContext(t.Context())
-	assert.Error(t, err, storage.ErrInvalidIndex)
+	assert.ErrorIs(t, err, storage.ErrInvalidIndex)
 
 	expectedCtx.From = "@x"
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: invalid index\n", w.String())
 
 	w.Reset()
-	ctx = createDefaultContext("ping")
+	ctx = createDefaultContext()
 	root = NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "@"}
 	err = root.Cmd.ExecuteContext(t.Context())
-	assert.Error(t, err, storage.ErrInvalidIndex)
+	assert.ErrorIs(t, err, storage.ErrInvalidIndex)
 
 	expectedCtx.From = "@"
 	assert.Equal(t, expectedCtx, ctx)
@@ -310,14 +310,14 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	gbMock.EXPECT().CreateMeasurement(gomock.Any(), expectedOpts3).Return(expectedResponse3, nil)
 	gbMock.EXPECT().CreateMeasurement(gomock.Any(), expectedOpts4).Return(expectedResponse4, nil)
 
-	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusFinished, globalping.TestStatusFinished)
-	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
+	expectedMeasurement1 := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusFinished, globalping.TestStatusFinished)
+	expectedMeasurement2 := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement2.ID = measurementID2
 	expectedMeasurement2.Results[0].Result.Status = globalping.TestStatusFinished
-	expectedMeasurement3 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
+	expectedMeasurement3 := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement3.ID = measurementID3
 	expectedMeasurement3.Results[0].Result.Status = globalping.TestStatusFinished
-	expectedMeasurement4 := createDefaultMeasurement_MultipleProbes("ping", globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
+	expectedMeasurement4 := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
 	expectedMeasurement4.ID = measurementID4
 	expectedMeasurement4.Results[1].Result.Status = globalping.TestStatusFinished
 
@@ -330,11 +330,12 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	var finalRunCtx context.Context
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID4).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
 		finalRunCtx = ctx
+
 		return expectedMeasurement4, nil
 	})
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	waitFn := func(m *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
+	waitFn := func(_ *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement1).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
@@ -342,9 +343,10 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement2).DoAndReturn(waitFn)
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement3).DoAndReturn(waitFn)
 	finalOutputStarted := make(chan struct{})
-	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) (string, error) {
+	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(_ *globalping.Measurement) (string, error) {
 		close(finalOutputStarted)
 		<-finalRunCtx.Done()
+
 		return "", nil
 	})
 
@@ -462,6 +464,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	var runCtx context.Context
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
 		runCtx = ctx
+
 		return expectedMeasurement, nil
 	})
 
@@ -470,6 +473,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(func(*globalping.Measurement) (string, error) {
 		close(outputStarted)
 		<-runCtx.Done()
+
 		return "final table", nil
 	})
 	viewerMock.EXPECT().OutputSummary("final table").Times(1)
@@ -479,7 +483,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	w := new(bytes.Buffer)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "--limit", "2", "--ci", "from", "Berlin"}
@@ -524,7 +528,7 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
@@ -580,7 +584,7 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).Return(expectedMeasurement, nil)
 
 	viewerMock := viewMocks.NewMockViewer(ctrl)
-	waitFn := func(m *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
+	waitFn := func(_ *globalping.Measurement) (string, error) { time.Sleep(5 * time.Millisecond); return "", nil }
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(waitFn)
 
 	viewerMock.EXPECT().OutputSummary(gomock.Any()).Times(0)
@@ -592,7 +596,7 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, errW)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "Berlin", "--infinite", "--share"}
@@ -647,7 +651,7 @@ func Test_Execute_Ping_IPv4(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -686,7 +690,7 @@ func Test_Execute_Ping_IPv6(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -711,7 +715,7 @@ func Test_Execute_Ping_Invalid_Protocol(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 

@@ -14,15 +14,17 @@ const (
 	ContainerEnginePodman  ContainerEngine = "Podman"
 )
 
-func (p *probe) DetectContainerEngine() (ContainerEngine, error) {
+func (*probe) DetectContainerEngine() (ContainerEngine, error) {
 	// check if docker is installed
 	dockerInfoCmd := exec.Command("docker", "info")
 	dockerInfoCmd.Stderr = os.Stderr
 	dockerInfoErr := dockerInfoCmd.Run()
+
 	if dockerInfoErr == nil {
 		// check if docker is aliased to podman
 		aliasCmd := exec.Command("type", "docker")
 		aliasResults, _ := aliasCmd.Output()
+
 		if strings.Contains(string(aliasResults), "podman") {
 			return ContainerEnginePodman, nil
 		}
@@ -34,6 +36,7 @@ func (p *probe) DetectContainerEngine() (ContainerEngine, error) {
 	podmanInfoCmd := exec.Command("podman", "info")
 	podmanInfoCmd.Stderr = os.Stderr
 	podmanInfoErr := podmanInfoCmd.Run()
+
 	if podmanInfoErr == nil {
 		return ContainerEnginePodman, nil
 	}

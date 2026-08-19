@@ -19,7 +19,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	_storage := createDefaultTestStorage(t, utilsMock)
@@ -31,7 +31,7 @@ func Test_Execute_History_Default(t *testing.T) {
 		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
-	root.UpdateHistory()
+	assert.NoError(t, root.UpdateHistory())
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "from", "last"}
 	ctx.IsLocationFromSession = true
@@ -40,19 +40,19 @@ func Test_Execute_History_Default(t *testing.T) {
 		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
-	root.UpdateHistory()
+	assert.NoError(t, root.UpdateHistory())
 
 	os.Args = []string{"globalping", "ping", "jsdelivr.com"}
 	ctx.IsLocationFromSession = false
-	root.UpdateHistory()
-	root.UpdateHistory()
-	root.UpdateHistory()
+	assert.NoError(t, root.UpdateHistory())
+	assert.NoError(t, root.UpdateHistory())
+	assert.NoError(t, root.UpdateHistory())
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID3,
 		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
-	root.UpdateHistory()
+	assert.NoError(t, root.UpdateHistory())
 
 	os.Args = []string{"globalping", "history"}
 	err := root.Cmd.ExecuteContext(t.Context())

@@ -13,6 +13,6 @@ func (r *Root) initVersion() {
 	})
 }
 
-func (r *Root) RunVersion(cmd *cobra.Command, args []string) {
+func (r *Root) RunVersion(_ *cobra.Command, _ []string) {
 	r.printer.Println("Globalping CLI v" + version.Version)
 }

@@ -44,7 +44,7 @@ func Test_Execute_DNS_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("dns")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -110,7 +110,7 @@ func Test_Execute_DNS_IPv4(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("dns")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -152,7 +152,7 @@ func Test_Execute_DNS_IPv6(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("dns")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 
@@ -179,7 +179,7 @@ func Test_Execute_DNS_Invalid_Protocol(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("dns")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 

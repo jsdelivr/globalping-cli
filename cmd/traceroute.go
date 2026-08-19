@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -64,6 +65,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	err := r.updateContext(cmd, args)
+
 	if err != nil {
 		return err
 	}
@@ -73,10 +75,12 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.ToLatency {
-		return fmt.Errorf("the latency flag is not supported by the traceroute command")
+		return errors.New("the latency flag is not supported by the traceroute command")
 	}
 
-	defer r.UpdateHistory()
+	defer func() {
+		_ = r.UpdateHistory()
+	}()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{
@@ -90,8 +94,10 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		},
 	}
 	opts.Locations, err = r.getLocations()
+
 	if err != nil {
 		cmd.SilenceUsage = true
+
 		return err
 	}
 
@@ -102,9 +108,11 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	}
 
 	res, err := r.client.CreateMeasurement(ctx, opts)
+
 	if err != nil {
 		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		r.evaluateError(err)
+
 		return err
 	}
 
@@ -115,9 +123,11 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
+
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := r.storage.SaveIdToSession(res.ID)
+
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}

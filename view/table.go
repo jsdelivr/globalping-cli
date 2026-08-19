@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -48,20 +49,16 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 	}
 
 	v.ctx.TableOutputRows = len(measurement.Results)
-	completedOutput, err := v.outputTableView(measurement)
-
-	if err != nil {
-		return "", err
-	}
+	v.outputTableView(measurement)
 
 	if renderFailedTable {
-		return completedOutput, ErrAllProbesFailed
+		return "", ErrAllProbesFailed
 	}
 
-	return completedOutput, nil
+	return "", nil
 }
 
-func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
+func (v *viewer) outputTableView(m *globalping.Measurement) {
 	width, height := v.printer.GetSize()
 	output := v.generateMeasurementTable(m, width-2)
 
@@ -70,8 +67,6 @@ func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
 	}
 
 	v.printer.AreaUpdate(&output)
-
-	return "", nil
 }
 
 func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, error) {
@@ -174,38 +169,41 @@ func finitePingTableRowValues(result *globalping.ProbeResult) [7]string {
 
 func pingTableRowValues(stats *MeasurementStats, showTimeoutValues bool) [7]string {
 	last := "-"
-	min := "-"
+	minText := "-"
 	avg := "-"
-	max := "-"
+	maxText := "-"
 
 	if showTimeoutValues && stats.Sent > 0 && stats.Rcv == 0 {
 		last = tableTimeoutValue
-		min = tableTimeoutValue
+		minText = tableTimeoutValue
 		avg = tableTimeoutValue
-		max = tableTimeoutValue
+		maxText = tableTimeoutValue
 	} else {
 		if stats.Last != -1 {
 			last = formatDuration(stats.Last)
 		}
+
 		if stats.Min != math.MaxFloat64 {
-			min = formatDuration(stats.Min)
+			minText = formatDuration(stats.Min)
 		}
+
 		if stats.Avg != -1 {
 			avg = formatDuration(stats.Avg)
 		}
+
 		if stats.Max != -1 {
-			max = formatDuration(stats.Max)
+			maxText = formatDuration(stats.Max)
 		}
 	}
 
 	return [7]string{
 		"",
-		fmt.Sprintf("%d", stats.Sent),
+		strconv.Itoa(stats.Sent),
 		fmt.Sprintf("%.2f", stats.Loss) + "%",
 		last,
-		min,
+		minText,
 		avg,
-		max,
+		maxText,
 	}
 }
 
@@ -247,9 +245,10 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSiz
 	case "http":
 		header := []string{"Location", "Status"}
 
-		if httpSize == httpSizeContentLength {
+		switch httpSize {
+		case httpSizeContentLength:
 			header = append(header, "Content-Length")
-		} else if httpSize == httpSizeBytes {
+		case httpSizeBytes:
 			header = append(header, "Bytes")
 		}
 
@@ -261,6 +260,7 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSiz
 
 func tableRow(measurementType globalping.MeasurementType, trace bool, columns int, measurement *globalping.ProbeMeasurement, httpSize httpSizeColumn) []string {
 	row := make([]string, columns)
+
 	for i := range row {
 		row[i] = "-"
 	}
@@ -371,9 +371,9 @@ func tracerouteTableValues(raw json.RawMessage) []string {
 }
 
 func lastTimingRTT(timings []tracerouteTableTiming) *float64 {
-	for i := len(timings) - 1; i >= 0; i-- {
-		if timings[i].RTT != nil {
-			return timings[i].RTT
+	for _, v := range slices.Backward(timings) {
+		if v.RTT != nil {
+			return v.RTT
 		}
 	}
 
@@ -446,6 +446,7 @@ func dnsTableValues(result *globalping.ProbeResult) []string {
 	}
 
 	var answers []json.RawMessage
+
 	if len(result.AnswersRaw) > 0 && json.Unmarshal(result.AnswersRaw, &answers) == nil && answers != nil {
 		values[1] = strconv.Itoa(len(answers))
 	}
@@ -545,11 +546,12 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 		values[0] = result.StatusCodeName
 	}
 
-	if httpSize == httpSizeContentLength {
+	switch httpSize {
+	case httpSizeContentLength:
 		if length, ok := contentLength(result.HeadersRaw); ok {
 			values[1] = strconv.FormatUint(length, 10) + " B"
 		}
-	} else if httpSize == httpSizeBytes {
+	case httpSizeBytes:
 		if length, utf16Length, ok := httpBodyLengths(result.RawOutput); ok {
 			suffix := " B"
 
@@ -578,6 +580,7 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 
 func httpBodyLengths(rawOutput string) (int, int, bool) {
 	separator := httpBodySeparator.FindStringIndex(rawOutput)
+
 	if separator == nil {
 		return 0, 0, false
 	}
@@ -669,6 +672,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == 1 {
 					continue
 				}
+
 				if column == 0 {
 					value = normalizeTableLocation(value)
 				}
@@ -702,6 +706,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	for rowIndex, row := range rows {
 		if len(row) == 0 {
 			output.WriteByte('\n')
+
 			continue
 		}
 
@@ -768,6 +773,7 @@ func limitTableRows(output string, maxRows int) string {
 	}
 
 	rows := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+
 	if len(rows) <= maxRows {
 		return output
 	}
@@ -821,6 +827,7 @@ func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkab
 	separatorWidth := runewidth.StringWidth(colSeparator) * (len(widths) - 1)
 	contentWidth := areaWidth - separatorWidth
 	usedWidth := 0
+
 	for _, width := range widths {
 		usedWidth += width
 	}

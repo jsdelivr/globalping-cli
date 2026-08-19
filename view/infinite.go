@@ -31,10 +31,14 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 		if measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement) {
 			return "", v.outputFailSummary(measurement)
 		}
-		return "", v.outputStreamingPackets(measurement)
+
+		v.outputStreamingPackets(measurement)
+
+		return "", nil
 	}
 
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
+
 	if allProbesFailed && !hasFailedPingStats(measurement) {
 		v.clearInfiniteTableOutput()
 
@@ -70,6 +74,7 @@ func hasFailedPingStats(m *globalping.Measurement) bool {
 
 func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementStats, bool) {
 	stats, err := globalping.DecodePingStats(result.StatsRaw)
+
 	if err != nil || stats.Total == 0 {
 		return nil, false
 	}
@@ -101,6 +106,7 @@ func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementSta
 func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFailedPacketStats bool) *infinitePingStats {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = make([]*MeasurementStats, len(m.Results))
+
 		for i := range m.Results {
 			v.ctx.AggregatedStats[i] = NewMeasurementStats()
 		}
@@ -108,6 +114,7 @@ func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFa
 
 	hm := v.ctx.History.Find(m.ID)
 	measurementHistory := hm
+
 	if measurementHistory == nil {
 		measurementHistory = &HistoryItem{Id: m.ID, StartedAt: v.ctx.RunSessionStartedAt}
 	}
@@ -124,13 +131,14 @@ func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFa
 			resultStats = v.parsePingRawOutput(measurementHistory, probeMeasurement, -1).Stats
 		}
 
-		statsUnavailable := (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !(useFailedPacketStats && hasPacketStats)
+		statsUnavailable := (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && (!useFailedPacketStats || !hasPacketStats)
 
 		if statsUnavailable {
 			preservedStats := *v.ctx.AggregatedStats[i]
 			newAggregatedStats[i] = &preservedStats
 			newStats[i] = NewMeasurementStats()
 			processed.probes[i] = infinitePingProbeStats{measurement: probeMeasurement}
+
 			continue
 		}
 
@@ -170,23 +178,29 @@ func (v *viewer) outputInfinitePingLatency(m *globalping.Measurement) (string, e
 	return v.outputInfinitePingLatencyTable(m, stats)
 }
 
-func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
+func (v *viewer) outputStreamingPackets(m *globalping.Measurement) {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
 		v.printer.ErrPrint(v.getAPICreditInfo())
 	}
+
 	probeMeasurement := &m.Results[0]
 	hm := v.ctx.History.Find(m.ID)
+
 	if probeMeasurement.Result.RawOutput != "" {
 		concurrentStats := v.aggregateConcurrentStats(v.ctx.AggregatedStats[0], 0, m.ID)
 		parsedOutput := v.parsePingRawOutput(hm, probeMeasurement, concurrentStats.Sent)
+
 		if len(hm.Stats) == 0 {
 			hm.Stats = make([]*MeasurementStats, 1)
 		}
+
 		hm.Stats[0] = parsedOutput.Stats
+
 		if !v.ctx.IsHeaderPrinted {
 			v.ctx.Hostname = parsedOutput.Hostname
 			v.printer.ErrPrintln(v.getProbeInfo(probeMeasurement))
+
 			if v.ctx.Protocol == "ICMP" {
 				v.printer.Printf("PING %s (%s) %s bytes of data.\n",
 					parsedOutput.Hostname,
@@ -196,30 +210,36 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 			} else {
 				v.printer.Println(parsedOutput.Header)
 			}
+
 			v.ctx.IsHeaderPrinted = true
 		}
+
 		for hm.LinesPrinted < len(parsedOutput.RawPacketLines) {
 			v.printer.Println(parsedOutput.RawPacketLines[hm.LinesPrinted])
 			hm.LinesPrinted++
 		}
+
 		if m.Status != globalping.MeasurementStatusInProgress {
 			v.ctx.AggregatedStats[0] = mergeMeasurementStats(*v.ctx.AggregatedStats[0], parsedOutput.Stats)
 		}
 	}
-	return nil
 }
 
 func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {
 	inProgressStats := v.ctx.History.FilterByStatus(globalping.MeasurementStatusInProgress)
+
 	for i := range inProgressStats {
 		if inProgressStats[i].Id == excludeId {
 			continue
 		}
+
 		if len(inProgressStats[i].Stats) == 0 {
 			continue
 		}
+
 		completed = mergeMeasurementStats(*completed, inProgressStats[i].Stats[probeIndex])
 	}
+
 	return completed
 }
 
@@ -228,9 +248,11 @@ func mergeMeasurementStats(stats MeasurementStats, newStats *MeasurementStats) *
 		if newStats.Min < stats.Min && newStats.Min != 0 {
 			stats.Min = newStats.Min
 		}
+
 		if newStats.Max > stats.Max {
 			stats.Max = newStats.Max
 		}
+
 		stats.Tsum += newStats.Tsum
 		stats.Tsum2 += newStats.Tsum2
 		stats.Rcv += newStats.Rcv
@@ -238,12 +260,15 @@ func mergeMeasurementStats(stats MeasurementStats, newStats *MeasurementStats) *
 		stats.Mdev = computeMdev(stats.Tsum, stats.Tsum2, stats.Rcv, stats.Avg)
 		stats.Last = newStats.Last
 	}
+
 	stats.Sent += newStats.Sent
 	stats.Lost += newStats.Lost
 	stats.Time += newStats.Time
+
 	if stats.Sent > 0 {
 		stats.Loss = float64(stats.Lost) / float64(stats.Sent) * 100
 	}
+
 	return &stats
 }
 
@@ -269,49 +294,62 @@ func (v *viewer) parsePingRawOutput(
 		Timings: make([]globalping.PingTiming, 0),
 		Stats:   NewMeasurementStats(),
 	}
+
 	if m.Result.RawOutput == "" {
 		return res
 	}
+
 	scanner := bufio.NewScanner(strings.NewReader(m.Result.RawOutput))
 	scanner.Scan()
 	res.Header = scanner.Text()
 	words := strings.Split(res.Header, " ")
+
 	if len(words) > 2 {
 		res.Hostname = words[1]
+
 		if len(words[2]) > 1 && words[2][0] == '(' {
 			res.Address = words[2][1 : len(words[2])-1]
 		} else {
 			res.Address = words[2]
 		}
+
 		if v.ctx.Protocol == "ICMP" {
 			res.BytesOfData = words[3]
 		}
 	}
 
 	sentMap := make([]bool, 0)
+
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if len(line) == 0 {
 			break
 		}
+
 		if v.ctx.Protocol == "TCP" {
 			line, sentMap = parseTCPLine(line, sentMap, startSequence, res)
 		} else {
 			line, sentMap = parseICMPLine(line, sentMap, startSequence, res)
 		}
+
 		if startSequence != -1 {
 			res.RawPacketLines = append(res.RawPacketLines, line)
 		}
 	}
+
 	hasSummary := scanner.Scan()
+
 	if hasSummary {
 		// Parse summary
 		scanner.Scan() // skip ---  ping statistics ---
 		line := scanner.Text()
 		words = strings.Split(line, " ")
+
 		if len(words) > 9 && words[1] == "packets" && words[2] == "transmitted," {
 			res.Stats.Sent, _ = strconv.Atoi(words[0])
 			res.Stats.Rcv, _ = strconv.Atoi(words[3])
+
 			if v.ctx.Protocol == "TCP" {
 				res.Stats.Time, _ = strconv.ParseFloat(words[9], 64)
 			} else {
@@ -321,15 +359,18 @@ func (v *viewer) parsePingRawOutput(
 	} else {
 		res.Stats.Time = float64(v.utils.Now().Sub(hm.StartedAt).Milliseconds())
 	}
+
 	if res.Stats.Sent > 0 {
 		res.Stats.Lost = res.Stats.Sent - res.Stats.Rcv
 		res.Stats.Loss = float64(res.Stats.Lost) / float64(res.Stats.Sent) * 100
+
 		if res.Stats.Rcv > 0 {
 			res.Stats.Avg = res.Stats.Tsum / float64(res.Stats.Rcv)
 			res.Stats.Mdev = computeMdev(res.Stats.Tsum, res.Stats.Tsum2, res.Stats.Rcv, res.Stats.Avg)
 			res.Stats.Last = res.Timings[len(res.Timings)-1].RTT
 		}
 	}
+
 	return res
 }
 
@@ -337,25 +378,32 @@ func parseICMPLine(line string, sentMap []bool, startSequence int, res *ParsedPi
 	seq := -1
 	seqIndex := 0
 	words := strings.Split(line, " ")
+
 	for seqIndex < len(words) {
 		if strings.HasPrefix(words[seqIndex], "icmp_seq=") {
 			n, err := strconv.Atoi(words[seqIndex][9:])
+
 			if err == nil {
 				seq = n - 1 // seq starts at 1
 			}
+
 			break
 		}
+
 		seqIndex++
 	}
+
 	if seq >= len(sentMap) {
 		sentMap = append(sentMap, false)
 	}
+
 	// Get timing
 	if seq != -1 {
 		if words[1] == "bytes" && words[2] == "from" {
 			if !sentMap[seq] {
 				res.Stats.Sent++
 			}
+
 			res.Stats.Rcv++
 			ttl, _ := strconv.Atoi(words[seqIndex+1][4:])
 			rtt, _ := strconv.ParseFloat(words[seqIndex+2][5:], 64)
@@ -371,14 +419,17 @@ func parseICMPLine(line string, sentMap []bool, startSequence int, res *ParsedPi
 			if !sentMap[seq] {
 				res.Stats.Sent++
 			}
+
 			sentMap[seq] = true
 		}
+
 		// replace sequence number
 		if startSequence != -1 {
 			words[seqIndex] = "icmp_seq=" + strconv.Itoa(startSequence+seq+1)
 			line = strings.Join(words, " ")
 		}
 	}
+
 	return line, sentMap
 }
 
@@ -386,25 +437,32 @@ func parseTCPLine(line string, sentMap []bool, startSequence int, res *ParsedPin
 	seq := -1
 	seqIndex := 0
 	words := strings.Split(line, " ")
+
 	for seqIndex < len(words) {
 		if strings.HasPrefix(words[seqIndex], "tcp_conn=") {
 			n, err := strconv.Atoi(words[seqIndex][9:])
+
 			if err == nil {
 				seq = n - 1 // seq starts at 1
 			}
+
 			break
 		}
+
 		seqIndex++
 	}
+
 	if seq >= len(sentMap) {
 		sentMap = append(sentMap, false)
 	}
+
 	// Get timing
 	if seq != -1 {
 		if words[0] == "Reply" && words[1] == "from" {
 			if !sentMap[seq] {
 				res.Stats.Sent++
 			}
+
 			res.Stats.Rcv++
 			rtt, _ := strconv.ParseFloat(words[seqIndex+1][5:], 64)
 			res.Stats.Min = math.Min(res.Stats.Min, rtt)
@@ -418,14 +476,17 @@ func parseTCPLine(line string, sentMap []bool, startSequence int, res *ParsedPin
 			if !sentMap[seq] {
 				res.Stats.Sent++
 			}
+
 			sentMap[seq] = true
 		}
+
 		// replace sequence number
 		if startSequence != -1 {
 			words[seqIndex] = "tcp_conn=" + strconv.Itoa(startSequence+seq+1)
 			line = strings.Join(words, " ")
 		}
 	}
+
 	return line, sentMap
 }
 
@@ -434,6 +495,7 @@ func computeMdev(tsum float64, tsum2 float64, rcv int, avg float64) float64 {
 	if tsum < math.MaxInt32 {
 		return math.Sqrt((tsum2 - ((tsum * tsum) / float64(rcv))) / float64(rcv))
 	}
+
 	return math.Sqrt(tsum2/float64(rcv) - avg*avg)
 }
 
@@ -445,17 +507,21 @@ func (v *viewer) getAPICreditConsumptionInfo(width int) string {
 	if v.ctx.MeasurementsCreated < 2 {
 		return ""
 	}
+
 	if v.ctx.MeasurementsCreated == apiCreditLastMeasurementCount {
 		return apiCreditLastConsumptionInfo
 	}
+
 	apiCreditLastMeasurementCount = v.ctx.MeasurementsCreated
 	elapsedMinutes := v.utils.Now().Sub(v.ctx.RunSessionStartedAt).Minutes()
 	consumption := int64(math.Ceil(float64((apiCreditLastMeasurementCount-1)*(len(v.ctx.AggregatedStats))) / elapsedMinutes))
 	info := fmt.Sprintf(apiCreditConsumptionInfo, utils.Pluralize(consumption, "API credit"))
+
 	if len(info) > width-4 {
 		info = info[:max(width-5, 0)] + "..."
 	}
 
 	apiCreditLastConsumptionInfo = v.printer.Color(info, FGBrightYellow)
+
 	return apiCreditLastConsumptionInfo
 }

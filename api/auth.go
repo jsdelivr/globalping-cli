@@ -55,10 +55,12 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		callbackOnce.Do(func() {
 			close(authorizeDone)
 			go func() {
-				server.Shutdown(context.Background())
+				_ = server.Shutdown(context.Background())
+
 				if err == nil {
 					c.updateToken(token)
 				}
+
 				callback(err)
 			}()
 		})
@@ -66,17 +68,22 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	callbackURL := ""
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, req *http.Request) {
 		err := req.ParseForm()
+
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			finish(&AuthorizeError{ErrorType: "failed to parse form", Description: err.Error()}, nil)
+
 			return
 		}
+
 		token, err := c.exchange(ctx, req.Form, verifier, callbackURL)
+
 		if err != nil {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/error", http.StatusFound)
 		} else {
 			http.Redirect(w, req, c.dashboardURL+"/authorize/success", http.StatusFound)
 		}
+
 		finish(err, token)
 	})
 	var err error
@@ -87,52 +94,68 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 	}
 	ports := []int{60000, 60010, 60020, 60030, 60040, 60100, 60110, 60120, 60130, 60140}
 	port := ""
+
 	for i := range ports {
 		port = strconv.Itoa(ports[i])
 		portListeners := []net.Listener{}
 		ln4, listenErr := net.Listen("tcp4", net.JoinHostPort("127.0.0.1", port))
+
 		if listenErr == nil {
 			portListeners = append(portListeners, ln4)
 		} else {
 			err = listenErr
+
 			if isAddrInUse(listenErr) {
 				continue
 			}
 		}
+
 		ln6, listenErr := net.Listen("tcp6", net.JoinHostPort("::1", port))
+
 		if listenErr == nil {
 			portListeners = append(portListeners, ln6)
 		} else {
 			err = listenErr
+
 			if isAddrInUse(listenErr) {
 				for _, ln := range portListeners {
-					ln.Close()
+					_ = ln.Close()
 				}
+
 				continue
 			}
 		}
+
 		if len(portListeners) != 0 {
 			listeners = portListeners
+
 			break
 		}
 	}
+
 	if len(listeners) == 0 {
 		return nil, err
 	}
+
 	serveErrors := make(chan error, len(listeners))
+
 	for _, ln := range listeners {
 		go func(ln net.Listener) {
 			serveErrors <- server.Serve(ln)
 		}(ln)
 	}
+
 	go func() {
 		var serveErr error
+
 		for range listeners {
 			err := <-serveErrors
-			if err != nil && err != http.ErrServerClosed {
+
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				serveErr = err
 			}
 		}
+
 		if serveErr != nil {
 			finish(&AuthorizeError{ErrorType: "failed to start server", Description: serveErr.Error()}, nil)
 		}
@@ -162,22 +185,26 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 func (c *client) TokenIntrospection(ctx context.Context, token string) (*IntrospectionResponse, error) {
 	if token == "" {
 		t, err := c.getToken(ctx)
+
 		if err != nil {
 			return nil, &AuthorizeError{
 				ErrorType:   ErrTypeNotAuthorized,
 				Description: err.Error(),
 			}
 		}
+
 		if t != nil {
 			token = t.AccessToken
 		}
 	}
+
 	if token == "" {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeNotAuthorized,
 			Description: "client is not authorized",
 		}
 	}
+
 	return c.introspection(ctx, token)
 }
 
@@ -185,14 +212,19 @@ func (c *client) Logout(ctx context.Context) error {
 	c.mu.RLock()
 	t := c.token
 	c.mu.RUnlock()
+
 	if t == nil {
 		return nil
 	}
+
 	err := c.RevokeToken(ctx, t.RefreshToken)
+
 	if err != nil {
 		return err
 	}
+
 	c.updateToken(nil)
+
 	return nil
 }
 
@@ -203,13 +235,16 @@ func (c *client) exchange(ctx context.Context, form url.Values, verifier string,
 			Description: form.Get("error_description"),
 		}
 	}
+
 	code := form.Get("code")
+
 	if code == "" {
 		return nil, &AuthorizeError{
 			ErrorType:   "missing_code",
 			Description: "missing code in response",
 		}
 	}
+
 	q := url.Values{}
 	q.Set("client_id", c.authClientId)
 	q.Set("client_secret", c.authClientSecret)
@@ -217,70 +252,90 @@ func (c *client) exchange(ctx context.Context, form url.Values, verifier string,
 	q.Set("code_verifier", verifier)
 	q.Set("grant_type", "authorization_code")
 	q.Set("redirect_uri", redirect)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeExchangeFailed,
 			Description: err.Error(),
 		}
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(q.Encode())))
 	resp, err := c.http.Do(req)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeExchangeFailed,
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeExchangeFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
+
 		return nil, err
 	}
+
 	t := &storage.Token{}
 	err = json.NewDecoder(resp.Body).Decode(t)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeExchangeFailed,
 			Description: err.Error(),
 		}
 	}
+
 	if t.TokenType == "" {
 		t.TokenType = "Bearer"
 	}
+
 	if t.ExpiresIn != 0 {
 		t.Expiry = c.utils.Now().Add(time.Duration(t.ExpiresIn) * time.Second)
 	}
+
 	return t, nil
 }
 
 func (c *client) getToken(ctx context.Context) (*storage.Token, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	if c.token == nil {
 		return nil, nil
 	}
+
 	if !c.token.Expiry.Before(c.utils.Now()) {
 		return c.token, nil
 	}
+
 	if c.token.RefreshToken == "" {
 		return nil, &AuthorizeError{
 			ErrorType:   "refresh_failed",
 			Description: "empty refresh token",
 		}
 	}
+
 	t, err := c.refreshToken(ctx, c.token.RefreshToken)
+
 	if err != nil {
-		e, ok := err.(*AuthorizeError)
-		if ok && e.ErrorType == ErrTypeInvalidGrant {
+		var authorizeErr *AuthorizeError
+
+		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == ErrTypeInvalidGrant {
 			c.saveToken(nil)
 		}
+
 		return nil, err
 	}
 
@@ -301,8 +356,10 @@ func (c *client) updateToken(t *storage.Token) {
 	defer c.mu.Unlock()
 
 	c.token = t
+
 	if t == nil {
 		c.saveToken(nil)
+
 		return
 	}
 
@@ -318,22 +375,26 @@ func (c *client) updateToken(t *storage.Token) {
 func (c *client) tryToRefreshToken(ctx context.Context, refreshToken string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
 	if c.token == nil {
 		return false
 	}
+
 	// must have been called by a different goroutine
 	if c.token.RefreshToken != refreshToken {
 		return false
 	}
 
 	token, err := c.refreshToken(ctx, c.token.RefreshToken)
+
 	if err != nil {
-		e, ok := err.(*AuthorizeError)
+		var authorizeErr *AuthorizeError
 		// If the refresh token is invalid, clear the token
-		if ok && e.ErrorType == ErrTypeInvalidGrant {
+		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == ErrTypeInvalidGrant {
 			c.token = nil
 			c.saveToken(nil)
 		}
+
 		return false
 	}
 
@@ -355,52 +416,66 @@ func (c *client) refreshToken(ctx context.Context, token string) (*storage.Token
 	q.Set("client_secret", c.authClientSecret)
 	q.Set("refresh_token", token)
 	q.Set("grant_type", "refresh_token")
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeRefreshFailed,
 			Description: err.Error(),
 		}
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(q.Encode())))
 	resp, err := c.http.Do(req)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeRefreshFailed,
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeRefreshFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
+
 		return nil, err
 	}
+
 	t := &storage.Token{}
 	err = json.NewDecoder(resp.Body).Decode(t)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeRefreshFailed,
 			Description: err.Error(),
 		}
 	}
+
 	if t.TokenType == "" {
 		t.TokenType = "Bearer"
 	}
+
 	if t.ExpiresIn != 0 {
 		t.Expiry = c.utils.Now().Add(time.Duration(t.ExpiresIn) * time.Second)
 	}
+
 	return t, nil
 }
 
 func (c *client) saveToken(token *storage.Token) {
 	c.storage.GetProfile().Token = token
 	err := c.storage.SaveConfig()
+
 	if err != nil {
 		c.printer.ErrPrintf("Error: Token was refreshed but failed to save to storage: %v\n", err)
 	}
@@ -427,40 +502,51 @@ type IntrospectionResponse struct {
 
 func (c *client) introspection(ctx context.Context, token string) (*IntrospectionResponse, error) {
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token/introspect", strings.NewReader(form))
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeIntrospectionFailed,
 			Description: err.Error(),
 		}
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(form)))
 	resp, err := c.http.Do(req)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeIntrospectionFailed,
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeIntrospectionFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
+
 		return nil, err
 	}
+
 	ires := &IntrospectionResponse{}
 	err = json.NewDecoder(resp.Body).Decode(ires)
+
 	if err != nil {
 		return nil, &AuthorizeError{
 			ErrorType:   ErrTypeIntrospectionFailed,
 			Description: err.Error(),
 		}
 	}
+
 	return ires, nil
 }
 
@@ -468,45 +554,58 @@ func (c *client) RevokeToken(ctx context.Context, token string) error {
 	if token == "" {
 		return nil
 	}
+
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/revoke", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token/revoke", strings.NewReader(form))
+
 	if err != nil {
 		return &AuthorizeError{
 			ErrorType:   ErrTypeRevokeFailed,
 			Description: err.Error(),
 		}
 	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Content-Length", strconv.Itoa(len(form)))
 	resp, err := c.http.Do(req)
+
 	if err != nil {
 		return &AuthorizeError{
 			ErrorType:   ErrTypeRevokeFailed,
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeRevokeFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
+
 		return err
 	}
+
 	return nil
 }
 
 func generateVerifier() string {
 	data := make([]byte, 32)
+
 	if _, err := rand.Read(data); err != nil {
 		panic(err)
 	}
+
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
 func generateS256Challenge(verifier string) string {
 	sha := sha256.Sum256([]byte(verifier))
+
 	return base64.RawURLEncoding.EncodeToString(sha[:])
 }

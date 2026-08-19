@@ -47,7 +47,7 @@ func Test_Execute_HTTP_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
@@ -121,7 +121,7 @@ func Test_Execute_HTTP_IPv4(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
@@ -165,7 +165,7 @@ func Test_Execute_HTTP_IPv6(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "http", "jsdelivr.com",
@@ -192,7 +192,7 @@ func Test_Execute_HTTP_Invalid_Protocol(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 
@@ -241,7 +241,7 @@ func Test_ParseHttpHeaders_None(t *testing.T) {
 	m, err := parseHttpHeaders(headerStrings)
 	assert.NoError(t, err)
 
-	assert.Nil(t, nil, m)
+	assert.Empty(t, m)
 }
 
 func Test_ParseHttpHeaders_Single(t *testing.T) {
@@ -270,7 +270,7 @@ func Test_ParseHttpHeaders_Invalid(t *testing.T) {
 }
 
 func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
@@ -304,7 +304,7 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 }
 
 func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
@@ -339,7 +339,7 @@ func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
 }
 
 func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
-	ctx := createDefaultContext("http")
+	ctx := createDefaultContext()
 	printer := view.NewPrinter(nil, nil, nil)
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 

@@ -74,6 +74,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	err := r.updateContext(cmd, args)
+
 	if err != nil {
 		return err
 	}
@@ -82,10 +83,14 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
-	defer r.UpdateHistory()
+	defer func() {
+		_ = r.UpdateHistory()
+	}()
 	r.ctx.RecordToSession = true
+
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16
+
 		if r.ctx.Limit > 1 && !r.ctx.ToLatency {
 			r.ctx.Table = true
 		}
@@ -103,8 +108,10 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		},
 	}
 	opts.Locations, err = r.getLocations()
+
 	if err != nil {
 		r.Cmd.SilenceUsage = true
+
 		return err
 	}
 
@@ -119,16 +126,19 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 	}
 
 	hm, err := r.createMeasurement(ctx, opts)
+
 	if err != nil {
 		r.evaluateError(err)
+
 		return err
 	}
+
 	return r.handleMeasurement(ctx, hm.Id, opts)
 }
 
 func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCreate) error {
 	if r.ctx.Limit > 5 {
-		return fmt.Errorf("continuous mode is currently limited to 5 probes")
+		return errors.New("continuous mode is currently limited to 5 probes")
 	}
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -149,6 +159,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	case <-r.cancel:
 		cancel()
 		<-done
+
 		if errors.Is(err, context.Canceled) {
 			err = nil
 		}
@@ -157,11 +168,14 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	if err == nil && !r.ctx.ToLatency {
 		r.viewer.OutputSummary(infiniteTableOutput)
 	}
+
 	if errors.Is(err, view.ErrAllProbesFailed) {
 		r.Cmd.SilenceErrors = true
 	}
+
 	r.evaluateError(err)
 	r.viewer.OutputShare()
+
 	return err
 }
 
@@ -170,84 +184,115 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	r.ctx.RunSessionStartedAt = r.utils.Now()
+
 	for {
 		if err := ctx.Err(); err != nil {
 			return infiniteTableOutput, err
 		}
+
 		mbuf.Restart()
 		elapsedTime := time.Duration(0)
 		el := mbuf.Next()
+
 		for el != nil {
 			measurement, err := r.client.GetMeasurement(ctx, el.Id)
+
 			if err != nil {
 				r.Cmd.SilenceUsage = true
+
 				return infiniteTableOutput, err
 			}
+
 			el.Status = measurement.Status
+
 			if len(measurement.Results) == 0 {
 				el = mbuf.Next()
+
 				continue
 			}
+
 			infiniteTableOutput, err = r.viewer.OutputInfinite(measurement)
+
 			if err != nil {
 				r.Cmd.SilenceUsage = true
+
 				return infiniteTableOutput, err
 			}
+
 			if err := ctx.Err(); err != nil {
 				return infiniteTableOutput, err
 			}
+
 			if measurement.Status != globalping.MeasurementStatusInProgress {
 				mbuf.Remove(el)
 			} else {
 				el.ProbeStatus = make([]globalping.TestStatus, len(measurement.Results))
+
 				for i := range measurement.Results {
 					el.ProbeStatus[i] = measurement.Results[i].Result.Status
 				}
 			}
+
 			if runErr == nil && mbuf.CanAppend() {
 				opts.Locations = globalping.PreviousMeasurementID(r.ctx.History.Last().Id)
 				start := r.utils.Now()
 				hm, err := r.createMeasurement(ctx, opts)
+
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
 				} else {
 					mbuf.Append(hm)
 				}
+
 				elapsedTime += r.utils.Now().Sub(start)
 			}
+
 			el = mbuf.Next()
 		}
+
 		if mbuf.Len() > 0 {
 			timer := time.NewTimer(r.ctx.APIMinInterval - elapsedTime)
+
 			select {
 			case <-ctx.Done():
 				timer.Stop()
+
 				return infiniteTableOutput, ctx.Err()
 			case <-timer.C:
 			}
+
 			continue
 		}
+
 		if runErr != nil {
 			return infiniteTableOutput, runErr
 		}
+
 		last := r.ctx.History.Last()
+
 		if last != nil {
 			opts.Locations = globalping.PreviousMeasurementID(last.Id)
 		}
+
 		hm, err := r.createMeasurement(ctx, opts)
+
 		if err != nil {
 			return infiniteTableOutput, err
 		}
+
 		mbuf.Append(hm)
 	}
 }
 
 func (r *Root) createMeasurement(ctx context.Context, opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
 	res, err := r.client.CreateMeasurement(ctx, opts)
+
 	if err != nil {
 		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
+
 		return nil, err
 	}
+
 	r.ctx.MeasurementsCreated++
 	hm := &view.HistoryItem{
 		Id:        res.ID,
@@ -255,13 +300,16 @@ func (r *Root) createMeasurement(ctx context.Context, opts *globalping.Measureme
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
+
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := r.storage.SaveIdToSession(res.ID)
+
 		if err != nil {
 			r.printer.ErrPrintf("Warning: %s\n", err)
 		}
 	}
+
 	return hm, nil
 }
 
@@ -286,7 +334,9 @@ func (b *MeasurementsBuffer) Next() *view.HistoryItem {
 	if b.pos >= len(b.items) {
 		return nil
 	}
+
 	b.pos++
+
 	return b.items[b.pos-1]
 }
 
@@ -302,7 +352,9 @@ func (b *MeasurementsBuffer) Remove(el *view.HistoryItem) {
 	if len(b.items) == 0 {
 		return
 	}
+
 	newb := make([]*view.HistoryItem, 0, b.capacity)
+
 	for i, item := range b.items {
 		if item != el {
 			newb = append(newb, item)
@@ -310,6 +362,7 @@ func (b *MeasurementsBuffer) Remove(el *view.HistoryItem) {
 			b.pos--
 		}
 	}
+
 	b.items = newb
 }
 
@@ -317,23 +370,29 @@ func (b *MeasurementsBuffer) CanAppend() bool {
 	if len(b.items) >= b.capacity {
 		return false
 	}
+
 	if len(b.items) == 0 {
 		return true
 	}
+
 	// If there is at least one probe that has finished in all measurements then we can append
 	inProgressMat := make([]bool, len(b.items[0].ProbeStatus))
+
 	for i := range b.items {
 		if len(b.items[i].ProbeStatus) == 0 {
 			return false
 		}
+
 		for j := range b.items[i].ProbeStatus {
 			inProgressMat[j] = inProgressMat[j] || b.items[i].ProbeStatus[j] != globalping.TestStatusFinished
 		}
 	}
+
 	for _, inProgress := range inProgressMat {
 		if !inProgress {
 			return true
 		}
 	}
+
 	return false
 }

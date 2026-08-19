@@ -39,7 +39,7 @@ func Test_Execute_Traceroute_Default(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("traceroute")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
@@ -97,7 +97,7 @@ func Test_Execute_Traceroute_IPv4(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("traceroute")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
@@ -137,7 +137,7 @@ func Test_Execute_Traceroute_IPv6(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("traceroute")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
 	os.Args = []string{"globalping", "traceroute", "jsdelivr.com",
@@ -163,7 +163,7 @@ func Test_Execute_Traceroute_Invalid_Protocol(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("traceroute")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, nil, utilsMock, nil, nil, _storage)
 

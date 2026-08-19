@@ -34,6 +34,7 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 
 	if !r.ctx.Table && (r.ctx.CIMode || r.ctx.ToJSON || r.ctx.ToLatency) {
 		res, err := r.client.AwaitMeasurement(ctx, id)
+
 		if err != nil {
 			return err
 		}
@@ -44,15 +45,19 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 
 		if r.ctx.ToJSON {
 			b, err := r.client.GetMeasurementRaw(ctx, id)
+
 			if err != nil {
 				return err
 			}
+
 			r.viewer.OutputJSON(id, b)
+
 			return nil
 		}
 
 		if r.ctx.CIMode {
 			r.viewer.OutputDefault(id, res, opts)
+
 			return nil
 		}
 	}
@@ -62,6 +67,7 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 	}
 
 	res, err := r.client.GetMeasurement(ctx, id)
+
 	if err != nil {
 		return err
 	}
@@ -70,10 +76,12 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		for {
 			if !r.ctx.CIMode || res.Status != globalping.MeasurementStatusInProgress {
 				_, err = r.viewer.OutputTable(res)
+
 				if err != nil {
 					if errors.Is(err, view.ErrAllProbesFailed) {
 						r.Cmd.SilenceErrors = true
 					}
+
 					return err
 				}
 			}
@@ -83,13 +91,17 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 			}
 
 			timer := time.NewTimer(r.ctx.APIMinInterval)
+
 			select {
 			case <-ctx.Done():
 				timer.Stop()
+
 				return ctx.Err()
 			case <-timer.C:
 			}
+
 			res, err = r.client.GetMeasurement(ctx, id)
+
 			if err != nil {
 				return err
 			}
@@ -101,6 +113,7 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 	for res.Status == globalping.MeasurementStatusInProgress {
 		time.Sleep(r.ctx.APIMinInterval)
 		res, err = r.client.GetMeasurement(ctx, id)
+
 		if err != nil {
 			return err
 		}
@@ -122,7 +135,11 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	if len(os.Args) == 2 {
 		cmd.SilenceErrors = true
 		cmd.SilenceUsage = true
-		cmd.Help()
+
+		if err := cmd.Help(); err != nil {
+			return err
+		}
+
 		return errors.New("")
 	}
 
@@ -131,11 +148,13 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	r.ctx.Port, _ = cmd.Flags().GetUint16("port")
 
 	targetQuery, err := parseTargetQuery(r.ctx.Cmd, args)
+
 	if err != nil {
 		return err
 	}
 
 	r.ctx.Target = targetQuery.Target
+
 	if r.ctx.Table {
 		r.ctx.ToLatency = false
 		r.ctx.ToJSON = false
@@ -153,6 +172,7 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 		if net.ParseIP(r.ctx.Target) != nil {
 			return ErrTargetIPVersionNotAllowed
 		}
+
 		if r.ctx.Resolver != "" && net.ParseIP(r.ctx.Resolver) != nil {
 			return ErrResolverIPVersionNotAllowed
 		}
@@ -170,11 +190,14 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	// Check if it is a terminal or being piped/redirected
 	// We want to disable realtime updates if that is the case
 	f, ok := r.printer.OutWriter.(*os.File)
+
 	if ok {
 		stdoutFileInfo, err := f.Stat()
+
 		if err != nil {
-			return fmt.Errorf("stdout stat failed: %s", err)
+			return fmt.Errorf("stdout stat failed: %w", err)
 		}
+
 		if (stdoutFileInfo.Mode() & os.ModeCharDevice) == 0 {
 			// stdout is piped, run in ci mode
 			r.ctx.CIMode = true
@@ -192,24 +215,32 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 
 func (r *Root) getLocations() (globalping.LocationSelection, error) {
 	fromArr := strings.Split(r.ctx.From, ",")
+
 	if len(fromArr) == 1 {
 		mId, err := r.mapFromSession(fromArr[0])
+
 		if err != nil {
 			return nil, err
 		}
+
 		if mId == "" {
 			return globalping.LocationOptions{{Magic: strings.TrimSpace(fromArr[0])}}, nil
 		}
+
 		r.ctx.IsLocationFromSession = true
 		r.ctx.RecordToSession = false
+
 		return globalping.PreviousMeasurementID(mId), nil
 	}
+
 	locations := make(globalping.LocationOptions, len(fromArr))
+
 	for i, v := range fromArr {
 		locations[i] = globalping.Locations{
 			Magic: strings.TrimSpace(v),
 		}
 	}
+
 	return locations, nil
 }
 
@@ -217,18 +248,24 @@ func (r *Root) evaluateError(err error) {
 	if err == nil {
 		return
 	}
-	e, ok := err.(*globalping.MeasurementError)
-	if !ok {
+
+	var measurementErr *globalping.MeasurementError
+
+	if !errors.As(err, &measurementErr) {
 		return
 	}
-	if e.StatusCode == api.StatusUnauthorizedWithTokenRefreshed {
+
+	if measurementErr.StatusCode == api.StatusUnauthorizedWithTokenRefreshed {
 		r.Cmd.SilenceErrors = true
 		r.printer.ErrPrintln("Access token successfully refreshed. Try repeating the measurement.")
+
 		return
 	}
-	if e.StatusCode == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
+
+	if measurementErr.StatusCode == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
 		r.Cmd.SilenceErrors = true
-		r.printer.ErrPrintln(r.printer.Color("> "+e.Message, view.FGBrightYellow))
+		r.printer.ErrPrintln(r.printer.Color("> "+measurementErr.Message, view.FGBrightYellow))
+
 		return
 	}
 }
@@ -246,11 +283,13 @@ var commandsWithResolver = []string{
 
 func parseTargetQuery(cmd string, args []string) (*TargetQuery, error) {
 	targetQuery := &TargetQuery{}
+
 	if len(args) == 0 {
 		return nil, errors.New("provided target is empty")
 	}
 
 	resolver, argsWithoutResolver := findAndRemoveResolver(args)
+
 	if resolver != "" {
 		// resolver was found
 		if !slices.Contains(commandsWithResolver, cmd) {
@@ -276,10 +315,12 @@ func parseTargetQuery(cmd string, args []string) (*TargetQuery, error) {
 func findAndRemoveResolver(args []string) (string, []string) {
 	var resolver string
 	resolverIndex := -1
-	for i := 0; i < len(args); i++ {
+
+	for i := range args {
 		if len(args[i]) > 0 && args[i][0] == '@' && args[i-1] != "from" {
 			resolver = args[i][1:]
 			resolverIndex = i
+
 			break
 		}
 	}
@@ -300,32 +341,40 @@ func (r *Root) mapFromSession(location string) (string, error) {
 	if location == "" {
 		return "", nil
 	}
+
 	if location[0] == '@' {
 		index, err := strconv.Atoi(location[1:])
+
 		if err != nil {
 			return "", storage.ErrInvalidIndex
 		}
+
 		return r.storage.GetIdFromSession(index)
 	}
+
 	if location == "first" {
 		return r.storage.GetIdFromSession(1)
 	}
+
 	if location == "last" || location == "previous" {
 		return r.storage.GetIdFromSession(-1)
 	}
+
 	return "", nil
 }
 
 func silenceUsageOnCreateMeasurementError(err error) bool {
-	e, ok := err.(*globalping.MeasurementError)
-	if ok {
-		switch e.StatusCode {
+	var measurementErr *globalping.MeasurementError
+
+	if errors.As(err, &measurementErr) {
+		switch measurementErr.StatusCode {
 		case http.StatusBadRequest:
 			return false
 		default:
 			return true
 		}
 	}
+
 	return true
 }
 

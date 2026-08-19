@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -25,9 +26,11 @@ var (
 
 func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.MeasurementCreate) (*globalping.MeasurementCreateResponse, error) {
 	token, err := c.getToken(ctx)
+
 	if err != nil {
 		return nil, err
 	}
+
 	if token != nil {
 		c.globalping.SetToken(token.AccessToken)
 	} else {
@@ -35,12 +38,14 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 	}
 
 	res, err := c.globalping.CreateMeasurement(ctx, measurement)
+
 	if err == nil {
 		return res, nil
 	}
 
-	apiErr, ok := err.(*globalping.MeasurementError)
-	if !ok {
+	var apiErr *globalping.MeasurementError
+
+	if !errors.As(err, &apiErr) {
 		return nil, err
 	}
 
@@ -48,20 +53,27 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 		if token != nil {
 			if token.RefreshToken == "" {
 				apiErr.Message = invalidTokenErr
+
 				return nil, apiErr
 			}
+
 			if c.tryToRefreshToken(ctx, token.RefreshToken) {
 				apiErr.StatusCode = StatusUnauthorizedWithTokenRefreshed
+
 				return nil, apiErr
 			}
+
 			apiErr.Message = invalidRefreshTokenErr
+
 			return nil, apiErr
 		}
+
 		return nil, apiErr
 	}
 
 	if apiErr.StatusCode == http.StatusUnprocessableEntity {
-		apiErr.Message = fmt.Sprintf("%s - please try a different location", utils.TextFromSentence(apiErr.Message))
+		apiErr.Message = utils.TextFromSentence(apiErr.Message) + " - please try a different location"
+
 		return nil, apiErr
 	}
 
@@ -71,22 +83,28 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 		creditsRemaining, _ := strconv.ParseInt(apiErr.Header.Get("X-Credits-Remaining"), 10, 64)
 		requestCost, _ := strconv.ParseInt(apiErr.Header.Get("X-Request-Cost"), 10, 64)
 		remaining := rateLimitRemaining + creditsRemaining
+
 		if token == nil {
 			if remaining > 0 {
 				apiErr.Message = fmt.Sprintf(moreCreditsRequiredNoAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
-				return nil, apiErr
-			}
-			apiErr.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
-			return nil, apiErr
 
-		} else {
-			if remaining > 0 {
-				apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
 				return nil, apiErr
 			}
-			apiErr.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
+
+			apiErr.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
+
 			return nil, apiErr
 		}
+
+		if remaining > 0 {
+			apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
+
+			return nil, apiErr
+		}
+
+		apiErr.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
+
+		return nil, apiErr
 	}
 
 	return nil, apiErr

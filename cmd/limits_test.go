@@ -42,7 +42,7 @@ func Test_Limits_User(t *testing.T) {
 	w := new(bytes.Buffer)
 	r := new(bytes.Buffer)
 	printer := view.NewPrinter(r, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
 
@@ -91,7 +91,7 @@ func Test_Limits_Zero_Reset_Time(t *testing.T) {
 	w := new(bytes.Buffer)
 	r := new(bytes.Buffer)
 	printer := view.NewPrinter(r, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
 
@@ -133,7 +133,7 @@ func Test_Limits_IP(t *testing.T) {
 	w := new(bytes.Buffer)
 	r := new(bytes.Buffer)
 	printer := view.NewPrinter(r, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
 

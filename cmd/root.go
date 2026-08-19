@@ -39,10 +39,12 @@ func Execute() {
 	config := utils.NewConfig()
 	config.Load()
 	localStorage := storage.NewLocalStorage(_utils)
+
 	if err := localStorage.Init(".globalping-cli"); err != nil {
 		printer.ErrPrintf("Error: failed to initialize storage: %v\n", err)
 		os.Exit(1)
 	}
+
 	ctx := &view.Context{
 		APIMinInterval: config.GlobalpingAPIInterval,
 		History:        view.NewHistoryBuffer(10),
@@ -51,6 +53,7 @@ func Execute() {
 	}
 
 	var token *storage.Token
+
 	if config.GlobalpingToken != "" {
 		token = &storage.Token{
 			AccessToken: config.GlobalpingToken,
@@ -58,6 +61,7 @@ func Execute() {
 			Expiry:      time.Now().Add(math.MaxInt64),
 		}
 	}
+
 	globalpingClient := globalping.NewClient(globalping.Config{
 		UserAgent:          getUserAgent(),
 		CacheExpireSeconds: 30,
@@ -71,13 +75,14 @@ func Execute() {
 		AuthClientID:     config.GlobalpingAuthClientID,
 		AuthClientSecret: config.GlobalpingAuthClientSecret,
 	})
-	defer apiClient.Close()
 
 	globalpingProbe := probe.NewProbe()
 	viewer := view.NewViewer(ctx, printer, _utils)
 	root := NewRoot(printer, ctx, viewer, _utils, apiClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()
+	apiClient.Close()
+
 	if err != nil {
 		os.Exit(1)
 	}
@@ -172,6 +177,7 @@ func wrappedFlagUsages(cmd *pflag.FlagSet) string {
 
 	// Get the terminal width and dynamically set
 	termWidth, _, err := term.GetSize(fd)
+
 	if err == nil {
 		width = termWidth
 	}

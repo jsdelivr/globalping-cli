@@ -37,6 +37,7 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 			{Magic: "Berlin"},
 		},
 	}
+
 	switch cmd {
 	case "ping":
 		measurement.Options.Protocol = "ICMP"
@@ -54,6 +55,7 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 		measurement.Options.Protocol = "HTTPS"
 		measurement.Options.Port = 443
 	}
+
 	return measurement
 }
 
@@ -73,11 +75,11 @@ func createDefaultMeasurement(cmd globalping.MeasurementType) *globalping.Measur
 	}
 }
 
-func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, measurementStatus globalping.MeasurementStatus, testStatus globalping.TestStatus) *globalping.Measurement {
+func createDefaultMeasurement_MultipleProbes(measurementStatus globalping.MeasurementStatus, testStatus globalping.TestStatus) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Status:      measurementStatus,
-		Type:        cmd,
+		Type:        "ping",
 		ProbesCount: 3,
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -99,25 +101,31 @@ func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, mea
 	}
 }
 
-func createDefaultContext(_ string) *view.Context {
+func createDefaultContext() *view.Context {
 	ctx := &view.Context{
 		History:             view.NewHistoryBuffer(1),
 		From:                "world",
 		Limit:               1,
 		RunSessionStartedAt: defaultCurrentTime,
 	}
+
 	return ctx
 }
 
 func createDefaultTestStorage(t *testing.T, utils utils.Utils) *storage.LocalStorage {
 	s := storage.NewLocalStorage(utils)
 	err := s.Init("globalping-cli_" + t.Name())
+
 	if err != nil {
 		panic(err)
 	}
+
 	t.Cleanup(func() {
-		s.Remove()
+		if err := s.Remove(); err != nil {
+			t.Error(err)
+		}
 	})
+
 	return s
 }
 
@@ -132,6 +140,7 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		MeasurementsCreated: 1,
 		RunSessionStartedAt: defaultCurrentTime,
 	}
+
 	switch cmd {
 	case "ping":
 		ctx.Protocol = "ICMP"
@@ -149,11 +158,13 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		ctx.Protocol = "HTTPS"
 		ctx.Port = 443
 	}
+
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,
 		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
+
 	return ctx
 }
 

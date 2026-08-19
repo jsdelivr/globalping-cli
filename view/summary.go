@@ -10,11 +10,13 @@ func (v *viewer) OutputSummary(infiniteTableOutput string) {
 		if infiniteTableOutput == "" {
 			return
 		}
+
 		if v.ctx.CIMode {
 			v.printer.Print(infiniteTableOutput)
 		} else {
 			v.printer.AreaUpdate(&infiniteTableOutput)
 		}
+
 		return
 	}
 
@@ -31,21 +33,26 @@ func (v *viewer) OutputSummary(infiniteTableOutput string) {
 		stats.Loss,
 		stats.Time,
 	)
-	min := "-"
+	minText := "-"
 	avg := "-"
-	max := "-"
+	maxText := "-"
 	mdev := "-"
+
 	if stats.Min != math.MaxFloat64 {
-		min = fmt.Sprintf("%.3f", stats.Min)
+		minText = fmt.Sprintf("%.3f", stats.Min)
 	}
+
 	if stats.Avg != -1 {
 		avg = fmt.Sprintf("%.3f", stats.Avg)
 	}
+
 	if stats.Max != -1 {
-		max = fmt.Sprintf("%.3f", stats.Max)
+		maxText = fmt.Sprintf("%.3f", stats.Max)
 	}
+
 	if stats.Mdev != 0 {
 		mdev = fmt.Sprintf("%.3f", stats.Mdev)
 	}
-	v.printer.Printf("rtt min/avg/max/mdev = %s/%s/%s/%s ms\n", min, avg, max, mdev)
+
+	v.printer.Printf("rtt min/avg/max/mdev = %s/%s/%s/%s ms\n", minText, avg, maxText, mdev)
 }

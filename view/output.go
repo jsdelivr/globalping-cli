@@ -2,7 +2,7 @@ package view
 
 import (
 	"errors"
-	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -18,6 +18,7 @@ func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
+
 	return ErrAllProbesFailed
 }
 
@@ -27,6 +28,7 @@ func isSomeTestFinished(m *globalping.Measurement) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -53,6 +55,7 @@ func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalpin
 func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 	maxW := terminalW - 4 // 4 extra chars to be safe from overflow
 	maxH := terminalH - 4 // 4 extra lines to be safe from overflow
+
 	if maxW <= 0 || maxH <= 0 {
 		panic("terminal width / height too limited to display results")
 	}
@@ -67,14 +70,16 @@ func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 
 	for i := 0; i < len(lines); i++ {
 		rWidth := runewidth.StringWidth(lines[i])
+
 		if rWidth > maxW {
 			line := lines[i]
-			trimmedLine := string(lines[i][:len(line)-rWidth+maxW])
+			trimmedLine := lines[i][:len(line)-rWidth+maxW]
 			lines[i] = trimmedLine
 		}
 	}
 
 	txt := strings.Join(lines, "\n")
+
 	return &txt
 }
 
@@ -82,9 +87,11 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 	var output strings.Builder
 	output.WriteString("> ")
 	output.WriteString(getLocationText(result))
+
 	if len(result.Probe.Tags) > 0 {
 		regionCode := ""
 		userInfoTags := []string{}
+
 		for _, tag := range result.Probe.Tags {
 			if strings.HasPrefix(tag, "u-") && !strings.Contains(tag, ":") {
 				userInfoTags = append(userInfoTags, tag)
@@ -95,56 +102,69 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 				}
 			}
 		}
+
 		userInfo := largestCommonPrefix(userInfoTags)
+
 		if userInfo != "" {
 			output.WriteString(", " + userInfo)
 		}
+
 		if regionCode != "" {
 			output.WriteString(" (" + regionCode + ")")
 		}
 	}
+
 	return v.printer.BoldForeground(output.String(), BGYellow)
 }
 
 func (v *viewer) getShareMessage(id string) string {
 	shareURL := utils.ShareURL + id
+
 	if v.ctx.Table {
 		shareURL += "&display=table"
 	}
-	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s", shareURL), BGYellow)
+
+	return v.printer.BoldForeground("> View the results online: "+shareURL, BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
-	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !v.ctx.Full
+	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == http.MethodGet && !v.ctx.Full
 }
 
 func getLocationText(m *globalping.ProbeMeasurement) string {
 	state := ""
+
 	if m.Probe.State != "" {
 		state = " (" + m.Probe.State + ")"
 	}
+
 	return m.Probe.City + state + ", " +
 		m.Probe.Country + ", " +
 		m.Probe.Continent + ", " +
 		m.Probe.Network + " " +
-		"(AS" + fmt.Sprint(m.Probe.ASN) + ")"
+		"(AS" + strconv.Itoa(m.Probe.ASN) + ")"
 }
 
 func largestCommonPrefix(items []string) string {
 	if len(items) == 0 {
 		return ""
 	}
+
 	if len(items) == 1 {
 		return items[0]
 	}
+
 	prefix := items[0]
+
 	for i := 1; i < len(items); i++ {
 		for j := 0; j < len(prefix); j++ {
 			if j >= len(items[i]) || prefix[j] != items[i][j] {
 				prefix = prefix[:j]
+
 				break
 			}
 		}
 	}
+
 	return prefix
 }

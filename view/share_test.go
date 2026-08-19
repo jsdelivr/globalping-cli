@@ -87,7 +87,7 @@ func Test_OutputShare(t *testing.T) {
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
-		expectedOutput := fmt.Sprintf("\n> View the results online: https://globalping.io?measurement=%s", measurementID2) +
+		expectedOutput := "\n> View the results online: https://globalping.io?measurement=" + measurementID2 +
 			"\nFor long-running continuous mode measurements, only the last 16 packets are shared.\n"
 		assert.Equal(t, expectedOutput, errw.String())
 	})
