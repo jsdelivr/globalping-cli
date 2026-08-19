@@ -14,6 +14,7 @@ func LowercaseMessage(message string) string {
 			return string(unicode.ToLower(firstChar)) + message[1:]
 		}
 	}
+
 	return message
 }
 
@@ -21,6 +22,7 @@ func Pluralize(count int64, singular string) string {
 	if count == 1 {
 		return fmt.Sprintf("%d %s", count, singular)
 	}
+
 	return fmt.Sprintf("%d %ss", count, singular)
 }
 
@@ -28,6 +30,7 @@ func RemoveTrailingPeriod(message string) string {
 	if len(message) > 0 && message[len(message)-1] == '.' {
 		return message[:len(message)-1]
 	}
+
 	return message
 }
 

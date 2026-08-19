@@ -35,20 +35,27 @@ Examples:
 
 func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
 	limit := 0
+
 	if r.ctx.Head > 0 {
 		limit = int(r.ctx.Head)
 	} else if r.ctx.Tail > 0 {
 		limit = -int(r.ctx.Tail)
 	}
+
 	items, err := r.storage.GetHistory(limit)
+
 	if err != nil {
 		r.printer.Println(err)
+
 		return
 	}
+
 	if len(items) == 0 {
 		r.printer.Println("No history items found")
+
 		return
 	}
+
 	for _, item := range items {
 		r.printer.Println(item)
 	}
@@ -56,29 +63,39 @@ func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
 
 func (r *Root) UpdateHistory() error {
 	ids := r.ctx.History.ToString(".")
+
 	if ids == "" {
 		return nil
 	}
+
 	index := "-"
+
 	if !r.ctx.IsLocationFromSession {
 		i, err := r.storage.GetHistoryIndex()
+
 		if err != nil {
 			return err
 		}
+
 		index = fmt.Sprintf("%d", i)
 	}
+
 	err := r.storage.SaveCommandToHistory(
 		index,
 		r.utils.Now().Unix(),
 		ids,
 		strings.Join(os.Args[1:], " "),
 	)
+
 	if err != nil {
 		return fmt.Errorf("failed to save command to history: %w", err)
 	}
+
 	err = r.storage.Cleanup()
+
 	if err != nil {
 		return fmt.Errorf("failed to cleanup history: %w", err)
 	}
+
 	return nil
 }

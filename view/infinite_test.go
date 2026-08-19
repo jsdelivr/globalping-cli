@@ -601,6 +601,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 	measurement.Status = globalping.MeasurementStatusFinished
+
 	for i := range measurement.Results {
 		measurement.Results[i].Result.Status = globalping.TestStatusFailed
 		measurement.Results[i].Result.RawOutput = `ping: cdn.jsdelivr.net.xc: Name or service not known`
@@ -927,6 +928,7 @@ func assertMeasurementStats(t *testing.T, expected *MeasurementStats, actual *Me
 func assertMeasurementStatsSlice(t *testing.T, expected []*MeasurementStats, actual []*MeasurementStats) {
 	t.Helper()
 	require.Len(t, actual, len(expected))
+
 	for i := range expected {
 		assertMeasurementStats(t, expected[i], actual[i])
 	}

@@ -89,6 +89,7 @@ Examples:
 func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	err := r.updateContext(cmd, args)
+
 	if err != nil {
 		return err
 	}
@@ -107,13 +108,16 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	r.ctx.RecordToSession = true
 
 	opts, err := r.buildHttpMeasurementRequest(cmd)
+
 	if err != nil {
 		return err
 	}
 
 	opts.Locations, err = r.getLocations()
+
 	if err != nil {
 		cmd.SilenceUsage = true
+
 		return err
 	}
 
@@ -124,9 +128,11 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	}
 
 	res, err := r.client.CreateMeasurement(ctx, opts)
+
 	if err != nil {
 		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		r.evaluateError(err)
+
 		return err
 	}
 
@@ -137,9 +143,11 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
+
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := r.storage.SaveIdToSession(res.ID)
+
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}
@@ -158,18 +166,24 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.Meas
 		InProgressUpdates: !r.ctx.CIMode,
 	}
 	urlData, err := parseUrlData(r.ctx.Target)
+
 	if err != nil {
 		return nil, err
 	}
+
 	headers, err := parseHttpHeaders(r.ctx.Headers)
+
 	if err != nil {
 		return nil, err
 	}
+
 	method := strings.ToUpper(r.ctx.Method)
+
 	if r.ctx.Full && method == "" {
 		// override method to GET unless it was specified by the user
 		method = "GET"
 	}
+
 	opts.Target = urlData.Host
 	opts.Options = &globalping.MeasurementOptions{
 		Protocol: urlData.Protocol,
@@ -183,11 +197,14 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.Meas
 		Resolver: r.ctx.Resolver,
 	}
 	protocolFlag := cmd.Flag("protocol")
+
 	if protocolFlag != nil && protocolFlag.Changed {
 		opts.Options.Protocol = r.ctx.Protocol
 	}
+
 	if urlData.HasPort {
 		portFlag := cmd.Flag("port")
+
 		if portFlag != nil && portFlag.Changed {
 			opts.Options.Port = r.ctx.Port
 		} else {
@@ -205,6 +222,7 @@ func parseHttpHeaders(headerStrings []string) (map[string]string, error) {
 
 	for _, r := range headerStrings {
 		k, v, ok := strings.Cut(r, ": ")
+
 		if !ok {
 			return nil, fmt.Errorf("invalid header: %s", r)
 		}
@@ -235,6 +253,7 @@ func parseUrlData(input string) (*UrlData, error) {
 
 	// Parse input
 	u, err := url.Parse(input)
+
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse url input")
 	}
@@ -244,6 +263,7 @@ func parseUrlData(input string) (*UrlData, error) {
 	urlData.Query = u.RawQuery
 
 	h, p, err := net.SplitHostPort(u.Host)
+
 	if err != nil {
 		if strings.Contains(err.Error(), "missing port in address") {
 			// u.Host is not in the format "host:port"
@@ -258,9 +278,11 @@ func parseUrlData(input string) (*UrlData, error) {
 	if p != "" {
 		// parse port if present
 		port, err := strconv.ParseUint(p, 10, 16)
+
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse url port number: %s", p)
 		}
+
 		urlData.Port = uint16(port)
 		urlData.HasPort = true
 	}
@@ -273,5 +295,6 @@ func overrideOpt(orig, new string) string {
 	if new != "" {
 		return new
 	}
+
 	return orig
 }

@@ -33,6 +33,7 @@ func Test_GenerateMeasurementTable_Ping_Full(t *testing.T) {
 	for i := range measurement.Results {
 		measurement.Results[i].Result.RawOutput = "ping: unknown host"
 	}
+
 	table := viewer.generateMeasurementTable(measurement, 500)
 
 	expectedTable := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m\n" +
@@ -189,12 +190,15 @@ func Test_OutputTable_Ping_UnknownHistoryItem(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			measurement := createPingMeasurement_MultipleProbes(measurementID2)
+
 			if test.inProgress {
 				measurement.Status = globalping.MeasurementStatusInProgress
+
 				for i := range measurement.Results {
 					measurement.Results[i].Result.Status = globalping.TestStatusInProgress
 				}
 			}
+
 			ctx := createDefaultContext("ping")
 			ctx.Table = true
 			ctx.Infinite = test.inProgress
@@ -644,9 +648,11 @@ func Test_RenderMeasurementTable_TruncatesOnlyAllowedFields(t *testing.T) {
 	assert.Contains(t, wide, "\x1b[96m")
 	wideLines := strings.Split(strings.TrimSpace(stripANSIForTest(wide)), "\n")
 	wantOffsets := displaySeparatorOffsetsForTest(wideLines[0])
+
 	for _, line := range wideLines {
 		assert.Equal(t, wantOffsets, displaySeparatorOffsetsForTest(line))
 	}
+
 	assert.LessOrEqual(t, runewidth.StringWidth(wideLines[1]), 80)
 	wideHeader := strings.Split(wideLines[0], colSeparator)
 	assert.Equal(t, []string{"Loc...", "Status", "Content-Length", "Total", "Resolved IP"}, trimCellsForTest(wideHeader))
@@ -735,6 +741,7 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 			assert.Equal(t, 2, ctx.TableOutputRows)
 
 			var expectedRows [][]string
+
 			switch measurementType {
 			case "ping":
 				expectedRows = [][]string{
@@ -757,6 +764,7 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-"},
 				}
 			}
+
 			assertTableWithFailureForTest(t, output, expectedRows,
 				"Berlin, DE, EU, Failed Network (AS64500)", "Target error")
 		})
@@ -788,6 +796,7 @@ func tableProbe(city, country, network string, status globalping.TestStatus) glo
 
 func renderTableForTest(t *testing.T, measurement *globalping.Measurement, trace bool) (string, error) {
 	output, _, err := renderTableWithContextForTest(t, measurement, trace, 0)
+
 	return output, err
 }
 
@@ -798,14 +807,17 @@ func renderTableWithContextForTest(t *testing.T, measurement *globalping.Measure
 	ctx.Table = true
 	ctx.Trace = trace
 	ctx.TableOutputRows = initialTableOutputRows
+
 	if ctx.History.Find(measurement.ID) == nil {
 		ctx.History.Push(&HistoryItem{Id: measurement.ID, StartedAt: defaultCurrentTime})
 	}
+
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
 	viewer := NewViewer(ctx, printer, nil)
 	_, err := viewer.OutputTable(measurement)
+
 	return w.String(), ctx, err
 }
 
@@ -817,13 +829,16 @@ func assertTableForTest(t *testing.T, output string, expected [][]string) {
 	require.Len(t, lines, len(expected))
 
 	separatorOffsets := displaySeparatorOffsetsForTest(lines[0])
+
 	for i, line := range lines {
 		assert.Equal(t, separatorOffsets, displaySeparatorOffsetsForTest(line), "columns must align on output line %d", i+1)
 		parts := strings.Split(line, colSeparator)
 		require.Len(t, parts, len(expected[i]), "unexpected column count on output line %d", i+1)
+
 		for j := range parts {
 			parts[j] = strings.TrimSpace(parts[j])
 		}
+
 		assert.Equal(t, expected[i], parts, "unexpected cells on output line %d", i+1)
 	}
 }
@@ -855,6 +870,7 @@ func trimCellsForTest(cells []string) []string {
 	for i := range cells {
 		cells[i] = strings.TrimSpace(cells[i])
 	}
+
 	return cells
 }
 
@@ -863,6 +879,7 @@ func assertDisplayTableLayoutForTest(t *testing.T, output string, maxWidth int) 
 	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
 	require.NotEmpty(t, lines)
 	wantOffsets := displaySeparatorOffsetsForTest(stripANSIForTest(lines[0]))
+
 	for i, line := range lines {
 		visible := stripANSIForTest(line)
 		assert.LessOrEqual(t, runewidth.StringWidth(visible), maxWidth, "line %d exceeds the requested width", i+1)
@@ -874,10 +891,12 @@ func displaySeparatorOffsetsForTest(line string) []int {
 	parts := strings.Split(line, colSeparator)
 	offsets := make([]int, 0, len(parts)-1)
 	offset := 0
+
 	for i := 0; i < len(parts)-1; i++ {
 		offset += runewidth.StringWidth(parts[i])
 		offsets = append(offsets, offset)
 		offset += runewidth.StringWidth(colSeparator)
 	}
+
 	return offsets
 }

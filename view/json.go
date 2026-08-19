@@ -7,5 +7,6 @@ func (v *viewer) OutputJSON(id string, measurement []byte) {
 	if v.ctx.Share {
 		v.printer.ErrPrintln(v.getShareMessage(id))
 	}
+
 	v.printer.Println()
 }

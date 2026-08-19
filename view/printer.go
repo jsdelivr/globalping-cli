@@ -99,6 +99,7 @@ func (p *Printer) FillLeft(s string, w int) string {
 	if len(s) >= w {
 		return s
 	}
+
 	return strings.Repeat(" ", w-len(s)) + s
 }
 
@@ -106,6 +107,7 @@ func (p *Printer) FillRight(s string, w int) string {
 	if len(s) >= w {
 		return s
 	}
+
 	return s + strings.Repeat(" ", w-len(s))
 }
 
@@ -113,9 +115,11 @@ func (p *Printer) FillLeftAndColor(s string, w int, color Color) string {
 	if len(s) < w {
 		s = strings.Repeat(" ", w-len(s)) + s
 	}
+
 	if p.disableStyling || color == ColorNone {
 		return s
 	}
+
 	return p.Color(s, color)
 }
 
@@ -123,9 +127,11 @@ func (p *Printer) FillRightAndColor(s string, w int, color Color) string {
 	if len(s) < w {
 		s += strings.Repeat(" ", w-len(s))
 	}
+
 	if p.disableStyling || color == ColorNone {
 		return s
 	}
+
 	return p.Color(s, color)
 }
 
@@ -133,6 +139,7 @@ func (p *Printer) Color(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[%sm%s\033[0m", color, s)
 }
 
@@ -140,6 +147,7 @@ func (p *Printer) ColorForeground(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[38;5;%sm%s\033[0m", color, s)
 }
 
@@ -147,6 +155,7 @@ func (p *Printer) ColorBackground(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[48;5;%sm%s\033[0m", color, s)
 }
 
@@ -154,6 +163,7 @@ func (p *Printer) Bold(s string) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[1m%s\033[0m", s)
 }
 
@@ -161,6 +171,7 @@ func (p *Printer) BoldColor(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[1;%sm%s\033[0m", color, s)
 }
 
@@ -168,6 +179,7 @@ func (p *Printer) BoldForeground(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[1;38;5;%sm%s\033[0m", color, s)
 }
 
@@ -175,6 +187,7 @@ func (p *Printer) BoldBackground(s string, color Color) string {
 	if p.disableStyling {
 		return s
 	}
+
 	return fmt.Sprintf("\033[1;48;5;%sm%s\033[0m", color, s)
 }
 
@@ -182,33 +195,45 @@ func (p *Printer) ReadPassword() (string, error) {
 	if p.InReader == nil {
 		return "", errors.New("no input reader")
 	}
+
 	f, ok := p.InReader.(*os.File)
+
 	if !ok {
 		scanner := bufio.NewScanner(p.InReader)
 		scanner.Scan()
+
 		return scanner.Text(), scanner.Err()
 	}
+
 	bytePassword, err := term.ReadPassword(int(f.Fd()))
+
 	if err != nil {
 		scanner := bufio.NewScanner(p.InReader)
 		scanner.Scan()
+
 		return scanner.Text(), scanner.Err()
 	}
+
 	return string(bytePassword), nil
 }
 
 func (p *Printer) GetSize() (width, height int) {
 	f, ok := p.OutWriter.(*os.File)
+
 	if !ok {
 		return math.MaxInt, math.MaxInt
 	}
+
 	w, h, _ := term.GetSize(int(f.Fd()))
+
 	if w <= 0 {
 		w = math.MaxInt
 	}
+
 	if h <= 0 {
 		h = math.MaxInt
 	}
+
 	return w, h
 }
 
@@ -222,6 +247,7 @@ func (p *Printer) AreaClear() {
 	if p.areaHeight == 0 {
 		return
 	}
+
 	_, _ = fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
 	p.areaHeight = 0
 }

@@ -330,6 +330,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	var finalRunCtx context.Context
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID4).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
 		finalRunCtx = ctx
+
 		return expectedMeasurement4, nil
 	})
 
@@ -345,6 +346,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement4).DoAndReturn(func(m *globalping.Measurement) (string, error) {
 		close(finalOutputStarted)
 		<-finalRunCtx.Done()
+
 		return "", nil
 	})
 
@@ -462,6 +464,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	var runCtx context.Context
 	gbMock.EXPECT().GetMeasurement(gomock.Any(), measurementID1).DoAndReturn(func(ctx context.Context, _ string) (*globalping.Measurement, error) {
 		runCtx = ctx
+
 		return expectedMeasurement, nil
 	})
 
@@ -470,6 +473,7 @@ func Test_Execute_Ping_Infinite_TableInCI(t *testing.T) {
 	viewerMock.EXPECT().OutputInfinite(expectedMeasurement).DoAndReturn(func(*globalping.Measurement) (string, error) {
 		close(outputStarted)
 		<-runCtx.Done()
+
 		return "final table", nil
 	})
 	viewerMock.EXPECT().OutputSummary("final table").Times(1)

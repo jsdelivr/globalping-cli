@@ -30,20 +30,27 @@ func Test_Authorize(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/authorize/error" {
 			t.Fatalf("unexpected request to %s", r.URL.Path)
+
 			return
 		}
+
 		if r.URL.Path == "/authorize/success" {
 			succesCalled = true
+
 			return
 		}
+
 		if r.URL.Path == "/oauth/token" {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "<client_id>", r.Form.Get("client_id"))
 			assert.Equal(t, "<client_secret>", r.Form.Get("client_secret"))
 			assert.Equal(t, "authorization_code", r.Form.Get("grant_type"))
@@ -54,8 +61,10 @@ func Test_Authorize(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			_, err = w.Write(getTokenJSON())
 			assert.Nil(t, err)
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -78,9 +87,11 @@ func Test_Authorize(t *testing.T) {
 	assert.Nil(t, err)
 	expectedRedirectURI = res.CallbackURL
 	u, err := url.Parse(res.AuthorizeURL)
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, server.URL+"/oauth/authorize", u.Scheme+"://"+u.Host+u.Path)
 	assert.Equal(t, "<client_id>", u.Query().Get("client_id"))
 	assert.Equal(t, 43, len(u.Query().Get("code_challenge")))
@@ -90,15 +101,19 @@ func Test_Authorize(t *testing.T) {
 	assert.Equal(t, expectedRedirectURI, u.Query().Get("redirect_uri"))
 
 	response, err := http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.NoError(t, response.Body.Close())
+
 	select {
 	case err := <-authorizeDone:
 		assert.NoError(t, err)
 	case <-time.After(authorizationTimeout):
 		cancelAuthorize()
+
 		select {
 		case <-authorizeDone:
 			t.Fatal("authorization callback timed out")
@@ -130,20 +145,26 @@ func Test_TokenIntrospection(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "tok3n", r.Form.Get("token"))
 
 			w.Header().Set("Content-Type", "application/json")
 			b, _ := json.Marshal(introspectionRes)
 			_, err = w.Write(b)
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -187,28 +208,37 @@ func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "new_token", r.Form.Get("token"))
 
 			w.Header().Set("Content-Type", "application/json")
 			b, _ := json.Marshal(introspectionRes)
 			_, err = w.Write(b)
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
+
 		if r.URL.Path == "/oauth/token" {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "<client_id>", r.Form.Get("client_id"))
 			assert.Equal(t, "<client_secret>", r.Form.Get("client_secret"))
 			assert.Equal(t, "refresh_token", r.Form.Get("grant_type"))
@@ -216,11 +246,14 @@ func Test_TokenIntrospection_Token_Refreshed(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			_, err = w.Write([]byte(`{"access_token":"new_token","token_type":"bearer","refresh_token":"new_refresh_token","expires_in":3600}`))
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -277,20 +310,26 @@ func Test_TokenIntrospection_With_Token(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "tok3n", r.Form.Get("token"))
 
 			w.Header().Set("Content-Type", "application/json")
 			b, _ := json.Marshal(introspectionRes)
 			_, err = w.Write(b)
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -346,17 +385,23 @@ func Test_Logout(t *testing.T) {
 	isCalled := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isCalled = true
+
 		if r.URL.Path == "/oauth/token/revoke" {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "refresh_tok3n", r.Form.Get("token"))
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -391,17 +436,23 @@ func Test_RevokeToken(t *testing.T) {
 	isCalled := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isCalled = true
+
 		if r.URL.Path == "/oauth/token/revoke" {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "refresh_tok3n", r.Form.Get("token"))
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -477,6 +528,7 @@ func Test_Logout_AccessToken_Is_Set(t *testing.T) {
 		},
 	})
 	err := client.Logout(t.Context())
+
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -34,10 +34,13 @@ func Test_CreateMeasurement_TokenRefreshed(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "<client_id>", r.Form.Get("client_id"))
 			assert.Equal(t, "<client_secret>", r.Form.Get("client_secret"))
 			assert.Equal(t, "refresh_token", r.Form.Get("grant_type"))
@@ -45,9 +48,11 @@ func Test_CreateMeasurement_TokenRefreshed(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			_, err = w.Write([]byte(`{"access_token":"new_token","token_type":"Bearer","refresh_token":"new_refresh_token","expires_in":3600}`))
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
 	}))
@@ -103,10 +108,13 @@ func Test_CreateMeasurement_Unauthorized_TokenRefreshed(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST request, got %s", r.Method)
 			}
+
 			err := r.ParseForm()
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			assert.Equal(t, "<client_id>", r.Form.Get("client_id"))
 			assert.Equal(t, "<client_secret>", r.Form.Get("client_secret"))
 			assert.Equal(t, "refresh_token", r.Form.Get("grant_type"))
@@ -114,11 +122,14 @@ func Test_CreateMeasurement_Unauthorized_TokenRefreshed(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			_, err = w.Write([]byte(`{"access_token":"new_token","token_type":"Bearer","refresh_token":"new_refresh_token","expires_in":3600}`))
+
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -175,11 +186,14 @@ func Test_CreateMeasurement_Unauthorized_Token_Not_Refreshed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth/token" {
 			w.WriteHeader(http.StatusUnauthorized)
+
 			if _, err := w.Write([]byte(`{"error": "invalid_grant", "error_description": "Invalid refresh token."}`)); err != nil {
 				t.Error(err)
 			}
+
 			return
 		}
+
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -226,6 +240,7 @@ func Test_CreateMeasurement_Unauthorized_NoRefreshToken(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
+
 		if _, err := w.Write([]byte(`{"error": {"type": "unauthorized", "message": "Unauthorized."}}`)); err != nil {
 			t.Error(err)
 		}

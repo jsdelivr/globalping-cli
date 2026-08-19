@@ -13,9 +13,11 @@ func Test_GetHistoryIndex(t *testing.T) {
 	_storage := createDefaultTestStorage(t, nil)
 	assert.NoError(t, os.WriteFile(_storage.historyPath(), []byte("1|1|1|id|command\n"), 0644))
 	index, err := _storage.GetHistoryIndex()
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, 2, index)
 }
 
@@ -28,26 +30,32 @@ func Test_GetHistory(t *testing.T) {
 `, time1.Unix(), time2.Unix())), 0644))
 
 	items, err := _storage.GetHistory(0)
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, []string{
 		fmt.Sprintf("1 | %s | command1\n> https://globalping.io?measurement=id1", time1.Format("2006-01-02 15:04:05")),
 		fmt.Sprintf("2 | %s | command2\n> https://globalping.io?measurement=id2", time2.Format("2006-01-02 15:04:05")),
 	}, items)
 
 	items, err = _storage.GetHistory(1)
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, []string{
 		fmt.Sprintf("1 | %s | command1\n> https://globalping.io?measurement=id1", time1.Format("2006-01-02 15:04:05")),
 	}, items)
 
 	items, err = _storage.GetHistory(-1)
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t, []string{
 		fmt.Sprintf("2 | %s | command2\n> https://globalping.io?measurement=id2", time2.Format("2006-01-02 15:04:05")),
 	}, items)
@@ -62,14 +70,17 @@ func Test_SaveCommandToHistory(t *testing.T) {
 		"id1",
 		"command1",
 	)
+
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	b, err := os.ReadFile(_storage.historyPath())
+
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	assert.Equal(t,
 		fmt.Sprintf(`1|1|%d|id1|command1
 `, now.Unix()), string(b))

@@ -23,11 +23,13 @@ func (p *probe) InspectContainer(containerEngine ContainerEngine) error {
 	switch containerEngine {
 	case ContainerEngineDocker:
 		err := inspectContainerDocker()
+
 		if err != nil {
 			return err
 		}
 	case ContainerEnginePodman:
 		err := inspectContainerPodman()
+
 		if err != nil {
 			return err
 		}
@@ -42,11 +44,13 @@ func (p *probe) RunContainer(containerEngine ContainerEngine) error {
 	switch containerEngine {
 	case ContainerEngineDocker:
 		err := runContainerDocker()
+
 		if err != nil {
 			return err
 		}
 	case ContainerEnginePodman:
 		err := runContainerPodman()
+
 		if err != nil {
 			return err
 		}
@@ -60,8 +64,10 @@ func (p *probe) RunContainer(containerEngine ContainerEngine) error {
 func inspectContainerDocker() error {
 	cmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
 	containerStatus, err := cmd.Output()
+
 	if err == nil {
 		containerStatusStr := string(bytes.TrimSpace(containerStatus))
+
 		return fmt.Errorf("the globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
 	}
 
@@ -71,8 +77,10 @@ func inspectContainerDocker() error {
 func inspectContainerPodman() error {
 	cmd := exec.Command("sudo", "podman", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
 	containerStatus, err := cmd.Output()
+
 	if err == nil {
 		containerStatusStr := string(bytes.TrimSpace(containerStatus))
+
 		if containerStatusStr == "" {
 			// false positive as podmain keeps container info after deletion
 			return nil
@@ -89,6 +97,7 @@ func runContainerDocker() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+
 	if err != nil {
 		return fmt.Errorf("failed to run container: %w", err)
 	}
@@ -101,6 +110,7 @@ func runContainerPodman() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+
 	if err != nil {
 		return fmt.Errorf("failed to run container: %w", err)
 	}

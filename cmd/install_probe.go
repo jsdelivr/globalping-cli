@@ -20,29 +20,37 @@ func (r *Root) initInstallProbe() {
 
 func (r *Root) RunInstallProbe(cmd *cobra.Command, args []string) {
 	containerEngine, err := r.probe.DetectContainerEngine()
+
 	if err != nil {
 		r.printer.Printf("docker info command failed: %v\n\n", err)
 		r.printer.Println("Docker was not detected on your system and it is required to run the Globalping probe. Please install Docker and try again.")
+
 		return
 	}
 
 	r.printer.Printf("Detected container engine: %s\n\n", containerEngine)
 
 	err = r.probe.InspectContainer(containerEngine)
+
 	if err != nil {
 		r.printer.Println(err)
+
 		return
 	}
 
 	ok := r.askUser(containerPullMessage(containerEngine))
+
 	if !ok {
 		r.printer.Println("You can also run a probe manually, check our GitHub for detailed instructions. Exited without changes.")
+
 		return
 	}
 
 	err = r.probe.RunContainer(containerEngine)
+
 	if err != nil {
 		r.printer.Println(err)
+
 		return
 	}
 
@@ -71,8 +79,10 @@ func (r *Root) askUser(s string) bool {
 	reader := bufio.NewReader(r.printer.InReader)
 
 	c, _, err := reader.ReadRune()
+
 	if err != nil {
 		r.printer.Printf("failed to read character %v", err)
+
 		return false
 	}
 

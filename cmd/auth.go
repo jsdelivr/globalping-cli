@@ -56,14 +56,18 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 	var err error
 	oldToken := r.storage.GetProfile().Token
 	withToken := cmd.Flags().Changed("with-token")
+
 	if withToken {
 		err := r.loginWithToken(ctx)
+
 		if err != nil {
 			return err
 		}
+
 		if oldToken != nil {
 			_ = r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
+
 		return nil
 	}
 
@@ -73,24 +77,31 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 		defer func() {
 			r.cancel <- syscall.SIGINT
 		}()
+
 		if e != nil {
 			err = e
 			r.Cmd.SilenceUsage = true
+
 			return
 		}
+
 		if oldToken != nil {
 			_ = r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
+
 		r.printer.Println("Success! You are now authenticated.")
 	})
+
 	if err != nil {
 		return err
 	}
+
 	r.printer.Println("Please visit the following URL to authenticate:")
 	r.printer.Println(res.AuthorizeURL)
 	_ = r.utils.OpenBrowser(res.AuthorizeURL)
 	r.printer.Println("\nCan't use the browser-based flow? Use \"globalping auth login --with-token\" to read a token from stdin instead.")
 	<-r.cancel
+
 	return err
 }
 
@@ -98,19 +109,25 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	res, err := r.client.TokenIntrospection(ctx, "")
+
 	if err != nil {
 		var authorizeErr *api.AuthorizeError
+
 		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == api.ErrTypeNotAuthorized {
 			r.printer.Println("Not logged in.")
+
 			return nil
 		}
+
 		return err
 	}
+
 	if res.Active {
 		r.printer.Printf("Logged in as %s.\n", res.Username)
 	} else {
 		r.printer.Println("Not logged in.")
 	}
+
 	return nil
 }
 
@@ -118,27 +135,34 @@ func (r *Root) RunAuthLogout(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	err := r.client.Logout(ctx)
+
 	if err != nil {
 		return err
 	}
+
 	r.printer.Println("You are now logged out.")
+
 	return nil
 }
 
 func (r *Root) loginWithToken(ctx context.Context) error {
 	r.printer.Println("Please enter your token:")
 	token, err := r.printer.ReadPassword()
+
 	if err != nil {
 		return err
 	}
+
 	if token == "" {
 		return errors.New("empty token")
 	}
 
 	introspection, err := r.client.TokenIntrospection(ctx, token)
+
 	if err != nil {
 		return err
 	}
+
 	if !introspection.Active {
 		return errors.New("invalid token")
 	}
@@ -149,10 +173,12 @@ func (r *Root) loginWithToken(ctx context.Context) error {
 		Expiry:      r.utils.Now().Add(math.MaxInt64),
 	}
 	err = r.storage.SaveConfig()
+
 	if err != nil {
 		return errors.New("failed to save token")
 	}
 
 	r.printer.Printf("Logged in as %s.\n", introspection.Username)
+
 	return nil
 }

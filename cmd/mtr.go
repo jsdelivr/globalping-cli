@@ -62,6 +62,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	err := r.updateContext(cmd, args)
+
 	if err != nil {
 		return err
 	}
@@ -91,8 +92,10 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		},
 	}
 	opts.Locations, err = r.getLocations()
+
 	if err != nil {
 		cmd.SilenceUsage = true
+
 		return err
 	}
 
@@ -103,9 +106,11 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	}
 
 	res, err := r.client.CreateMeasurement(ctx, opts)
+
 	if err != nil {
 		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
 		r.evaluateError(err)
+
 		return err
 	}
 
@@ -116,9 +121,11 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		StartedAt: r.utils.Now(),
 	}
 	r.ctx.History.Push(hm)
+
 	if r.ctx.RecordToSession {
 		r.ctx.RecordToSession = false
 		err := r.storage.SaveIdToSession(res.ID)
+
 		if err != nil {
 			r.printer.Printf("Warning: %s\n", err)
 		}

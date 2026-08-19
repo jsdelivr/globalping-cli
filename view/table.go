@@ -187,12 +187,15 @@ func pingTableRowValues(stats *MeasurementStats, showTimeoutValues bool) [7]stri
 		if stats.Last != -1 {
 			last = formatDuration(stats.Last)
 		}
+
 		if stats.Min != math.MaxFloat64 {
 			min = formatDuration(stats.Min)
 		}
+
 		if stats.Avg != -1 {
 			avg = formatDuration(stats.Avg)
 		}
+
 		if stats.Max != -1 {
 			max = formatDuration(stats.Max)
 		}
@@ -262,6 +265,7 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSiz
 
 func tableRow(measurementType globalping.MeasurementType, trace bool, columns int, measurement *globalping.ProbeMeasurement, httpSize httpSizeColumn) []string {
 	row := make([]string, columns)
+
 	for i := range row {
 		row[i] = "-"
 	}
@@ -447,6 +451,7 @@ func dnsTableValues(result *globalping.ProbeResult) []string {
 	}
 
 	var answers []json.RawMessage
+
 	if len(result.AnswersRaw) > 0 && json.Unmarshal(result.AnswersRaw, &answers) == nil && answers != nil {
 		values[1] = strconv.Itoa(len(answers))
 	}
@@ -580,6 +585,7 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 
 func httpBodyLengths(rawOutput string) (int, int, bool) {
 	separator := httpBodySeparator.FindStringIndex(rawOutput)
+
 	if separator == nil {
 		return 0, 0, false
 	}
@@ -671,6 +677,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == 1 {
 					continue
 				}
+
 				if column == 0 {
 					value = normalizeTableLocation(value)
 				}
@@ -704,6 +711,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	for rowIndex, row := range rows {
 		if len(row) == 0 {
 			output.WriteByte('\n')
+
 			continue
 		}
 
@@ -770,6 +778,7 @@ func limitTableRows(output string, maxRows int) string {
 	}
 
 	rows := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+
 	if len(rows) <= maxRows {
 		return output
 	}
@@ -823,6 +832,7 @@ func fitTableColumnWidths(widths []int, header []string, areaWidth int, shrinkab
 	separatorWidth := runewidth.StringWidth(colSeparator) * (len(widths) - 1)
 	contentWidth := areaWidth - separatorWidth
 	usedWidth := 0
+
 	for _, width := range widths {
 		usedWidth += width
 	}

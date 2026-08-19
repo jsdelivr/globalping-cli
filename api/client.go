@@ -110,6 +110,7 @@ func NewClient(config Config) Client {
 	if config.AuthURL == "" {
 		c.authURL = GlobalpingAuthURL
 	}
+
 	if config.DashboardURL == "" {
 		c.dashboardURL = GlobalpingDashboardURL
 	}
@@ -130,11 +131,13 @@ func NewClient(config Config) Client {
 			ExpiresIn:    config.AuthToken.ExpiresIn,
 			Expiry:       config.AuthToken.Expiry,
 		}
+
 		if c.token.TokenType == "" {
 			c.token.TokenType = "Bearer"
 		}
 	} else {
 		profile := c.storage.GetProfile()
+
 		if profile.Token != nil {
 			c.token = &storage.Token{
 				AccessToken:  profile.Token.AccessToken,

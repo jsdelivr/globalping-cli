@@ -147,11 +147,13 @@ func createDefaultContext(cmd string) *Context {
 		History:             NewHistoryBuffer(3),
 		RunSessionStartedAt: defaultCurrentTime,
 	}
+
 	if cmd == "ping" {
 		ctx.History.Push(&HistoryItem{
 			Id:        measurementID1,
 			StartedAt: defaultCurrentTime,
 		})
 	}
+
 	return ctx
 }

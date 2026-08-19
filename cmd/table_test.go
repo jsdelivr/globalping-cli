@@ -26,6 +26,7 @@ func Test_TableFlag_IsAvailableOnlyForMeasurementCommands(t *testing.T) {
 	}
 
 	assert.Nil(t, root.Cmd.Flags().Lookup("table"), "the root command must not expose --table")
+
 	for _, command := range []string{"auth", "history", "install-probe", "limits", "version"} {
 		cmd, _, err := root.Cmd.Find([]string{command})
 		require.NoError(t, err)
@@ -39,6 +40,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			expectedOpts := createDefaultMeasurementCreate(measurementType)
 			expectedOpts.Locations.(globalping.LocationOptions)[0].Magic = "world"
+
 			switch measurementType {
 			case "dns":
 				expectedOpts.Options.Query = &globalping.QueryOptions{}

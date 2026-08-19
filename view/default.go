@@ -11,6 +11,7 @@ import (
 func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, opts *globalping.MeasurementCreate) {
 	for i := range measurement.Results {
 		result := &measurement.Results[i]
+
 		if i > 0 {
 			// new line as separator if more than 1 result
 			v.printer.Println()
@@ -25,11 +26,13 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 				}
 
 				tls := result.Result.TLS
+
 				if tls != nil {
 					colorize := func(s string) string {
 						if tls.Authorized {
 							return s
 						}
+
 						return v.printer.Color(s, FGRed)
 					}
 
@@ -47,11 +50,15 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 					v.printer.ErrPrintf(colorize("Key type: %s%d\n"), tls.KeyType, tls.KeyBits)
 					v.printer.ErrPrintln()
 				}
+
 				firstLineEnd := strings.Index(result.Result.RawOutput, "\n")
+
 				if firstLineEnd > 0 {
 					v.printer.ErrPrintln(result.Result.RawOutput[:firstLineEnd])
 				}
+
 				v.printer.ErrPrintln(result.Result.RawHeaders)
+
 				if opts.Options.Request.Method == "GET" {
 					v.printer.ErrPrintln()
 					v.printer.Println(strings.TrimSpace(result.Result.RawBody))

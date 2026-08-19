@@ -37,6 +37,7 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 			{Magic: "Berlin"},
 		},
 	}
+
 	switch cmd {
 	case "ping":
 		measurement.Options.Protocol = "ICMP"
@@ -54,6 +55,7 @@ func createDefaultMeasurementCreate(cmd globalping.MeasurementType) *globalping.
 		measurement.Options.Protocol = "HTTPS"
 		measurement.Options.Port = 443
 	}
+
 	return measurement
 }
 
@@ -106,20 +108,24 @@ func createDefaultContext(_ string) *view.Context {
 		Limit:               1,
 		RunSessionStartedAt: defaultCurrentTime,
 	}
+
 	return ctx
 }
 
 func createDefaultTestStorage(t *testing.T, utils utils.Utils) *storage.LocalStorage {
 	s := storage.NewLocalStorage(utils)
 	err := s.Init("globalping-cli_" + t.Name())
+
 	if err != nil {
 		panic(err)
 	}
+
 	t.Cleanup(func() {
 		if err := s.Remove(); err != nil {
 			t.Error(err)
 		}
 	})
+
 	return s
 }
 
@@ -134,6 +140,7 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		MeasurementsCreated: 1,
 		RunSessionStartedAt: defaultCurrentTime,
 	}
+
 	switch cmd {
 	case "ping":
 		ctx.Protocol = "ICMP"
@@ -151,11 +158,13 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		ctx.Protocol = "HTTPS"
 		ctx.Port = 443
 	}
+
 	ctx.History.Push(&view.HistoryItem{
 		Id:        measurementID1,
 		Status:    globalping.MeasurementStatusInProgress,
 		StartedAt: defaultCurrentTime,
 	})
+
 	return ctx
 }
 
