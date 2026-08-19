@@ -43,9 +43,7 @@ func (s *LocalStorage) UpdateSessionDir() error {
 			info, _ := e.Info()
 
 			if info.ModTime().Before(time.Now().AddDate(0, 0, -7)) {
-				if err := os.RemoveAll(filepath.Join(oldDir, name)); err != nil {
-					return err
-				}
+				_ = os.RemoveAll(filepath.Join(oldDir, name))
 
 				continue
 			}
