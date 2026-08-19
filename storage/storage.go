@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -81,7 +80,9 @@ func (s *LocalStorage) Init(dirName string) error {
 		}
 	}
 
-	return s.Migrate()
+	_ = s.Migrate()
+
+	return nil
 }
 
 func (s *LocalStorage) Remove() error {
@@ -115,9 +116,7 @@ func (s *LocalStorage) Cleanup() error {
 		name := e.Name()
 
 		if l-i > maxEntries {
-			if err := os.RemoveAll(filepath.Join(s.sessionsDir, name)); err != nil {
-				return err
-			}
+			_ = os.RemoveAll(filepath.Join(s.sessionsDir, name))
 
 			continue
 		}
@@ -125,20 +124,13 @@ func (s *LocalStorage) Cleanup() error {
 		info, _ := e.Info()
 
 		if info.ModTime().Before(s.utils.Now().AddDate(0, 0, -7)) {
-			if err := os.RemoveAll(filepath.Join(s.sessionsDir, name)); err != nil {
-				return err
-			}
+			_ = os.RemoveAll(filepath.Join(s.sessionsDir, name))
 		}
 	}
 
 	// Truncate files
-	if err := truncateFile(s.historyPath(), 1<<23); err != nil && !errors.Is(err, fs.ErrNotExist) { // 8 MB
-		return err
-	}
-
-	if err := truncateFile(s.measurementsPath(), 1<<20); err != nil && !errors.Is(err, fs.ErrNotExist) { // 1 MB
-		return err
-	}
+	_ = truncateFile(s.historyPath(), 1<<23)      // 8 MB
+	_ = truncateFile(s.measurementsPath(), 1<<20) // 1 MB
 
 	return nil
 }
