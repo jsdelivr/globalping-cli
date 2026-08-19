@@ -9,7 +9,7 @@ import (
 
 func Test_GetIdFromSession(t *testing.T) {
 	_storage := createDefaultTestStorage(t, nil)
-	os.WriteFile(_storage.measurementsPath(), []byte("id1\nid2\nid3\n"), 0644)
+	assert.NoError(t, os.WriteFile(_storage.measurementsPath(), []byte("id1\nid2\nid3\n"), 0644))
 	id, err := _storage.GetIdFromSession(1)
 	if err != nil {
 		t.Fatal(err)

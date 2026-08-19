@@ -34,7 +34,7 @@ Examples:
 }
 
 func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
-	var limit int = 0
+	limit := 0
 	if r.ctx.Head > 0 {
 		limit = int(r.ctx.Head)
 	} else if r.ctx.Tail > 0 {
@@ -74,11 +74,11 @@ func (r *Root) UpdateHistory() error {
 		strings.Join(os.Args[1:], " "),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to save command to history: %s", err)
+		return fmt.Errorf("failed to save command to history: %w", err)
 	}
 	err = r.storage.Cleanup()
 	if err != nil {
-		return fmt.Errorf("failed to cleanup history: %s", err)
+		return fmt.Errorf("failed to cleanup history: %w", err)
 	}
 	return nil
 }

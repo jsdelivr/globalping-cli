@@ -36,7 +36,9 @@ func (s *LocalStorage) GetIdFromSession(index int) (string, error) {
 		}
 		return "", fmt.Errorf(readMeasuremetsErr, err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	// Read ids from the end of the file
 	if index < 0 {
 		fStats, err := f.Stat()
@@ -51,7 +53,7 @@ func (s *LocalStorage) GetIdFromSession(index int) (string, error) {
 			index++
 			b, _, err := scanner.LineBytes()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return "", ErrIndexOutOfRange
 				}
 				return "", fmt.Errorf(readMeasuremetsErr, err)
@@ -70,17 +72,19 @@ func (s *LocalStorage) GetIdFromSession(index int) (string, error) {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("failed to read previous measurements: %s", err)
+		return "", fmt.Errorf("failed to read previous measurements: %w", err)
 	}
 	return "", ErrIndexOutOfRange
 }
 
-func (s *LocalStorage) SaveIdToSession(id string) error {
+func (s *LocalStorage) SaveIdToSession(id string) (err error) {
 	f, err := os.OpenFile(s.measurementsPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf(saveIdToSessionErr, err)
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Join(err, f.Close())
+	}()
 	_, err = f.WriteString(id + "\n")
 	if err != nil {
 		return fmt.Errorf(saveIdToSessionErr, err)

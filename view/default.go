@@ -35,7 +35,7 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 
 					v.printer.ErrPrintf(colorize("%s/%s\n"), tls.Protocol, tls.CipherName)
 
-					if tls.Authorized == false {
+					if !tls.Authorized {
 						v.printer.ErrPrintf(colorize("Error: %s\n"), tls.Error)
 					}
 

@@ -71,7 +71,9 @@ func upload(file string, dist string, config *Config) {
 		log.Println("Failed to open file: ", err)
 		os.Exit(1)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	switch dist {
 	case "deb":
 		uploadToAllDistros(config, f, distros.Deb)
@@ -186,7 +188,9 @@ func uploadPackage(config *Config, distroVersionId string, f *os.File) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusCreated {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
@@ -219,13 +223,17 @@ func fetchDistros(config *Config) (*Distros, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
 	}
 	distros := &Distros{}
-	json.NewDecoder(resp.Body).Decode(distros)
+	if err := json.NewDecoder(resp.Body).Decode(distros); err != nil {
+		return nil, err
+	}
 	return distros, nil
 }
 
@@ -246,13 +254,17 @@ func fetchVersions(config *Config, url string) ([]*PackageVersion, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
 	}
 	versions := []*PackageVersion{}
-	json.NewDecoder(resp.Body).Decode(&versions)
+	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
+		return nil, err
+	}
 	return versions, nil
 }
 
@@ -270,13 +282,17 @@ func fetchVersionGroups(config *Config, t string, distro string, name string) ([
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
 	}
 	versions := []*PackageVersionGroup{}
-	json.NewDecoder(resp.Body).Decode(&versions)
+	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
+		return nil, err
+	}
 	return versions, nil
 }
 
@@ -290,7 +306,9 @@ func deleteVersion(config *Config, url string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))

@@ -90,7 +90,7 @@ func runContainerDocker() error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to run container: %v", err)
+		return fmt.Errorf("failed to run container: %w", err)
 	}
 
 	return nil
@@ -102,7 +102,7 @@ func runContainerPodman() error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("failed to run container: %v", err)
+		return fmt.Errorf("failed to run container: %w", err)
 	}
 
 	return nil

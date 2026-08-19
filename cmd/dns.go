@@ -81,7 +81,9 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
-	defer r.UpdateHistory()
+	defer func() {
+		_ = r.UpdateHistory()
+	}()
 	r.ctx.RecordToSession = true
 
 	opts := &globalping.MeasurementCreate{

@@ -72,27 +72,27 @@ func NewPrinter(
 }
 
 func (p *Printer) Print(a ...any) {
-	fmt.Fprint(p.OutWriter, a...)
+	_, _ = fmt.Fprint(p.OutWriter, a...)
 }
 
 func (p *Printer) Println(a ...any) {
-	fmt.Fprintln(p.OutWriter, a...)
+	_, _ = fmt.Fprintln(p.OutWriter, a...)
 }
 
 func (p *Printer) Printf(format string, a ...any) {
-	fmt.Fprintf(p.OutWriter, format, a...)
+	_, _ = fmt.Fprintf(p.OutWriter, format, a...)
 }
 
 func (p *Printer) ErrPrint(a ...any) {
-	fmt.Fprint(p.ErrWriter, a...)
+	_, _ = fmt.Fprint(p.ErrWriter, a...)
 }
 
 func (p *Printer) ErrPrintln(a ...any) {
-	fmt.Fprintln(p.ErrWriter, a...)
+	_, _ = fmt.Fprintln(p.ErrWriter, a...)
 }
 
 func (p *Printer) ErrPrintf(format string, a ...any) {
-	fmt.Fprintf(p.ErrWriter, format, a...)
+	_, _ = fmt.Fprintf(p.ErrWriter, format, a...)
 }
 
 func (p *Printer) FillLeft(s string, w int) string {
@@ -215,14 +215,14 @@ func (p *Printer) GetSize() (width, height int) {
 func (p *Printer) AreaUpdate(content *string) {
 	p.AreaClear()
 	p.areaHeight = strings.Count(*content, "\n")
-	fmt.Fprint(p.OutWriter, *content)
+	_, _ = fmt.Fprint(p.OutWriter, *content)
 }
 
 func (p *Printer) AreaClear() {
 	if p.areaHeight == 0 {
 		return
 	}
-	fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
+	_, _ = fmt.Fprintf(p.OutWriter, "\033[%dA\033[0J", p.areaHeight)
 	p.areaHeight = 0
 }
 

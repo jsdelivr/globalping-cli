@@ -55,7 +55,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		callbackOnce.Do(func() {
 			close(authorizeDone)
 			go func() {
-				server.Shutdown(context.Background())
+				_ = server.Shutdown(context.Background())
 				if err == nil {
 					c.updateToken(token)
 				}
@@ -106,7 +106,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 			err = listenErr
 			if isAddrInUse(listenErr) {
 				for _, ln := range portListeners {
-					ln.Close()
+					_ = ln.Close()
 				}
 				continue
 			}
@@ -129,7 +129,7 @@ func (c *client) Authorize(ctx context.Context, callback func(error)) (*Authoriz
 		var serveErr error
 		for range listeners {
 			err := <-serveErrors
-			if err != nil && err != http.ErrServerClosed {
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				serveErr = err
 			}
 		}
@@ -233,14 +233,16 @@ func (c *client) exchange(ctx context.Context, form url.Values, verifier string,
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeExchangeFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
 		return nil, err
 	}
 	t := &storage.Token{}
@@ -277,8 +279,8 @@ func (c *client) getToken(ctx context.Context) (*storage.Token, error) {
 	}
 	t, err := c.refreshToken(ctx, c.token.RefreshToken)
 	if err != nil {
-		e, ok := err.(*AuthorizeError)
-		if ok && e.ErrorType == ErrTypeInvalidGrant {
+		var authorizeErr *AuthorizeError
+		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == ErrTypeInvalidGrant {
 			c.saveToken(nil)
 		}
 		return nil, err
@@ -328,9 +330,9 @@ func (c *client) tryToRefreshToken(ctx context.Context, refreshToken string) boo
 
 	token, err := c.refreshToken(ctx, c.token.RefreshToken)
 	if err != nil {
-		e, ok := err.(*AuthorizeError)
+		var authorizeErr *AuthorizeError
 		// If the refresh token is invalid, clear the token
-		if ok && e.ErrorType == ErrTypeInvalidGrant {
+		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == ErrTypeInvalidGrant {
 			c.token = nil
 			c.saveToken(nil)
 		}
@@ -371,14 +373,16 @@ func (c *client) refreshToken(ctx context.Context, token string) (*storage.Token
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeRefreshFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
 		return nil, err
 	}
 	t := &storage.Token{}
@@ -443,14 +447,16 @@ func (c *client) introspection(ctx context.Context, token string) (*Introspectio
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeIntrospectionFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
 		return nil, err
 	}
 	ires := &IntrospectionResponse{}
@@ -485,14 +491,16 @@ func (c *client) RevokeToken(ctx context.Context, token string) error {
 			Description: err.Error(),
 		}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		err := &AuthorizeError{
 			Code:        resp.StatusCode,
 			ErrorType:   ErrTypeRevokeFailed,
 			Description: resp.Status,
 		}
-		json.NewDecoder(resp.Body).Decode(err)
+		_ = json.NewDecoder(resp.Body).Decode(err)
 		return err
 	}
 	return nil

@@ -124,7 +124,7 @@ func (v *viewer) processInfinitePingMeasurement(m *globalping.Measurement, useFa
 			resultStats = v.parsePingRawOutput(measurementHistory, probeMeasurement, -1).Stats
 		}
 
-		statsUnavailable := (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && !(useFailedPacketStats && hasPacketStats)
+		statsUnavailable := (probeMeasurement.Result.Status == globalping.TestStatusFailed || probeMeasurement.Result.Status == globalping.TestStatusOffline) && (!useFailedPacketStats || !hasPacketStats)
 
 		if statsUnavailable {
 			preservedStats := *v.ctx.AggregatedStats[i]

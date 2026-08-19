@@ -2,8 +2,10 @@ package storage
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -72,8 +74,7 @@ func (s *LocalStorage) Init(dirName string) error {
 			}
 		}
 	}
-	s.Migrate()
-	return nil
+	return s.Migrate()
 }
 
 func (s *LocalStorage) Remove() error {
@@ -99,17 +100,25 @@ func (s *LocalStorage) Cleanup() error {
 	for i, e := range entries {
 		name := e.Name()
 		if l-i > maxEntries {
-			os.RemoveAll(filepath.Join(s.sessionsDir, name))
+			if err := os.RemoveAll(filepath.Join(s.sessionsDir, name)); err != nil {
+				return err
+			}
 			continue
 		}
 		info, _ := e.Info()
 		if info.ModTime().Before(s.utils.Now().AddDate(0, 0, -7)) {
-			os.RemoveAll(filepath.Join(s.sessionsDir, name))
+			if err := os.RemoveAll(filepath.Join(s.sessionsDir, name)); err != nil {
+				return err
+			}
 		}
 	}
 	// Truncate files
-	truncateFile(s.historyPath(), 1<<23)      // 8 MB
-	truncateFile(s.measurementsPath(), 1<<20) // 1 MB
+	if err := truncateFile(s.historyPath(), 1<<23); err != nil && !errors.Is(err, fs.ErrNotExist) { // 8 MB
+		return err
+	}
+	if err := truncateFile(s.measurementsPath(), 1<<20); err != nil && !errors.Is(err, fs.ErrNotExist) { // 1 MB
+		return err
+	}
 	return nil
 }
 
@@ -156,12 +165,14 @@ func getUserID() string {
 	return user.Uid
 }
 
-func truncateFile(file string, maxSize int64) error {
+func truncateFile(file string, maxSize int64) (err error) {
 	f, err := os.OpenFile(file, os.O_RDWR, 0644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		err = errors.Join(err, f.Close())
+	}()
 	stat, err := f.Stat()
 	if err != nil {
 		return err
@@ -183,7 +194,10 @@ func truncateFile(file string, maxSize int64) error {
 	startPos += int64(len(b))
 
 	// Truncate
-	f.Seek(startPos, io.SeekStart)
+	_, err = f.Seek(startPos, io.SeekStart)
+	if err != nil {
+		return err
+	}
 	b, err = io.ReadAll(f)
 	if err != nil {
 		return err

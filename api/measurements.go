@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -39,8 +40,8 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 		return res, nil
 	}
 
-	apiErr, ok := err.(*globalping.MeasurementError)
-	if !ok {
+	var apiErr *globalping.MeasurementError
+	if !errors.As(err, &apiErr) {
 		return nil, err
 	}
 
@@ -78,7 +79,6 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 			}
 			apiErr.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
 			return nil, apiErr
-
 		} else {
 			if remaining > 0 {
 				apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))

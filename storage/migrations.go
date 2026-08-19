@@ -35,7 +35,9 @@ func (s *LocalStorage) UpdateSessionDir() error {
 		if e.IsDir() && strings.HasPrefix(name, "globalping_") {
 			info, _ := e.Info()
 			if info.ModTime().Before(time.Now().AddDate(0, 0, -7)) {
-				os.RemoveAll(filepath.Join(oldDir, name))
+				if err := os.RemoveAll(filepath.Join(oldDir, name)); err != nil {
+					return err
+				}
 				continue
 			}
 			parts := strings.Split(name, "_")
@@ -95,7 +97,5 @@ func (s *LocalStorage) MoveSessionsToUserDir() error {
 		}
 	}
 
-	os.RemoveAll(oldSessionsDir)
-
-	return nil
+	return os.RemoveAll(oldSessionsDir)
 }

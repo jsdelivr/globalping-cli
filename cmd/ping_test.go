@@ -229,7 +229,7 @@ func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	assert.Equal(t, expectedCtx, ctx)
 	assert.Equal(t, "Error: index out of range\n", w.String())
 
-	_storage.Remove()
+	assert.NoError(t, _storage.Remove())
 
 	w.Reset()
 	ctx = createDefaultContext("ping")

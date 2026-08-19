@@ -62,7 +62,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		if oldToken != nil {
-			r.client.RevokeToken(ctx, oldToken.RefreshToken)
+			_ = r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
 		return nil
 	}
@@ -79,7 +79,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 			return
 		}
 		if oldToken != nil {
-			r.client.RevokeToken(ctx, oldToken.RefreshToken)
+			_ = r.client.RevokeToken(ctx, oldToken.RefreshToken)
 		}
 		r.printer.Println("Success! You are now authenticated.")
 	})
@@ -88,7 +88,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 	}
 	r.printer.Println("Please visit the following URL to authenticate:")
 	r.printer.Println(res.AuthorizeURL)
-	r.utils.OpenBrowser(res.AuthorizeURL)
+	_ = r.utils.OpenBrowser(res.AuthorizeURL)
 	r.printer.Println("\nCan't use the browser-based flow? Use \"globalping auth login --with-token\" to read a token from stdin instead.")
 	<-r.cancel
 	return err
@@ -99,8 +99,8 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 
 	res, err := r.client.TokenIntrospection(ctx, "")
 	if err != nil {
-		e, ok := err.(*api.AuthorizeError)
-		if ok && e.ErrorType == api.ErrTypeNotAuthorized {
+		var authorizeErr *api.AuthorizeError
+		if errors.As(err, &authorizeErr) && authorizeErr.ErrorType == api.ErrTypeNotAuthorized {
 			r.printer.Println("Not logged in.")
 			return nil
 		}

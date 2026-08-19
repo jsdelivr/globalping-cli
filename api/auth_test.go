@@ -89,10 +89,11 @@ func Test_Authorize(t *testing.T) {
 	assert.Equal(t, "measurements", u.Query().Get("scope"))
 	assert.Equal(t, expectedRedirectURI, u.Query().Get("redirect_uri"))
 
-	_, err = http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
+	response, err := http.Post(res.CallbackURL+"?code=cod3", "application/x-www-form-urlencoded", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.NoError(t, response.Body.Close())
 	select {
 	case err := <-authorizeDone:
 		assert.NoError(t, err)
@@ -329,10 +330,10 @@ func Test_TokenIntrospection_No_Token(t *testing.T) {
 	res, err := client.TokenIntrospection(t.Context(), "")
 	assert.Nil(t, res)
 
-	e, ok := err.(*AuthorizeError)
-	assert.True(t, ok)
-	assert.Equal(t, ErrTypeNotAuthorized, e.ErrorType)
-	assert.Equal(t, "client is not authorized", e.Description)
+	var authorizeErr *AuthorizeError
+	assert.ErrorAs(t, err, &authorizeErr)
+	assert.Equal(t, ErrTypeNotAuthorized, authorizeErr.ErrorType)
+	assert.Equal(t, "client is not authorized", authorizeErr.Description)
 }
 
 func Test_Logout(t *testing.T) {

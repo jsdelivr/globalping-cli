@@ -247,9 +247,10 @@ func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSiz
 	case "http":
 		header := []string{"Location", "Status"}
 
-		if httpSize == httpSizeContentLength {
+		switch httpSize {
+		case httpSizeContentLength:
 			header = append(header, "Content-Length")
-		} else if httpSize == httpSizeBytes {
+		case httpSizeBytes:
 			header = append(header, "Bytes")
 		}
 
@@ -545,11 +546,12 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 		values[0] = result.StatusCodeName
 	}
 
-	if httpSize == httpSizeContentLength {
+	switch httpSize {
+	case httpSizeContentLength:
 		if length, ok := contentLength(result.HeadersRaw); ok {
 			values[1] = strconv.FormatUint(length, 10) + " B"
 		}
-	} else if httpSize == httpSizeBytes {
+	case httpSizeBytes:
 		if length, utf16Length, ok := httpBodyLengths(result.RawOutput); ok {
 			suffix := " B"
 

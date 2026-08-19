@@ -33,7 +33,7 @@ func test_updateContext_NoArg(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.Equal(t, "ping", ctx.Cmd)
@@ -48,7 +48,7 @@ func test_updateContext_Country(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1", "from", "Germany"})
 	assert.Equal(t, "ping", ctx.Cmd)
@@ -64,7 +64,7 @@ func test_updateContext_CountryWhitespace(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1", "from", " Germany, France"})
 	assert.Equal(t, "ping", ctx.Cmd)
@@ -79,7 +79,7 @@ func test_updateContext_NoTarget(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{})
 	assert.Error(t, err)
@@ -92,7 +92,7 @@ func test_updateContext_LimitBelowMinimum(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.EqualError(t, err, "limit must be at least 1")
@@ -108,7 +108,7 @@ func test_updateContext_CIEnv(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.Equal(t, "ping", ctx.Cmd)
@@ -125,7 +125,7 @@ func test_updateContext_TargetIsNotAHostname(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "ping"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"1.1.1.1"})
 	assert.EqualError(t, err, ErrTargetIPVersionNotAllowed.Error())
@@ -143,7 +143,7 @@ func test_updateContext_ResolverIsNotAHostname(t *testing.T) {
 	root := NewRoot(printer, ctx, nil, nil, nil, nil, nil)
 
 	cmd := &cobra.Command{Use: "dns"}
-	cmd.Execute()
+	assert.NoError(t, cmd.Execute())
 
 	err := root.updateContext(cmd, []string{"example.com", "@1.1.1.1"})
 	assert.EqualError(t, err, ErrResolverIPVersionNotAllowed.Error())

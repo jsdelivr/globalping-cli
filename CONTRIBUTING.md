@@ -6,14 +6,14 @@ Hi! We're really excited that you're interested in contributing! Before submitti
 
 - Bug fixes and changes discussed in the existing issues are always welcome.
 - For new ideas, please open an issue to discuss them before sending a PR.
-- Make sure your PR passes `go test ./...` and has [appropriate commit messages](https://github.com/jsdelivr/globalping-cli/commits/master).
+- Make sure your PR passes `bin/golangci-lint run` and `go test ./...`, and has [appropriate commit messages](https://github.com/jsdelivr/globalping-cli/commits/master).
 
 ## Project setup
 
 Install golangci-lint:
 
 ```shell
-curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b bin v1.52.2
+curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b bin v2.12.2
 ```
 
 Install mockgen:

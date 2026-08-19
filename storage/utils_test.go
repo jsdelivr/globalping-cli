@@ -9,11 +9,16 @@ import (
 func createDefaultTestStorage(t *testing.T, utils utils.Utils) *LocalStorage {
 	s := NewLocalStorage(utils)
 	err := s.Init("globalping-cli_" + t.Name())
+
 	if err != nil {
 		panic(err)
 	}
+
 	t.Cleanup(func() {
-		s.Remove()
+		if err := s.Remove(); err != nil {
+			t.Error(err)
+		}
 	})
+
 	return s
 }

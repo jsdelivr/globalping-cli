@@ -38,7 +38,9 @@ func (s *LocalStorage) GetHistoryIndex() (int, error) {
 		}
 		return 0, ErrReadHistory
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	fStats, err := f.Stat()
 	if err != nil {
 		return 0, ErrReadHistory
@@ -50,7 +52,7 @@ func (s *LocalStorage) GetHistoryIndex() (int, error) {
 	for {
 		b, _, err := scanner.LineBytes()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return 1, nil
 			}
 			return 0, ErrReadHistory
@@ -79,7 +81,9 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 		}
 		return nil, ErrReadHistory
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	// Read from the end of the file
 	if limit < 0 {
 		fStats, err := f.Stat()
@@ -94,7 +98,7 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 			limit++
 			b, _, err := scanner.LineBytes()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return items, nil
 				}
 				return nil, ErrReadHistory
@@ -130,13 +134,15 @@ func (s *LocalStorage) SaveCommandToHistory(
 	time int64,
 	ids string,
 	cmd string,
-) error {
+) (err error) {
 	f, err := os.OpenFile(s.historyPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = f.WriteString(fmt.Sprintf("%s|%s|%d|%s|%s\n", HistoryItemVersion1, index, time, ids, cmd))
+	defer func() {
+		err = errors.Join(err, f.Close())
+	}()
+	_, err = fmt.Fprintf(f, "%s|%s|%d|%s|%s\n", HistoryItemVersion1, index, time, ids, cmd)
 	if err != nil {
 		return err
 	}

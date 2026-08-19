@@ -141,10 +141,10 @@ func Test_CreateMeasurement_Unauthorized_TokenRefreshed(t *testing.T) {
 
 	res, err := client.CreateMeasurement(t.Context(), opts)
 	assert.Nil(t, res)
-	e, ok := err.(*globalping.MeasurementError)
-	assert.True(t, ok)
-	assert.Equal(t, StatusUnauthorizedWithTokenRefreshed, e.StatusCode)
-	assert.Equal(t, "Unauthorized.", e.Message)
+	var measurementErr *globalping.MeasurementError
+	assert.ErrorAs(t, err, &measurementErr)
+	assert.Equal(t, StatusUnauthorizedWithTokenRefreshed, measurementErr.StatusCode)
+	assert.Equal(t, "Unauthorized.", measurementErr.Message)
 
 	assert.Equal(t, &storage.Token{
 		AccessToken:  "new_token",
@@ -175,7 +175,9 @@ func Test_CreateMeasurement_Unauthorized_Token_Not_Refreshed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/oauth/token" {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"error": "invalid_grant", "error_description": "Invalid refresh token."}`))
+			if _, err := w.Write([]byte(`{"error": "invalid_grant", "error_description": "Invalid refresh token."}`)); err != nil {
+				t.Error(err)
+			}
 			return
 		}
 		t.Fatalf("unexpected request to %s", r.URL.Path)
@@ -224,7 +226,9 @@ func Test_CreateMeasurement_Unauthorized_NoRefreshToken(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"error": {"type": "unauthorized", "message": "Unauthorized."}}`))
+		if _, err := w.Write([]byte(`{"error": {"type": "unauthorized", "message": "Unauthorized."}}`)); err != nil {
+			t.Error(err)
+		}
 	}))
 	defer server.Close()
 

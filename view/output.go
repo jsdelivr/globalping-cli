@@ -69,7 +69,7 @@ func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 		rWidth := runewidth.StringWidth(lines[i])
 		if rWidth > maxW {
 			line := lines[i]
-			trimmedLine := string(lines[i][:len(line)-rWidth+maxW])
+			trimmedLine := lines[i][:len(line)-rWidth+maxW]
 			lines[i] = trimmedLine
 		}
 	}

@@ -101,7 +101,9 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 		r.ctx.Port = 80
 	}
 
-	defer r.UpdateHistory()
+	defer func() {
+		_ = r.UpdateHistory()
+	}()
 	r.ctx.RecordToSession = true
 
 	opts, err := r.buildHttpMeasurementRequest(cmd)
@@ -191,7 +193,6 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.Meas
 		} else {
 			opts.Options.Port = urlData.Port
 		}
-
 	} else {
 		opts.Options.Port = r.ctx.Port
 	}

@@ -122,7 +122,9 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	if len(os.Args) == 2 {
 		cmd.SilenceErrors = true
 		cmd.SilenceUsage = true
-		cmd.Help()
+		if err := cmd.Help(); err != nil {
+			return err
+		}
 		return errors.New("")
 	}
 
@@ -173,7 +175,7 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	if ok {
 		stdoutFileInfo, err := f.Stat()
 		if err != nil {
-			return fmt.Errorf("stdout stat failed: %s", err)
+			return fmt.Errorf("stdout stat failed: %w", err)
 		}
 		if (stdoutFileInfo.Mode() & os.ModeCharDevice) == 0 {
 			// stdout is piped, run in ci mode
@@ -217,18 +219,18 @@ func (r *Root) evaluateError(err error) {
 	if err == nil {
 		return
 	}
-	e, ok := err.(*globalping.MeasurementError)
-	if !ok {
+	var measurementErr *globalping.MeasurementError
+	if !errors.As(err, &measurementErr) {
 		return
 	}
-	if e.StatusCode == api.StatusUnauthorizedWithTokenRefreshed {
+	if measurementErr.StatusCode == api.StatusUnauthorizedWithTokenRefreshed {
 		r.Cmd.SilenceErrors = true
 		r.printer.ErrPrintln("Access token successfully refreshed. Try repeating the measurement.")
 		return
 	}
-	if e.StatusCode == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
+	if measurementErr.StatusCode == http.StatusTooManyRequests && r.ctx.MeasurementsCreated > 0 {
 		r.Cmd.SilenceErrors = true
-		r.printer.ErrPrintln(r.printer.Color("> "+e.Message, view.FGBrightYellow))
+		r.printer.ErrPrintln(r.printer.Color("> "+measurementErr.Message, view.FGBrightYellow))
 		return
 	}
 }
@@ -317,9 +319,9 @@ func (r *Root) mapFromSession(location string) (string, error) {
 }
 
 func silenceUsageOnCreateMeasurementError(err error) bool {
-	e, ok := err.(*globalping.MeasurementError)
-	if ok {
-		switch e.StatusCode {
+	var measurementErr *globalping.MeasurementError
+	if errors.As(err, &measurementErr) {
+		switch measurementErr.StatusCode {
 		case http.StatusBadRequest:
 			return false
 		default:

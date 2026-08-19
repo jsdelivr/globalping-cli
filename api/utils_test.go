@@ -28,7 +28,9 @@ func createDefaultTestStorage(t *testing.T, utils utils.Utils) *storage.LocalSto
 		panic(err)
 	}
 	t.Cleanup(func() {
-		s.Remove()
+		if err := s.Remove(); err != nil {
+			t.Error(err)
+		}
 	})
 	return s
 }

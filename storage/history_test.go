@@ -11,7 +11,7 @@ import (
 
 func Test_GetHistoryIndex(t *testing.T) {
 	_storage := createDefaultTestStorage(t, nil)
-	os.WriteFile(_storage.historyPath(), []byte("1|1|1|id|command\n"), 0644)
+	assert.NoError(t, os.WriteFile(_storage.historyPath(), []byte("1|1|1|id|command\n"), 0644))
 	index, err := _storage.GetHistoryIndex()
 	if err != nil {
 		t.Fatal(err)
@@ -23,9 +23,9 @@ func Test_GetHistory(t *testing.T) {
 	_storage := createDefaultTestStorage(t, nil)
 	time1 := time.Unix(1730310880, 0)
 	time2 := time.Unix(1730310890, 0)
-	os.WriteFile(_storage.historyPath(), []byte(fmt.Sprintf(`1|1|%d|id1|command1
+	assert.NoError(t, os.WriteFile(_storage.historyPath(), []byte(fmt.Sprintf(`1|1|%d|id1|command1
 1|2|%d|id2|command2
-`, time1.Unix(), time2.Unix())), 0644)
+`, time1.Unix(), time2.Unix())), 0644))
 
 	items, err := _storage.GetHistory(0)
 	if err != nil {

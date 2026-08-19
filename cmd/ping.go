@@ -82,7 +82,9 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("protocol %s is not supported", r.ctx.Protocol)
 	}
 
-	defer r.UpdateHistory()
+	defer func() {
+		_ = r.UpdateHistory()
+	}()
 	r.ctx.RecordToSession = true
 	if r.ctx.Infinite {
 		r.ctx.Packets = 16
