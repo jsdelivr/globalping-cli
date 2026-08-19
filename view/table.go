@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -48,20 +49,16 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 	}
 
 	v.ctx.TableOutputRows = len(measurement.Results)
-	completedOutput, err := v.outputTableView(measurement)
-
-	if err != nil {
-		return "", err
-	}
+	v.outputTableView(measurement)
 
 	if renderFailedTable {
-		return completedOutput, ErrAllProbesFailed
+		return "", ErrAllProbesFailed
 	}
 
-	return completedOutput, nil
+	return "", nil
 }
 
-func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
+func (v *viewer) outputTableView(m *globalping.Measurement) {
 	width, height := v.printer.GetSize()
 	output := v.generateMeasurementTable(m, width-2)
 
@@ -70,8 +67,6 @@ func (v *viewer) outputTableView(m *globalping.Measurement) (string, error) {
 	}
 
 	v.printer.AreaUpdate(&output)
-
-	return "", nil
 }
 
 func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, error) {
@@ -174,22 +169,22 @@ func finitePingTableRowValues(result *globalping.ProbeResult) [7]string {
 
 func pingTableRowValues(stats *MeasurementStats, showTimeoutValues bool) [7]string {
 	last := "-"
-	min := "-"
+	minText := "-"
 	avg := "-"
-	max := "-"
+	maxText := "-"
 
 	if showTimeoutValues && stats.Sent > 0 && stats.Rcv == 0 {
 		last = tableTimeoutValue
-		min = tableTimeoutValue
+		minText = tableTimeoutValue
 		avg = tableTimeoutValue
-		max = tableTimeoutValue
+		maxText = tableTimeoutValue
 	} else {
 		if stats.Last != -1 {
 			last = formatDuration(stats.Last)
 		}
 
 		if stats.Min != math.MaxFloat64 {
-			min = formatDuration(stats.Min)
+			minText = formatDuration(stats.Min)
 		}
 
 		if stats.Avg != -1 {
@@ -197,18 +192,18 @@ func pingTableRowValues(stats *MeasurementStats, showTimeoutValues bool) [7]stri
 		}
 
 		if stats.Max != -1 {
-			max = formatDuration(stats.Max)
+			maxText = formatDuration(stats.Max)
 		}
 	}
 
 	return [7]string{
 		"",
-		fmt.Sprintf("%d", stats.Sent),
+		strconv.Itoa(stats.Sent),
 		fmt.Sprintf("%.2f", stats.Loss) + "%",
 		last,
-		min,
+		minText,
 		avg,
-		max,
+		maxText,
 	}
 }
 
@@ -376,9 +371,9 @@ func tracerouteTableValues(raw json.RawMessage) []string {
 }
 
 func lastTimingRTT(timings []tracerouteTableTiming) *float64 {
-	for i := len(timings) - 1; i >= 0; i-- {
-		if timings[i].RTT != nil {
-			return timings[i].RTT
+	for _, v := range slices.Backward(timings) {
+		if v.RTT != nil {
+			return v.RTT
 		}
 	}
 

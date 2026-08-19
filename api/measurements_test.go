@@ -238,7 +238,7 @@ func Test_CreateMeasurement_Unauthorized_NoRefreshToken(t *testing.T) {
 	}).Times(1)
 	globalpingMock.EXPECT().SetToken("access_token")
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 
 		if _, err := w.Write([]byte(`{"error": {"type": "unauthorized", "message": "Unauthorized."}}`)); err != nil {

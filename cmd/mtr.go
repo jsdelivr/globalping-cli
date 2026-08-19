@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -72,7 +73,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.ToLatency {
-		return fmt.Errorf("the latency flag is not supported by the mtr command")
+		return errors.New("the latency flag is not supported by the mtr command")
 	}
 
 	defer func() {

@@ -18,7 +18,7 @@ func (r *Root) initInstallProbe() {
 	r.Cmd.AddCommand(installProbeCmd)
 }
 
-func (r *Root) RunInstallProbe(cmd *cobra.Command, args []string) {
+func (r *Root) RunInstallProbe(_ *cobra.Command, _ []string) {
 	containerEngine, err := r.probe.DetectContainerEngine()
 
 	if err != nil {

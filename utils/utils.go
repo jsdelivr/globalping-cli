@@ -19,11 +19,11 @@ func NewUtils() Utils {
 	return &utils{}
 }
 
-func (u *utils) Now() _time.Time {
+func (*utils) Now() _time.Time {
 	return _time.Now()
 }
 
-func (u *utils) OpenBrowser(url string) error {
+func (*utils) OpenBrowser(url string) error {
 	switch runtime.GOOS {
 	case "linux":
 		// WSL workaround

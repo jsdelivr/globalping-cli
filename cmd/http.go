@@ -291,9 +291,9 @@ func parseUrlData(input string) (*UrlData, error) {
 }
 
 // Helper functions to override flags in command
-func overrideOpt(orig, new string) string {
-	if new != "" {
-		return new
+func overrideOpt(orig, replacement string) string {
+	if replacement != "" {
+		return replacement
 	}
 
 	return orig

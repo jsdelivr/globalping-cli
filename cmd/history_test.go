@@ -19,7 +19,7 @@ func Test_Execute_History_Default(t *testing.T) {
 	utilsMock := utilsMocks.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
-	ctx := createDefaultContext("ping")
+	ctx := createDefaultContext()
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
 	_storage := createDefaultTestStorage(t, utilsMock)

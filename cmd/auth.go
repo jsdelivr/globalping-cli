@@ -50,7 +50,7 @@ func (r *Root) initAuth() {
 	r.Cmd.AddCommand(authCmd)
 }
 
-func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
+func (r *Root) RunAuthLogin(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
 	var err error
@@ -105,7 +105,7 @@ func (r *Root) RunAuthLogin(cmd *cobra.Command, args []string) error {
 	return err
 }
 
-func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
+func (r *Root) RunAuthStatus(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
 	res, err := r.client.TokenIntrospection(ctx, "")
@@ -131,7 +131,7 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (r *Root) RunAuthLogout(cmd *cobra.Command, args []string) error {
+func (r *Root) RunAuthLogout(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
 	err := r.client.Logout(ctx)

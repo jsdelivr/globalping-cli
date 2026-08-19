@@ -30,12 +30,7 @@ func (s *LocalStorage) LoadConfig() (*Config, error) {
 		return s.config, nil
 	}
 
-	path, err := s.joinConfigDir(s.configName)
-
-	if err != nil {
-		return nil, err
-	}
-
+	path := s.joinConfigDir(s.configName)
 	b, err := os.ReadFile(path)
 
 	if err != nil {
@@ -60,12 +55,7 @@ func (s *LocalStorage) SaveConfig() error {
 		return nil
 	}
 
-	path, err := s.joinConfigDir(s.configName)
-
-	if err != nil {
-		return err
-	}
-
+	path := s.joinConfigDir(s.configName)
 	b, err := json.Marshal(s.config)
 
 	if err != nil {

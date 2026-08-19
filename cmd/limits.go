@@ -17,7 +17,7 @@ func (r *Root) initLimits() {
 	r.Cmd.AddCommand(limitsCmd)
 }
 
-func (r *Root) RunLimits(cmd *cobra.Command, args []string) error {
+func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
 	introspection, _ := r.client.TokenIntrospection(ctx, "")

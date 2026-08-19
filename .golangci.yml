@@ -4,11 +4,71 @@ linters:
   default: standard
   enable:
     - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errchkjson
+    - errname
     - errorlint
+    - exptostd
+    - forcetypeassert
+    - gocritic
+    - goprintffuncname
+    - intrange
+    - makezero
+    - mirror
     - misspell
+    - modernize
+    - nilerr
+    - nilnesserr
+    - nlreturn
     - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - predeclared
+    - revive
+    - testifylint
     - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
     - whitespace
+    - wsl_v5
+  settings:
+    nlreturn:
+      block-size: 1
+    revive:
+      rules:
+        - name: empty-block
+        - name: indent-error-flow
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: unused-parameter
+          arguments:
+            - allow-regex: ^_
+        - name: unused-receiver
+          arguments:
+            - allow-regex: ^_
+        - name: var-declaration
+    testifylint:
+      disable-all: true
+      enable:
+        - error-is-as
+        - expected-actual
+        - useless-assert
+    wsl_v5:
+      cuddle-max-statements: 0
+      default: none
+      enable:
+        - after-block
+        - cuddle-group
+        - for
+        - if
+        - leading-whitespace
+        - range
+        - select
+        - switch
+        - trailing-whitespace
+        - type-switch
 
 formatters:
   enable:

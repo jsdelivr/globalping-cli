@@ -32,7 +32,9 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 			return "", v.outputFailSummary(measurement)
 		}
 
-		return "", v.outputStreamingPackets(measurement)
+		v.outputStreamingPackets(measurement)
+
+		return "", nil
 	}
 
 	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
@@ -176,7 +178,7 @@ func (v *viewer) outputInfinitePingLatency(m *globalping.Measurement) (string, e
 	return v.outputInfinitePingLatencyTable(m, stats)
 }
 
-func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
+func (v *viewer) outputStreamingPackets(m *globalping.Measurement) {
 	if len(v.ctx.AggregatedStats) == 0 {
 		v.ctx.AggregatedStats = []*MeasurementStats{NewMeasurementStats()}
 		v.printer.ErrPrint(v.getAPICreditInfo())
@@ -221,8 +223,6 @@ func (v *viewer) outputStreamingPackets(m *globalping.Measurement) error {
 			v.ctx.AggregatedStats[0] = mergeMeasurementStats(*v.ctx.AggregatedStats[0], parsedOutput.Stats)
 		}
 	}
-
-	return nil
 }
 
 func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeIndex int, excludeId string) *MeasurementStats {

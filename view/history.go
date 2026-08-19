@@ -1,6 +1,7 @@
 package view
 
 import (
+	"strings"
 	"time"
 
 	"github.com/jsdelivr/globalping-go"
@@ -88,7 +89,8 @@ func (h *HistoryBuffer) Capacity() int {
 }
 
 func (h *HistoryBuffer) ToString(sep string) string {
-	s := ""
+	var output strings.Builder
+
 	i := h.Index
 	isFirst := true
 
@@ -96,9 +98,9 @@ func (h *HistoryBuffer) ToString(sep string) string {
 		if h.Slice[i] != nil {
 			if isFirst {
 				isFirst = false
-				s += h.Slice[i].Id
+				output.WriteString(h.Slice[i].Id)
 			} else {
-				s += sep + h.Slice[i].Id
+				output.WriteString(sep + h.Slice[i].Id)
 			}
 		}
 
@@ -109,5 +111,5 @@ func (h *HistoryBuffer) ToString(sep string) string {
 		}
 	}
 
-	return s
+	return output.String()
 }

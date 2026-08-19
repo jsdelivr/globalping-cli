@@ -143,8 +143,8 @@ func (s *LocalStorage) Cleanup() error {
 	return nil
 }
 
-func (s *LocalStorage) joinConfigDir(name string) (string, error) {
-	return filepath.Join(s.configDir, name), nil
+func (s *LocalStorage) joinConfigDir(name string) string {
+	return filepath.Join(s.configDir, name)
 }
 
 func (s *LocalStorage) joinSessionDir(name string) string {

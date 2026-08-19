@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 
@@ -74,7 +75,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.ToLatency {
-		return fmt.Errorf("the latency flag is not supported by the traceroute command")
+		return errors.New("the latency flag is not supported by the traceroute command")
 	}
 
 	defer func() {

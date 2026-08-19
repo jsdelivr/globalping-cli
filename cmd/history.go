@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,7 +34,7 @@ Examples:
 	r.Cmd.AddCommand(historyCmd)
 }
 
-func (r *Root) RunHistory(cmd *cobra.Command, args []string) {
+func (r *Root) RunHistory(_ *cobra.Command, _ []string) {
 	limit := 0
 
 	if r.ctx.Head > 0 {
@@ -77,7 +78,7 @@ func (r *Root) UpdateHistory() error {
 			return err
 		}
 
-		index = fmt.Sprintf("%d", i)
+		index = strconv.Itoa(i)
 	}
 
 	err := r.storage.SaveCommandToHistory(

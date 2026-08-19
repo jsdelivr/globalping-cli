@@ -16,7 +16,7 @@ import (
 )
 
 func Test_TableFlag_IsAvailableOnlyForMeasurementCommands(t *testing.T) {
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 	root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, nil, nil, nil, nil, nil)
 
 	for _, command := range []string{"ping", "traceroute", "mtr", "dns", "http"} {
@@ -39,7 +39,9 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 		t.Run(string(measurementType), func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			expectedOpts := createDefaultMeasurementCreate(measurementType)
-			expectedOpts.Locations.(globalping.LocationOptions)[0].Magic = "world"
+			locations, ok := expectedOpts.Locations.(globalping.LocationOptions)
+			require.True(t, ok)
+			locations[0].Magic = "world"
 
 			switch measurementType {
 			case "dns":
@@ -62,7 +64,7 @@ func Test_Execute_TableMeasurement(t *testing.T) {
 			utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 			w := new(bytes.Buffer)
-			ctx := createDefaultContext(string(measurementType))
+			ctx := createDefaultContext()
 			storage := createDefaultTestStorage(t, utilsMock)
 			root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
 			oldArgs := os.Args
@@ -93,7 +95,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer.EXPECT().OutputTable(inProgressMeasurement).Return("", nil)
 		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
-		ctx := createDefaultContext("ping")
+		ctx := createDefaultContext()
 		ctx.Table = true
 		ctx.ToLatency = true
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
@@ -109,7 +111,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
-		ctx := createDefaultContext("ping")
+		ctx := createDefaultContext()
 		ctx.Table = true
 		ctx.ToJSON = true
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
@@ -125,7 +127,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", assert.AnError)
 		viewer.EXPECT().OutputShare()
-		ctx := createDefaultContext("ping")
+		ctx := createDefaultContext()
 		ctx.Table = true
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
 
@@ -142,7 +144,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputTable(measurement).Return("", view.ErrAllProbesFailed)
 		viewer.EXPECT().OutputShare()
-		ctx := createDefaultContext("ping")
+		ctx := createDefaultContext()
 		ctx.Table = true
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
 
@@ -158,7 +160,7 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(nil, assert.AnError)
 		viewer := viewMocks.NewMockViewer(ctrl)
 		viewer.EXPECT().OutputShare()
-		ctx := createDefaultContext("ping")
+		ctx := createDefaultContext()
 		ctx.Table = true
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
 

@@ -72,7 +72,7 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 	}
 
 	if apiErr.StatusCode == http.StatusUnprocessableEntity {
-		apiErr.Message = fmt.Sprintf("%s - please try a different location", utils.TextFromSentence(apiErr.Message))
+		apiErr.Message = utils.TextFromSentence(apiErr.Message) + " - please try a different location"
 
 		return nil, apiErr
 	}
@@ -94,17 +94,17 @@ func (c *client) CreateMeasurement(ctx context.Context, measurement *globalping.
 			apiErr.Message = fmt.Sprintf(noCreditsNoAuthErr, utils.FormatSeconds(rateLimitReset))
 
 			return nil, apiErr
-		} else {
-			if remaining > 0 {
-				apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
+		}
 
-				return nil, apiErr
-			}
-
-			apiErr.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
+		if remaining > 0 {
+			apiErr.Message = fmt.Sprintf(moreCreditsRequiredAuthErr, utils.Pluralize(remaining, "credit"), requestCost, utils.FormatSeconds(rateLimitReset))
 
 			return nil, apiErr
 		}
+
+		apiErr.Message = fmt.Sprintf(noCreditsAuthErr, utils.FormatSeconds(rateLimitReset))
+
+		return nil, apiErr
 	}
 
 	return nil, apiErr

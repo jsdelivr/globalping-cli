@@ -8,7 +8,7 @@ import (
 )
 
 func Test_GetIdFromSession(t *testing.T) {
-	_storage := createDefaultTestStorage(t, nil)
+	_storage := createDefaultTestStorage(t)
 	assert.NoError(t, os.WriteFile(_storage.measurementsPath(), []byte("id1\nid2\nid3\n"), 0644))
 	id, err := _storage.GetIdFromSession(1)
 
@@ -36,7 +36,7 @@ func Test_GetIdFromSession(t *testing.T) {
 }
 
 func Test_SaveIdToSession(t *testing.T) {
-	_storage := createDefaultTestStorage(t, nil)
+	_storage := createDefaultTestStorage(t)
 	err := _storage.SaveIdToSession("id")
 
 	if err != nil {

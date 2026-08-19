@@ -2,7 +2,7 @@ package view
 
 import (
 	"errors"
-	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -124,11 +124,11 @@ func (v *viewer) getShareMessage(id string) string {
 		shareURL += "&display=table"
 	}
 
-	return v.printer.BoldForeground(fmt.Sprintf("> View the results online: %s", shareURL), BGYellow)
+	return v.printer.BoldForeground("> View the results online: "+shareURL, BGYellow)
 }
 
 func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
-	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == "GET" && !v.ctx.Full
+	return v.ctx.Cmd == "http" && m.Options != nil && m.Options.Request != nil && m.Options.Request.Method == http.MethodGet && !v.ctx.Full
 }
 
 func getLocationText(m *globalping.ProbeMeasurement) string {
@@ -142,7 +142,7 @@ func getLocationText(m *globalping.ProbeMeasurement) string {
 		m.Probe.Country + ", " +
 		m.Probe.Continent + ", " +
 		m.Probe.Network + " " +
-		"(AS" + fmt.Sprint(m.Probe.ASN) + ")"
+		"(AS" + strconv.Itoa(m.Probe.ASN) + ")"
 }
 
 func largestCommonPrefix(items []string) string {

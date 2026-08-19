@@ -1,6 +1,7 @@
 package view
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
@@ -20,7 +21,8 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 		v.printer.ErrPrintln(v.getProbeInfo(result))
 
 		if v.ctx.Cmd == "http" {
-			if v.ctx.Full {
+			switch {
+			case v.ctx.Full:
 				if result.Result.ResolvedAddress != "" {
 					v.printer.ErrPrintf("Resolved address: %s\n\n", result.Result.ResolvedAddress)
 				}
@@ -59,13 +61,13 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 
 				v.printer.ErrPrintln(result.Result.RawHeaders)
 
-				if opts.Options.Request.Method == "GET" {
+				if opts.Options.Request.Method == http.MethodGet {
 					v.printer.ErrPrintln()
 					v.printer.Println(strings.TrimSpace(result.Result.RawBody))
 				}
-			} else if opts.Options.Request.Method == "GET" {
+			case opts.Options.Request.Method == http.MethodGet:
 				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
-			} else {
+			default:
 				v.printer.Println(strings.TrimSpace(result.Result.RawOutput))
 			}
 		} else {

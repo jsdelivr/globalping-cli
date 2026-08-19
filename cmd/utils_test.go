@@ -75,11 +75,11 @@ func createDefaultMeasurement(cmd globalping.MeasurementType) *globalping.Measur
 	}
 }
 
-func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, measurementStatus globalping.MeasurementStatus, testStatus globalping.TestStatus) *globalping.Measurement {
+func createDefaultMeasurement_MultipleProbes(measurementStatus globalping.MeasurementStatus, testStatus globalping.TestStatus) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          measurementID1,
 		Status:      measurementStatus,
-		Type:        cmd,
+		Type:        "ping",
 		ProbesCount: 3,
 		Results: []globalping.ProbeMeasurement{
 			{
@@ -101,7 +101,7 @@ func createDefaultMeasurement_MultipleProbes(cmd globalping.MeasurementType, mea
 	}
 }
 
-func createDefaultContext(_ string) *view.Context {
+func createDefaultContext() *view.Context {
 	ctx := &view.Context{
 		History:             view.NewHistoryBuffer(1),
 		From:                "world",

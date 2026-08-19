@@ -71,5 +71,5 @@ func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) e
 }
 
 func (v *viewer) latencyStatHeader(title string) string {
-	return v.printer.Bold(fmt.Sprintf("%s: ", title))
+	return v.printer.Bold(title + ": ")
 }

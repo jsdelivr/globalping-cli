@@ -30,7 +30,7 @@ func Test_Auth_Login_WithToken(t *testing.T) {
 	r := new(bytes.Buffer)
 	r.WriteString("token\n")
 	printer := view.NewPrinter(r, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	_storage.GetProfile().Token = &storage.Token{
 		AccessToken:  "oldToken",
@@ -71,7 +71,7 @@ func Test_Auth_Login(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 	_storage := createDefaultTestStorage(t, utilsMock)
 	_storage.GetProfile().Token = &storage.Token{
 		AccessToken:  "oldToken",
@@ -80,7 +80,7 @@ func Test_Auth_Login(t *testing.T) {
 
 	root := NewRoot(printer, ctx, nil, utilsMock, gbMock, nil, _storage)
 
-	gbMock.EXPECT().Authorize(t.Context(), gomock.Any()).Do(func(ctx context.Context, _ any) {
+	gbMock.EXPECT().Authorize(t.Context(), gomock.Any()).Do(func(_ context.Context, _ any) {
 		root.cancel <- syscall.SIGINT
 	}).Return(&api.AuthorizeResponse{
 		AuthorizeURL: "http://localhost",
@@ -106,7 +106,7 @@ func Test_AuthStatus(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
 
@@ -131,7 +131,7 @@ func Test_Logout(t *testing.T) {
 
 	w := new(bytes.Buffer)
 	printer := view.NewPrinter(nil, w, w)
-	ctx := createDefaultContext("")
+	ctx := createDefaultContext()
 
 	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
 

@@ -19,7 +19,7 @@ func NewProbe() Probe {
 	return &probe{}
 }
 
-func (p *probe) InspectContainer(containerEngine ContainerEngine) error {
+func (*probe) InspectContainer(containerEngine ContainerEngine) error {
 	switch containerEngine {
 	case ContainerEngineDocker:
 		err := inspectContainerDocker()
@@ -40,7 +40,7 @@ func (p *probe) InspectContainer(containerEngine ContainerEngine) error {
 	return nil
 }
 
-func (p *probe) RunContainer(containerEngine ContainerEngine) error {
+func (*probe) RunContainer(containerEngine ContainerEngine) error {
 	switch containerEngine {
 	case ContainerEngineDocker:
 		err := runContainerDocker()

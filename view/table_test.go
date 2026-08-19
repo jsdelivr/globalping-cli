@@ -892,7 +892,7 @@ func displaySeparatorOffsetsForTest(line string) []int {
 	offsets := make([]int, 0, len(parts)-1)
 	offset := 0
 
-	for i := 0; i < len(parts)-1; i++ {
+	for i := range len(parts) - 1 {
 		offset += runewidth.StringWidth(parts[i])
 		offsets = append(offsets, offset)
 		offset += runewidth.StringWidth(colSeparator)

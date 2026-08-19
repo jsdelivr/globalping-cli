@@ -65,6 +65,11 @@ func upload(file string, dist string, config *Config) {
 		os.Exit(1)
 	}
 
+	if dist != "deb" && dist != "rpm" {
+		fmt.Println("Unknown distro")
+		os.Exit(1)
+	}
+
 	log.Println("Fetching distros")
 	distros, err := fetchDistros(config)
 
@@ -89,10 +94,6 @@ func upload(file string, dist string, config *Config) {
 		uploadToAllDistros(config, f, distros.Deb)
 	case "rpm":
 		uploadToAllDistros(config, f, distros.Rpm)
-
-	default:
-		fmt.Println("Unknown distro")
-		os.Exit(1)
 	}
 }
 
@@ -170,7 +171,7 @@ func destroyOlderVersions(config *Config, t string, distros []*Distro) {
 					destroyTo = len(versions)
 				}
 
-				for i := 0; i < destroyTo; i++ {
+				for i := range destroyTo {
 					v := versions[i]
 					log.Printf("Destroying version %s %s/%s: %s %s\n", t, distro.IndexName, distro.Versions[j].IndexName, v.Version, v.Filename)
 					err = deleteVersion(config, v.DestroyURL)
@@ -216,7 +217,7 @@ func uploadPackage(config *Config, distroVersionId string, f *os.File) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages.json", &body)
+	req, err := http.NewRequest(http.MethodPost, PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages.json", &body)
 
 	if err != nil {
 		return err
@@ -259,7 +260,7 @@ type Distros struct {
 }
 
 func fetchDistros(config *Config) (*Distros, error) {
-	req, err := http.NewRequest("GET", PackagecloudAPIURL+"/api/v1/distributions.json", nil)
+	req, err := http.NewRequest(http.MethodGet, PackagecloudAPIURL+"/api/v1/distributions.json", nil)
 
 	if err != nil {
 		return nil, err
@@ -299,7 +300,7 @@ type PackageVersion struct {
 }
 
 func fetchVersions(config *Config, url string) ([]*PackageVersion, error) {
-	req, err := http.NewRequest("GET", PackagecloudAPIURL+url, nil)
+	req, err := http.NewRequest(http.MethodGet, PackagecloudAPIURL+url, nil)
 
 	if err != nil {
 		return nil, err
@@ -336,7 +337,7 @@ type PackageVersionGroup struct {
 }
 
 func fetchVersionGroups(config *Config, t string, distro string, name string) ([]*PackageVersionGroup, error) {
-	req, err := http.NewRequest("GET", PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages/"+t+"/"+distro+"/"+name+".json", nil)
+	req, err := http.NewRequest(http.MethodGet, PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages/"+t+"/"+distro+"/"+name+".json", nil)
 
 	if err != nil {
 		return nil, err
@@ -369,7 +370,7 @@ func fetchVersionGroups(config *Config, t string, distro string, name string) ([
 }
 
 func deleteVersion(config *Config, url string) error {
-	req, err := http.NewRequest("DELETE", PackagecloudAPIURL+url, nil)
+	req, err := http.NewRequest(http.MethodDelete, PackagecloudAPIURL+url, nil)
 
 	if err != nil {
 		return err

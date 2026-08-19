@@ -10,7 +10,7 @@ import (
 )
 
 func Test_Config(t *testing.T) {
-	_storage := createDefaultTestStorage(t, nil)
+	_storage := createDefaultTestStorage(t)
 	config, err := _storage.LoadConfig()
 
 	if err != nil {
@@ -36,12 +36,7 @@ func Test_Config(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	path, err := _storage.joinConfigDir(_storage.configName)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	path := _storage.joinConfigDir(_storage.configName)
 	b, err := os.ReadFile(path)
 
 	if err != nil {

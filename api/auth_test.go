@@ -383,7 +383,7 @@ func Test_Logout(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	isCalled := false
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		isCalled = true
 
 		if r.URL.Path == "/oauth/token/revoke" {
@@ -434,7 +434,7 @@ func Test_RevokeToken(t *testing.T) {
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
 	isCalled := false
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		isCalled = true
 
 		if r.URL.Path == "/oauth/token/revoke" {
@@ -479,7 +479,7 @@ func Test_Logout_No_RefreshToken(t *testing.T) {
 	utilsMock := utilsMock.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()
@@ -508,7 +508,7 @@ func Test_Logout_AccessToken_Is_Set(t *testing.T) {
 	utilsMock := utilsMock.NewMockUtils(ctrl)
 	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
 		t.Fatalf("unexpected request to %s", r.URL.Path)
 	}))
 	defer server.Close()

@@ -29,7 +29,7 @@ func (s *LocalStorage) Migrate() error {
 }
 
 func (s *LocalStorage) UpdateSessionDir() error {
-	oldDir := filepath.Join(os.TempDir())
+	oldDir := os.TempDir()
 	entries, err := os.ReadDir(oldDir)
 
 	if err != nil {

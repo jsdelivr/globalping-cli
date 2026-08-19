@@ -75,13 +75,13 @@ func Execute() {
 		AuthClientID:     config.GlobalpingAuthClientID,
 		AuthClientSecret: config.GlobalpingAuthClientSecret,
 	})
-	defer apiClient.Close()
 
 	globalpingProbe := probe.NewProbe()
 	viewer := view.NewViewer(ctx, printer, _utils)
 	root := NewRoot(printer, ctx, viewer, _utils, apiClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()
+	apiClient.Close()
 
 	if err != nil {
 		os.Exit(1)

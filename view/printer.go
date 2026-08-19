@@ -95,7 +95,7 @@ func (p *Printer) ErrPrintf(format string, a ...any) {
 	_, _ = fmt.Fprintf(p.ErrWriter, format, a...)
 }
 
-func (p *Printer) FillLeft(s string, w int) string {
+func (*Printer) FillLeft(s string, w int) string {
 	if len(s) >= w {
 		return s
 	}
@@ -103,7 +103,7 @@ func (p *Printer) FillLeft(s string, w int) string {
 	return strings.Repeat(" ", w-len(s)) + s
 }
 
-func (p *Printer) FillRight(s string, w int) string {
+func (*Printer) FillRight(s string, w int) string {
 	if len(s) >= w {
 		return s
 	}

@@ -252,7 +252,7 @@ func (c *client) exchange(ctx context.Context, form url.Values, verifier string,
 	q.Set("code_verifier", verifier)
 	q.Set("grant_type", "authorization_code")
 	q.Set("redirect_uri", redirect)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
 
 	if err != nil {
 		return nil, &AuthorizeError{
@@ -416,7 +416,7 @@ func (c *client) refreshToken(ctx context.Context, token string) (*storage.Token
 	q.Set("client_secret", c.authClientSecret)
 	q.Set("refresh_token", token)
 	q.Set("grant_type", "refresh_token")
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token", strings.NewReader(q.Encode()))
 
 	if err != nil {
 		return nil, &AuthorizeError{
@@ -502,7 +502,7 @@ type IntrospectionResponse struct {
 
 func (c *client) introspection(ctx context.Context, token string) (*IntrospectionResponse, error) {
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/introspect", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token/introspect", strings.NewReader(form))
 
 	if err != nil {
 		return nil, &AuthorizeError{
@@ -556,7 +556,7 @@ func (c *client) RevokeToken(ctx context.Context, token string) error {
 	}
 
 	form := url.Values{"token": {token}}.Encode()
-	req, err := http.NewRequestWithContext(ctx, "POST", c.authURL+"/oauth/token/revoke", strings.NewReader(form))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.authURL+"/oauth/token/revoke", strings.NewReader(form))
 
 	if err != nil {
 		return &AuthorizeError{
