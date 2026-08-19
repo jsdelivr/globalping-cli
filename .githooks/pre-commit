@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+if [ ! -x bin/golangci-lint ]; then
+	echo "golangci-lint is not installed; see CONTRIBUTING.md" >&2
+	exit 1
+fi
+
+exec bin/golangci-lint run

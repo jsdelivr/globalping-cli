@@ -16,6 +16,12 @@ Install golangci-lint:
 curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b bin v2.12.2
 ```
 
+Enable the pre-commit hook, which runs golangci-lint before each commit:
+
+```shell
+git config core.hooksPath .githooks
+```
+
 Install mockgen:
 
 ```shell
