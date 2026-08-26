@@ -13,7 +13,7 @@ var (
 		Probe: globalping.ProbeDetails{
 			Continent: "Continent",
 			Country:   "Country",
-			State:     "State",
+			State:     pointerTo("State"),
 			City:      "City",
 			ASN:       12345,
 			Network:   "Network",
@@ -44,6 +44,48 @@ func Test_HeadersTags(t *testing.T) {
 
 	newResult.Probe.Tags = []string{"u-JohnDoe1", "tag2", "u-JohnDoe2"}
 	assert.Equal(t, "> City (State), Country, Continent, Network (AS12345), u-JohnDoe (tag2)", v.getProbeInfo(&newResult))
+}
+
+func Test_OutputLive_NilHTTPBodiesAndProbeStates(t *testing.T) {
+	w := new(strings.Builder)
+	printer := NewPrinter(nil, w, w)
+	printer.DisableStyling()
+	v := viewer{
+		ctx:     &Context{Cmd: "http"},
+		printer: printer,
+	}
+	measurement := &globalping.Measurement{
+		Results: []globalping.ProbeMeasurement{
+			{
+				Probe: globalping.ProbeDetails{
+					Continent: "EU",
+					Country:   "DE",
+					City:      "Berlin",
+					ASN:       123,
+					Network:   "Network",
+				},
+			},
+			{
+				Probe: globalping.ProbeDetails{
+					Continent: "NA",
+					Country:   "US",
+					City:      "New York",
+					ASN:       456,
+					Network:   "Other Network",
+				},
+			},
+		},
+	}
+	opts := &globalping.MeasurementCreate{
+		Options: &globalping.MeasurementOptions{
+			Request: &globalping.RequestOptions{Method: "GET"},
+		},
+	}
+
+	v.OutputLive(measurement, opts, 80, 24)
+
+	assert.Equal(t, "> Berlin, DE, EU, Network (AS123)\n\n\n> New York, US, NA, Other Network (AS456)\n\n\n", w.String())
+	assert.NotContains(t, w.String(), "%!")
 }
 
 func Test_TrimOutput(t *testing.T) {

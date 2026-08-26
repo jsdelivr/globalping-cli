@@ -42,7 +42,11 @@ func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalpin
 		output.WriteString(v.getProbeInfo(result) + "\n")
 
 		if v.isBodyOnlyHttpGet(opts) {
-			output.WriteString(strings.TrimSpace(result.Result.RawBody) + "\n\n")
+			if result.Result.RawBody != nil {
+				output.WriteString(strings.TrimSpace(*result.Result.RawBody))
+			}
+
+			output.WriteString("\n\n")
 		} else {
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
 		}
@@ -134,8 +138,8 @@ func (v *viewer) isBodyOnlyHttpGet(m *globalping.MeasurementCreate) bool {
 func getLocationText(m *globalping.ProbeMeasurement) string {
 	state := ""
 
-	if m.Probe.State != "" {
-		state = " (" + m.Probe.State + ")"
+	if m.Probe.State != nil && *m.Probe.State != "" {
+		state = " (" + *m.Probe.State + ")"
 	}
 
 	return m.Probe.City + state + ", " +

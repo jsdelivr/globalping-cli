@@ -89,12 +89,21 @@ func decodePingMeasurementStats(result *globalping.ProbeResult) (*MeasurementSta
 		return decoded, true
 	}
 
-	decoded.Min = stats.Min
-	decoded.Avg = stats.Avg
-	decoded.Max = stats.Max
 	decoded.Mdev = stats.Mdev
-	decoded.Tsum = stats.Avg * float64(stats.Rcv)
-	decoded.Tsum2 = float64(stats.Rcv) * (stats.Mdev*stats.Mdev + stats.Avg*stats.Avg)
+
+	if stats.Min != nil {
+		decoded.Min = *stats.Min
+	}
+
+	if stats.Max != nil {
+		decoded.Max = *stats.Max
+	}
+
+	if stats.Avg != nil {
+		decoded.Avg = *stats.Avg
+		decoded.Tsum = *stats.Avg * float64(stats.Rcv)
+		decoded.Tsum2 = float64(stats.Rcv) * (stats.Mdev*stats.Mdev + (*stats.Avg)*(*stats.Avg))
+	}
 
 	if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
 		decoded.Last = timings[len(timings)-1].RTT
@@ -245,7 +254,12 @@ func (v *viewer) aggregateConcurrentStats(completed *MeasurementStats, probeInde
 
 func mergeMeasurementStats(stats MeasurementStats, newStats *MeasurementStats) *MeasurementStats {
 	if newStats.Rcv > 0 {
-		if newStats.Min < stats.Min && newStats.Min != 0 {
+		hadReceivedPackets := stats.Rcv > 0
+		minUnavailable := newStats.Min == math.MaxFloat64 || (hadReceivedPackets && stats.Min == math.MaxFloat64)
+		avgUnavailable := newStats.Avg == -1 || (hadReceivedPackets && stats.Avg == -1)
+		maxUnavailable := newStats.Max == -1 || (hadReceivedPackets && stats.Max == -1)
+
+		if newStats.Min < stats.Min {
 			stats.Min = newStats.Min
 		}
 
@@ -259,6 +273,19 @@ func mergeMeasurementStats(stats MeasurementStats, newStats *MeasurementStats) *
 		stats.Avg = stats.Tsum / float64(stats.Rcv)
 		stats.Mdev = computeMdev(stats.Tsum, stats.Tsum2, stats.Rcv, stats.Avg)
 		stats.Last = newStats.Last
+
+		if minUnavailable {
+			stats.Min = math.MaxFloat64
+		}
+
+		if avgUnavailable {
+			stats.Avg = -1
+			stats.Mdev = 0
+		}
+
+		if maxUnavailable {
+			stats.Max = -1
+		}
 	}
 
 	stats.Sent += newStats.Sent
@@ -412,7 +439,7 @@ func parseICMPLine(line string, sentMap []bool, startSequence int, res *ParsedPi
 			res.Stats.Tsum += rtt
 			res.Stats.Tsum2 += rtt * rtt
 			res.Timings = append(res.Timings, globalping.PingTiming{
-				TTL: ttl,
+				TTL: &ttl,
 				RTT: rtt,
 			})
 		} else {

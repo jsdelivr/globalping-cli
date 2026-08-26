@@ -154,9 +154,17 @@ func finitePingTableRowValues(result *globalping.ProbeResult) [7]string {
 		decoded.Loss = stats.Loss
 
 		if stats.Rcv > 0 {
-			decoded.Min = stats.Min
-			decoded.Avg = stats.Avg
-			decoded.Max = stats.Max
+			if stats.Min != nil {
+				decoded.Min = *stats.Min
+			}
+
+			if stats.Avg != nil {
+				decoded.Avg = *stats.Avg
+			}
+
+			if stats.Max != nil {
+				decoded.Max = *stats.Max
+			}
 
 			if timings, err := globalping.DecodePingTimings(result.TimingsRaw); err == nil && len(timings) > 0 {
 				decoded.Last = timings[len(timings)-1].RTT
@@ -567,8 +575,8 @@ func httpTableValues(result *globalping.ProbeResult, httpSize httpSizeColumn) []
 		values[2] = formatTotalDuration(total)
 	}
 
-	if result.ResolvedAddress != "" {
-		values[3] = result.ResolvedAddress
+	if result.ResolvedAddress != nil && *result.ResolvedAddress != "" {
+		values[3] = *result.ResolvedAddress
 	}
 
 	if httpSize == httpSizeNone {
@@ -620,28 +628,60 @@ func contentLength(raw json.RawMessage) (uint64, bool) {
 			continue
 		}
 
+		var values []string
+
+		if json.Unmarshal(value, &values) == nil {
+			return consistentContentLength(values)
+		}
+
 		var stringValue string
 
 		if len(value) > 0 && value[0] == '"' {
 			if json.Unmarshal(value, &stringValue) != nil {
 				return 0, false
 			}
-
-			stringValue = strings.TrimSpace(stringValue)
 		} else {
-			stringValue = strings.TrimSpace(string(value))
+			stringValue = string(value)
 		}
 
-		if stringValue == "" || strings.IndexFunc(stringValue, func(r rune) bool { return r < '0' || r > '9' }) != -1 {
-			return 0, false
-		}
-
-		length, err := strconv.ParseUint(stringValue, 10, 64)
-
-		return length, err == nil
+		return parseContentLength(stringValue)
 	}
 
 	return 0, false
+}
+
+func consistentContentLength(values []string) (uint64, bool) {
+	if len(values) == 0 {
+		return 0, false
+	}
+
+	length, ok := parseContentLength(values[0])
+
+	if !ok {
+		return 0, false
+	}
+
+	for _, value := range values[1:] {
+		otherLength, ok := parseContentLength(value)
+
+		if !ok || otherLength != length {
+			return 0, false
+		}
+	}
+
+	return length, true
+}
+
+func parseContentLength(value string) (uint64, bool) {
+	value = strings.TrimSpace(value)
+
+	if value == "" || strings.IndexFunc(value, func(r rune) bool { return r < '0' || r > '9' }) != -1 {
+		return 0, false
+	}
+
+	length, err := strconv.ParseUint(value, 10, 64)
+
+	return length, err == nil
 }
 
 func (v *viewer) renderMeasurementTable(rows [][]string, areaWidth int, measurementType globalping.MeasurementType) string {
