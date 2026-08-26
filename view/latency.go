@@ -32,9 +32,17 @@ func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) e
 				return err
 			}
 
-			v.printer.Println(v.latencyStatHeader("Min") + fmt.Sprintf("%.2f ms", stats.Min))
-			v.printer.Println(v.latencyStatHeader("Max") + fmt.Sprintf("%.2f ms", stats.Max))
-			v.printer.Println(v.latencyStatHeader("Avg") + fmt.Sprintf("%.2f ms", stats.Avg))
+			formatPingValue := func(value *float64) string {
+				if value == nil {
+					return "-"
+				}
+
+				return fmt.Sprintf("%.2f ms", *value)
+			}
+
+			v.printer.Println(v.latencyStatHeader("Min") + formatPingValue(stats.Min))
+			v.printer.Println(v.latencyStatHeader("Max") + formatPingValue(stats.Max))
+			v.printer.Println(v.latencyStatHeader("Avg") + formatPingValue(stats.Avg))
 		case "dns":
 			timings, err := globalping.DecodeDNSTimings(result.Result.TimingsRaw)
 
@@ -50,12 +58,20 @@ func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) e
 				return err
 			}
 
-			v.printer.Println(v.latencyStatHeader("Total") + fmt.Sprintf("%v ms", timings.Total))
-			v.printer.Println(v.latencyStatHeader("Download") + fmt.Sprintf("%v ms", timings.Download))
-			v.printer.Println(v.latencyStatHeader("First byte") + fmt.Sprintf("%v ms", timings.FirstByte))
-			v.printer.Println(v.latencyStatHeader("DNS") + fmt.Sprintf("%v ms", timings.DNS))
-			v.printer.Println(v.latencyStatHeader("TLS") + fmt.Sprintf("%v ms", timings.TLS))
-			v.printer.Println(v.latencyStatHeader("TCP") + fmt.Sprintf("%v ms", timings.TCP))
+			formatHTTPValue := func(value *int) string {
+				if value == nil {
+					return "-"
+				}
+
+				return fmt.Sprintf("%v ms", *value)
+			}
+
+			v.printer.Println(v.latencyStatHeader("Total") + formatHTTPValue(timings.Total))
+			v.printer.Println(v.latencyStatHeader("Download") + formatHTTPValue(timings.Download))
+			v.printer.Println(v.latencyStatHeader("First byte") + formatHTTPValue(timings.FirstByte))
+			v.printer.Println(v.latencyStatHeader("DNS") + formatHTTPValue(timings.DNS))
+			v.printer.Println(v.latencyStatHeader("TLS") + formatHTTPValue(timings.TLS))
+			v.printer.Println(v.latencyStatHeader("TCP") + formatHTTPValue(timings.TCP))
 		default:
 			return errors.New("unexpected command for latency output: " + v.ctx.Cmd)
 		}

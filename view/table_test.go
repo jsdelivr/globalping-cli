@@ -164,6 +164,15 @@ func Test_PingTableRowValues(t *testing.T) {
 		rowValues)
 }
 
+func Test_FinitePingTableRowValues_NullableStatsAndTTL(t *testing.T) {
+	result := &globalping.ProbeResult{
+		StatsRaw:   json.RawMessage(`{"min":null,"avg":null,"max":null,"total":1,"rcv":1,"drop":0,"loss":0}`),
+		TimingsRaw: json.RawMessage(`[{"rtt":1.234}]`),
+	}
+
+	assert.Equal(t, [7]string{"", "1", "0.00%", "1.23 ms", "-", "-", "-"}, finitePingTableRowValues(result))
+}
+
 func Test_OutputTable_Ping_Success(t *testing.T) {
 	measurement := createPingMeasurement_MultipleProbes(measurementID1)
 
@@ -508,38 +517,38 @@ func Test_OutputTable_HTTP(t *testing.T) {
 	validString.Result.StatusCodeName = "OK"
 	validString.Result.HeadersRaw = json.RawMessage(`{"CoNtEnT-LeNgTh":" 00123 "}`)
 	validString.Result.TimingsRaw = json.RawMessage(`{"total":44}`)
-	validString.Result.ResolvedAddress = "192.0.2.10"
+	validString.Result.ResolvedAddress = pointerTo("192.0.2.10")
 
 	validNumber := tableProbe("London", "GB", "Numeric Header Network", globalping.TestStatusFinished)
 	validNumber.Result.StatusCode = 204
 	validNumber.Result.StatusCodeName = "No Content"
 	validNumber.Result.HeadersRaw = json.RawMessage(`{"content-length":42}`)
 	validNumber.Result.TimingsRaw = json.RawMessage(`{"total":5}`)
-	validNumber.Result.ResolvedAddress = "192.0.2.11"
+	validNumber.Result.ResolvedAddress = pointerTo("192.0.2.11")
 
 	missing := tableProbe("Paris", "FR", "Missing Header Network", globalping.TestStatusFinished)
 	missing.Result.StatusCode = 304
 	missing.Result.HeadersRaw = json.RawMessage(`{"server":"example"}`)
 	missing.Result.RawHeaders = "content-length: 999"
-	missing.Result.RawBody = "this body length must not be used"
+	missing.Result.RawBody = pointerTo("this body length must not be used")
 	missing.Result.TimingsRaw = json.RawMessage(`{"total":100}`)
-	missing.Result.ResolvedAddress = "192.0.2.12"
+	missing.Result.ResolvedAddress = pointerTo("192.0.2.12")
 
 	invalid := tableProbe("Prague", "CZ", "Invalid Header Network", globalping.TestStatusFinished)
 	invalid.Result.StatusCode = 500
 	invalid.Result.StatusCodeName = "Internal Server Error"
 	invalid.Result.HeadersRaw = json.RawMessage(`{"CONTENT-LENGTH":"-4"}`)
 	invalid.Result.TimingsRaw = json.RawMessage(`{"total":1}`)
-	invalid.Result.ResolvedAddress = "192.0.2.13"
+	invalid.Result.ResolvedAddress = pointerTo("192.0.2.13")
 
-	malformed := tableProbe("Rome", "IT", "Malformed Header Network", globalping.TestStatusFinished)
-	malformed.Result.StatusCode = 200
-	malformed.Result.StatusCodeName = "OK"
-	malformed.Result.HeadersRaw = json.RawMessage(`{"content-length":["12"]}`)
-	malformed.Result.TimingsRaw = json.RawMessage(`not-json`)
+	validArray := tableProbe("Rome", "IT", "Array Header Network", globalping.TestStatusFinished)
+	validArray.Result.StatusCode = 200
+	validArray.Result.StatusCodeName = "OK"
+	validArray.Result.HeadersRaw = json.RawMessage(`{"content-length":["12"]}`)
+	validArray.Result.TimingsRaw = json.RawMessage(`not-json`)
 
 	offline := tableProbe("Madrid", "ES", "Offline Network", globalping.TestStatusOffline)
-	measurement := tableMeasurement("http", validString, validNumber, missing, invalid, malformed, offline)
+	measurement := tableMeasurement("http", validString, validNumber, missing, invalid, validArray, offline)
 
 	output, err := renderTableForTest(t, measurement, false)
 
@@ -550,9 +559,31 @@ func Test_OutputTable_HTTP(t *testing.T) {
 		{"London, GB, EU, Numeric Header Network (AS64500)", "204 No Content", "42 B", "5 ms", "192.0.2.11"},
 		{"Paris, FR, EU, Missing Header Network (AS64500)", "304", "-", "100 ms", "192.0.2.12"},
 		{"Prague, CZ, EU, Invalid Header Network (AS64500)", "500 Internal Server Error", "-", "1 ms", "192.0.2.13"},
-		{"Rome, IT, EU, Malformed Header Network (AS64500)", "200 OK", "-", "-", "-"},
+		{"Rome, IT, EU, Array Header Network (AS64500)", "200 OK", "12 B", "-", "-"},
 		{"Madrid, ES, EU, Offline Network (AS64500)", "-", "-", "-", "-"},
 	})
+}
+
+func Test_ContentLength_MultiValue(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		raw      json.RawMessage
+		expected uint64
+		ok       bool
+	}{
+		{name: "singleton", raw: json.RawMessage(`{"content-length":["12"]}`), expected: 12, ok: true},
+		{name: "consistent", raw: json.RawMessage(`{"content-length":["12","012"," 12 "]}`), expected: 12, ok: true},
+		{name: "empty", raw: json.RawMessage(`{"content-length":[]}`)},
+		{name: "conflicting", raw: json.RawMessage(`{"content-length":["12","13"]}`)},
+		{name: "nonnumeric", raw: json.RawMessage(`{"content-length":["12","invalid"]}`)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			actual, ok := contentLength(test.raw)
+
+			assert.Equal(t, test.ok, ok)
+			assert.Equal(t, test.expected, actual)
+		})
+	}
 }
 
 func Test_OutputTable_HTTP_SizeColumnWithoutContentLength(t *testing.T) {

@@ -15,6 +15,10 @@ var (
 	defaultCurrentTime = time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 )
 
+func pointerTo[T any](value T) *T {
+	return &value
+}
+
 func createPingMeasurement(id string) *globalping.Measurement {
 	return &globalping.Measurement{
 		ID:          id,
@@ -30,7 +34,6 @@ func createPingMeasurement(id string) *globalping.Measurement {
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
-					State:     "",
 					City:      "Berlin",
 					ASN:       3320,
 					Network:   "Deutsche Telekom AG",
@@ -44,8 +47,8 @@ func createPingMeasurement(id string) *globalping.Measurement {
 --- jsdelivr.map.fastly.net ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 1000ms
 rtt min/avg/max/mdev = 17.639/17.639/17.639/0.123 ms`,
-					ResolvedAddress:  "151.101.1.229",
-					ResolvedHostname: "151.101.1.229",
+					ResolvedAddress:  pointerTo("151.101.1.229"),
+					ResolvedHostname: pointerTo("151.101.1.229"),
 					StatsRaw:         json.RawMessage(`{"min":17.639,"avg":17.639,"max":17.639,"total":1,"rcv":1,"drop":0,"loss":0}`),
 					TimingsRaw:       json.RawMessage(`[{"ttl":60,"rtt":17.639}]`),
 				},
@@ -69,7 +72,6 @@ func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 					Continent: "EU",
 					Region:    "Northern Europe",
 					Country:   "GB",
-					State:     "",
 					City:      "London",
 					Network:   "OVH SAS",
 					Tags:      []string{"datacenter-network"},
@@ -82,8 +84,8 @@ func createPingMeasurement_MultipleProbes(id string) *globalping.Measurement {
 --  ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 100ms
 rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
-					ResolvedAddress:  "146.75.73.229",
-					ResolvedHostname: "146.75.73.229",
+					ResolvedAddress:  pointerTo("146.75.73.229"),
+					ResolvedHostname: pointerTo("146.75.73.229"),
 					StatsRaw:         json.RawMessage(`{"min":0.77,"avg":0.77,"max":0.77,"total":1,"rcv":1,"drop":0,"loss":0}`),
 					TimingsRaw:       json.RawMessage(`[{"ttl":52,"rtt":0.77}]`),
 				},
@@ -93,7 +95,6 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
-					State:     "",
 					City:      "Falkenstein",
 					Network:   "Hetzner Online GmbH",
 					Tags:      []string{"datacenter-network"},
@@ -106,8 +107,8 @@ rtt min/avg/max/mdev = 0.770/0.770/0.770/0.001 ms`,
 ---  ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 200ms
 rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
-					ResolvedAddress:  "104.16.85.20",
-					ResolvedHostname: "104.16.85.20",
+					ResolvedAddress:  pointerTo("104.16.85.20"),
+					ResolvedHostname: pointerTo("104.16.85.20"),
 					StatsRaw:         json.RawMessage(`{"min":5.457,"avg":5.457,"max":5.457,"total":1,"rcv":1,"drop":0,"loss":0}`),
 					TimingsRaw:       json.RawMessage(`[{"ttl":55,"rtt":5.46}]`),
 				},
@@ -117,7 +118,6 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 					Continent: "EU",
 					Region:    "Western Europe",
 					Country:   "DE",
-					State:     "",
 					City:      "Nuremberg",
 					Network:   "Hetzner Online GmbH",
 					Tags:      []string{"datacenter-network"},
@@ -130,8 +130,8 @@ rtt min/avg/max/mdev = 5.457/5.457/5.457/0.002 ms`,
 ---  ping statistics ---
 1 packets transmitted, 1 received, 0% packet loss, time 300ms
 rtt min/avg/max/mdev = 4.069/4.069/4.069/0.003 ms`,
-					ResolvedAddress:  "104.16.88.20",
-					ResolvedHostname: "104.16.88.20",
+					ResolvedAddress:  pointerTo("104.16.88.20"),
+					ResolvedHostname: pointerTo("104.16.88.20"),
 					StatsRaw:         json.RawMessage(`{"min":4.069,"avg":4.069,"max":4.069,"total":1,"rcv":1,"drop":0,"loss":0}`),
 					TimingsRaw:       json.RawMessage(`[{"ttl":58,"rtt":4.07}]`),
 				},

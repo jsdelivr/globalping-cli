@@ -23,8 +23,8 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 		if v.ctx.Cmd == "http" {
 			switch {
 			case v.ctx.Full:
-				if result.Result.ResolvedAddress != "" {
-					v.printer.ErrPrintf("Resolved address: %s\n\n", result.Result.ResolvedAddress)
+				if result.Result.ResolvedAddress != nil && *result.Result.ResolvedAddress != "" {
+					v.printer.ErrPrintf("Resolved address: %s\n\n", *result.Result.ResolvedAddress)
 				}
 
 				tls := result.Result.TLS
@@ -49,7 +49,15 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 					v.printer.ErrPrintf(colorize("Validity: %s; %s\n"), tls.CreatedAt.Format(time.RFC3339), tls.ExpiresAt.Format(time.RFC3339))
 					v.printer.ErrPrintf(colorize("Serial number: %s\n"), tls.SerialNumber)
 					v.printer.ErrPrintf(colorize("Fingerprint: %s\n"), tls.Fingerprint256)
-					v.printer.ErrPrintf(colorize("Key type: %s%d\n"), tls.KeyType, tls.KeyBits)
+
+					if tls.KeyType != nil {
+						if tls.KeyBits != nil {
+							v.printer.ErrPrintf(colorize("Key type: %s%d\n"), *tls.KeyType, *tls.KeyBits)
+						} else {
+							v.printer.ErrPrintf(colorize("Key type: %s\n"), *tls.KeyType)
+						}
+					}
+
 					v.printer.ErrPrintln()
 				}
 
@@ -63,10 +71,15 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 
 				if opts.Options.Request.Method == http.MethodGet {
 					v.printer.ErrPrintln()
-					v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+
+					if result.Result.RawBody != nil {
+						v.printer.Println(strings.TrimSpace(*result.Result.RawBody))
+					}
 				}
 			case opts.Options.Request.Method == http.MethodGet:
-				v.printer.Println(strings.TrimSpace(result.Result.RawBody))
+				if result.Result.RawBody != nil {
+					v.printer.Println(strings.TrimSpace(*result.Result.RawBody))
+				}
 			default:
 				v.printer.Println(strings.TrimSpace(result.Result.RawOutput))
 			}

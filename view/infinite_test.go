@@ -161,7 +161,7 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 
 func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
-	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":0,"avg":0,"max":0,"total":3,"rcv":0,"drop":3,"loss":100,"mdev":0}`)
+	measurement.Results[0].Result.StatsRaw = json.RawMessage(`{"min":null,"avg":null,"max":null,"total":3,"rcv":0,"drop":3,"loss":100,"mdev":0}`)
 	measurement.Results[0].Result.TimingsRaw = json.RawMessage(`[]`)
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
@@ -183,6 +183,32 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 
 	assert.Contains(t, w.String(), tableTimeoutValue)
 	assert.Equal(t, 1, ctx.TableOutputRows)
+}
+
+func Test_DecodePingMeasurementStats_PreservesNullableCells(t *testing.T) {
+	result := &globalping.ProbeResult{
+		StatsRaw:   json.RawMessage(`{"min":null,"avg":null,"max":null,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`),
+		TimingsRaw: json.RawMessage(`[{"rtt":1.234}]`),
+	}
+
+	stats, ok := decodePingMeasurementStats(result)
+	assert.True(t, ok)
+	merged := mergeMeasurementStats(*NewMeasurementStats(), stats)
+
+	assert.Equal(t, [7]string{"", "1", "0.00%", "1.23 ms", "-", "-", "-"}, pingTableRowValues(merged, true))
+}
+
+func Test_DecodePingMeasurementStats_PreservesZeroValues(t *testing.T) {
+	result := &globalping.ProbeResult{
+		StatsRaw:   json.RawMessage(`{"min":0,"avg":0,"max":0,"total":1,"rcv":1,"drop":0,"loss":0,"mdev":0}`),
+		TimingsRaw: json.RawMessage(`[{"rtt":0}]`),
+	}
+
+	stats, ok := decodePingMeasurementStats(result)
+	assert.True(t, ok)
+	merged := mergeMeasurementStats(*NewMeasurementStats(), stats)
+
+	assert.Equal(t, [7]string{"", "1", "0.00%", "0.00 ms", "0.00 ms", "0.00 ms", "0.00 ms"}, pingTableRowValues(merged, true))
 }
 
 func Test_OutputInfinite_SingleProbe_LatencyUsesCompletedOutput(t *testing.T) {
@@ -677,9 +703,9 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
 	assert.Equal(t, []globalping.PingTiming{
-		{RTT: 1.06, TTL: 59},
-		{RTT: 1.10, TTL: 59},
-		{RTT: 1.11, TTL: 59},
+		{RTT: 1.06, TTL: pointerTo(59)},
+		{RTT: 1.10, TTL: pointerTo(59)},
+		{RTT: 1.11, TTL: pointerTo(59)},
 	}, res.Timings)
 	assertMeasurementStats(t, &MeasurementStats{
 		Sent:  3,
@@ -770,9 +796,9 @@ no answer yet for icmp_seq=4`,
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
 	assert.Equal(t, []globalping.PingTiming{
-		{RTT: 1.06, TTL: 59},
-		{RTT: 1.10, TTL: 59},
-		{RTT: 1.11, TTL: 59},
+		{RTT: 1.06, TTL: pointerTo(59)},
+		{RTT: 1.10, TTL: pointerTo(59)},
+		{RTT: 1.11, TTL: pointerTo(59)},
 	}, res.Timings)
 	assertMeasurementStats(t, &MeasurementStats{
 		Sent:  4,
@@ -826,9 +852,9 @@ no answer yet for icmp_seq=4`,
 		"no answer yet for icmp_seq=8",
 	}, res.RawPacketLines)
 	assert.Equal(t, []globalping.PingTiming{
-		{RTT: 1.06, TTL: 59},
-		{RTT: 1.10, TTL: 59},
-		{RTT: 1.11, TTL: 59},
+		{RTT: 1.06, TTL: pointerTo(59)},
+		{RTT: 1.10, TTL: pointerTo(59)},
+		{RTT: 1.11, TTL: pointerTo(59)},
 	}, res.Timings)
 	assertMeasurementStats(t, &MeasurementStats{
 		Sent:  4,
@@ -879,8 +905,8 @@ From goldenfast.net (103.102.153.1): icmp_seq=2 Redirect Host(New nexthop: golde
 		"64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=2 ttl=59 time=0.705 ms",
 	}, res.RawPacketLines)
 	assert.Equal(t, []globalping.PingTiming{
-		{RTT: 0.558, TTL: 59},
-		{RTT: 0.705, TTL: 59},
+		{RTT: 0.558, TTL: pointerTo(59)},
+		{RTT: 0.705, TTL: pointerTo(59)},
 	}, res.Timings)
 	assertMeasurementStats(t, &MeasurementStats{
 		Sent:  2,

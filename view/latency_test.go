@@ -7,6 +7,7 @@ import (
 
 	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Output_Latency_Ping(t *testing.T) {
@@ -16,7 +17,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -31,7 +32,7 @@ func Test_Output_Latency_Ping(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent B",
 					Country:   "Country B",
-					State:     "State B",
+					State:     pointerTo("State B"),
 					City:      "City B",
 					ASN:       12349,
 					Network:   "Network B",
@@ -76,7 +77,7 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -120,7 +121,7 @@ func Test_Output_Latency_DNS(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -158,7 +159,7 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -200,7 +201,7 @@ func Test_Output_Latency_Http(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -243,7 +244,7 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
@@ -285,6 +286,62 @@ TCP: 4 ms
 `, w.String())
 }
 
+func Test_Output_Latency_NullableValues(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		command  string
+		stats    json.RawMessage
+		timings  json.RawMessage
+		expected string
+	}{
+		{
+			name:     "ping statistics",
+			command:  "ping",
+			stats:    json.RawMessage(`{"min":null,"avg":null,"max":null}`),
+			expected: "Min: -\nMax: -\nAvg: -\n\n",
+		},
+		{
+			name:     "HTTP timings",
+			command:  "http",
+			timings:  json.RawMessage(`{"total":44,"download":null,"firstByte":20,"dns":null,"tls":null,"tcp":4}`),
+			expected: "Total: 44 ms\nDownload: -\nFirst byte: 20 ms\nDNS: -\nTLS: -\nTCP: 4 ms\n\n",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			measurement := &globalping.Measurement{
+				Results: []globalping.ProbeMeasurement{
+					{
+						Probe: globalping.ProbeDetails{
+							Continent: "EU",
+							Country:   "DE",
+							City:      "Berlin",
+							ASN:       123,
+							Network:   "Network",
+						},
+						Result: globalping.ProbeResult{
+							Status:     globalping.TestStatusFinished,
+							StatsRaw:   test.stats,
+							TimingsRaw: test.timings,
+						},
+					},
+				},
+			}
+			w := new(bytes.Buffer)
+			errW := new(bytes.Buffer)
+			printer := NewPrinter(nil, w, errW)
+			printer.DisableStyling()
+			viewer := NewViewer(&Context{Cmd: test.command, ToLatency: true}, printer, nil)
+
+			err := viewer.OutputLatency(measurementID1, measurement)
+
+			require.NoError(t, err)
+			assert.Equal(t, "> Berlin, DE, EU, Network (AS123)\n", errW.String())
+			assert.Equal(t, test.expected, w.String())
+			assert.NotContains(t, w.String(), "%!")
+		})
+	}
+}
+
 func Test_Output_Latency_Offline(t *testing.T) {
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{
@@ -292,7 +349,7 @@ func Test_Output_Latency_Offline(t *testing.T) {
 				Probe: globalping.ProbeDetails{
 					Continent: "Continent",
 					Country:   "Country",
-					State:     "State",
+					State:     pointerTo("State"),
 					City:      "City",
 					ASN:       12345,
 					Network:   "Network",
