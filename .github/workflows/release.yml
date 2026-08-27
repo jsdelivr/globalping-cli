@@ -146,6 +146,8 @@ jobs:
     needs: prepare_release
     if: needs.prepare_release.outputs.published == 'true'
     runs-on: windows-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -189,6 +191,8 @@ jobs:
   release_linux:
     needs: [ prepare_release, goreleaser ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       VERSION_NAME: ${{ needs.prepare_release.outputs.version }}
       PACKAGECLOUD_USER: jsdelivr
@@ -225,6 +229,8 @@ jobs:
   release_windows:
     needs: [ prepare_release, goreleaser ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       VERSION_NAME: ${{ needs.prepare_release.outputs.version }}
     steps:
