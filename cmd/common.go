@@ -25,6 +25,39 @@ var (
 	ErrResolverIPVersionNotAllowed = errors.New("ipVersion is not allowed when resolver is not a domain")
 )
 
+const (
+	measurementAwaitDefaultTimeout = 45 * time.Second
+	measurementAwaitTimeoutBuffer  = 10 * time.Second
+)
+
+type measurementAwaitState struct {
+	id          string
+	startedAt   time.Time
+	maxDuration time.Duration
+}
+
+func newMeasurementAwaitState(id string, startedAt time.Time, timeout int) *measurementAwaitState {
+	maxDuration := measurementAwaitDefaultTimeout
+
+	if timeout != 0 {
+		maxDuration = time.Duration(timeout)*time.Second + measurementAwaitTimeoutBuffer
+	}
+
+	return &measurementAwaitState{
+		id:          id,
+		startedAt:   startedAt,
+		maxDuration: maxDuration,
+	}
+}
+
+func (s *measurementAwaitState) checkTimeout(now time.Time) error {
+	if now.Sub(s.startedAt) > s.maxDuration {
+		return fmt.Errorf("timed out waiting for measurement %s to finish: %w", s.id, context.DeadlineExceeded)
+	}
+
+	return nil
+}
+
 func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalping.MeasurementCreate) (err error) {
 	defer func() {
 		if err != nil {
@@ -66,11 +99,14 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 		defer r.viewer.OutputShare()
 	}
 
+	startedAt := r.utils.Now()
 	res, err := r.client.GetMeasurement(ctx, id)
 
 	if err != nil {
 		return err
 	}
+
+	awaitState := newMeasurementAwaitState(id, startedAt, res.Timeout)
 
 	if r.ctx.Table {
 		for {
@@ -88,6 +124,10 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 
 			if res.Status != globalping.MeasurementStatusInProgress {
 				return nil
+			}
+
+			if err := awaitState.checkTimeout(r.utils.Now()); err != nil {
+				return err
 			}
 
 			timer := time.NewTimer(r.ctx.APIMinInterval)
@@ -111,7 +151,20 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 	w, h := r.printer.GetSize()
 	// Poll API until the measurement is complete
 	for res.Status == globalping.MeasurementStatusInProgress {
-		time.Sleep(r.ctx.APIMinInterval)
+		if err := awaitState.checkTimeout(r.utils.Now()); err != nil {
+			return err
+		}
+
+		timer := time.NewTimer(r.ctx.APIMinInterval)
+
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+
+			return ctx.Err()
+		case <-timer.C:
+		}
+
 		res, err = r.client.GetMeasurement(ctx, id)
 
 		if err != nil {
@@ -180,6 +233,14 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 
 	if r.ctx.Limit < 1 {
 		return errors.New("limit must be at least 1")
+	}
+
+	if cmd.Flags().Changed("timeout") {
+		if r.ctx.Timeout < 5 || r.ctx.Timeout > 30 {
+			return errors.New("timeout must be between 5 and 30 seconds")
+		}
+	} else {
+		r.ctx.Timeout = 0
 	}
 
 	// Check env for CI

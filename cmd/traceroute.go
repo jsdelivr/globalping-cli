@@ -87,6 +87,7 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		Type:              "traceroute",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
+		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
 			Protocol: r.ctx.Protocol,

@@ -126,6 +126,8 @@ Global Measurement Flags:
       --share         print a link at the end of the results to visualize them online (default
                       false)
       --table         output results in a table format (default false)
+      --timeout int   specify the probe-side measurement timeout in seconds (minimum 5, maximum
+                      30)
 
 Global Flags:
   -C, --ci     disable real-time terminal updates and colors, suitable for CI and scripting
@@ -188,6 +190,8 @@ Avg: 1.584 ms
 
 You can select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
 For example, to run ping from four different locations (as we did in the example above), add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
+
+Use `--timeout` to set the probe-side timeout for each test to a value between 5 and 30 seconds. The CLI allows 10 additional seconds for probe-to-API communication and measurement finalization before it stops waiting. When this option is omitted, the API chooses the probe-side timeout and the CLI derives its wait limit from the first measurement response, falling back to 45 seconds if no timeout is provided.
 
 Finally, you can use the `--latency` parameter to only get the summarized latency data instead of the full raw output.
 

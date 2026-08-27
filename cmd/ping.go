@@ -100,6 +100,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		Type:              "ping",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
+		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode || (r.ctx.Infinite && !r.ctx.ToLatency),
 		Options: &globalping.MeasurementOptions{
 			Packets:  r.ctx.Packets,
@@ -183,6 +184,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 	var infiniteTableOutput string
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
+	awaitStates := map[string]*measurementAwaitState{}
 	r.ctx.RunSessionStartedAt = r.utils.Now()
 
 	for {
@@ -195,12 +197,27 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 		el := mbuf.Next()
 
 		for el != nil {
+			awaitState := awaitStates[el.Id]
+			startedAt := r.utils.Now()
 			measurement, err := r.client.GetMeasurement(ctx, el.Id)
 
 			if err != nil {
 				r.Cmd.SilenceUsage = true
 
 				return infiniteTableOutput, err
+			}
+
+			if awaitState == nil {
+				awaitState = newMeasurementAwaitState(el.Id, startedAt, measurement.Timeout)
+				awaitStates[el.Id] = awaitState
+			}
+
+			if measurement.Status == globalping.MeasurementStatusInProgress {
+				if err := awaitState.checkTimeout(r.utils.Now()); err != nil {
+					r.Cmd.SilenceUsage = true
+
+					return infiniteTableOutput, err
+				}
 			}
 
 			el.Status = measurement.Status
@@ -225,6 +242,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 
 			if measurement.Status != globalping.MeasurementStatusInProgress {
 				mbuf.Remove(el)
+				delete(awaitStates, el.Id)
 			} else {
 				el.ProbeStatus = make([]globalping.TestStatus, len(measurement.Results))
 
@@ -251,6 +269,16 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 		}
 
 		if mbuf.Len() > 0 {
+			for _, item := range mbuf.items {
+				awaitState := awaitStates[item.Id]
+
+				if err := awaitState.checkTimeout(r.utils.Now()); err != nil {
+					r.Cmd.SilenceUsage = true
+
+					return infiniteTableOutput, err
+				}
+			}
+
 			timer := time.NewTimer(r.ctx.APIMinInterval - elapsedTime)
 
 			select {

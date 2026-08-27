@@ -138,6 +138,7 @@ For more information about the platform, tips, and best practices, visit our Git
  - an ID of a previous measurement to run with its probes
 `)
 	measurementFlags.IntVarP(&ctx.Limit, "limit", "L", ctx.Limit, "define the number of probes to use")
+	measurementFlags.IntVar(&ctx.Timeout, "timeout", ctx.Timeout, "specify the probe-side measurement timeout in seconds (minimum 5, maximum 30)")
 	measurementFlags.BoolVarP(&ctx.ToJSON, "json", "J", ctx.ToJSON, "output results in JSON format (default false)")
 	measurementFlags.BoolVar(&ctx.ToLatency, "latency", ctx.ToLatency, "output only the latency stats; applicable only to dns, http, and ping commands (default false)")
 	measurementFlags.BoolVar(&ctx.Table, "table", ctx.Table, "output results in a table format (default false)")

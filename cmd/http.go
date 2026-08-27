@@ -163,6 +163,7 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.Meas
 	opts := &globalping.MeasurementCreate{
 		Type:              PostMeasurementTypeHttp,
 		Limit:             r.ctx.Limit,
+		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 	}
 	urlData, err := parseUrlData(r.ctx.Target)

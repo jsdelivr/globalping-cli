@@ -85,6 +85,7 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		Type:              "mtr",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
+		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
 			Protocol: r.ctx.Protocol,

@@ -91,6 +91,7 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		Type:              "dns",
 		Target:            r.ctx.Target,
 		Limit:             r.ctx.Limit,
+		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 		Options: &globalping.MeasurementOptions{
 			Protocol: r.ctx.Protocol,
