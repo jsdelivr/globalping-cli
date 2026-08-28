@@ -1,23 +1,158 @@
-name: goreleaser
+name: Release
 
 on:
-  push:
-    # run only against tags
-    tags:
-      - "*"
+  workflow_dispatch:
+    inputs:
+      resume_tag:
+        description: Existing semantic-release tag whose artifact publishing should be resumed
+        required: false
+        type: string
 
-permissions:
-  contents: write
-  # packages: write
-  # issues: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  test:
+    name: Test code
+    if: github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/tests.yml
+
+  prepare_release:
+    name: Prepare release
+    if: github.ref == 'refs/heads/master' && needs.test.result == 'success'
+    runs-on: ubuntu-latest
+    needs: test
+    environment: release
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    outputs:
+      published: ${{ steps.release_info.outputs.published }}
+      tag: ${{ steps.release_info.outputs.tag }}
+      version: ${{ steps.release_info.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v7
+        if: inputs.resume_tag == ''
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.RELEASE_SSH_KEY }}
+
+      - uses: actions/checkout@v7
+        if: inputs.resume_tag != ''
+        with:
+          fetch-depth: 0
+
+      - name: Prepare release
+        id: semantic
+        if: inputs.resume_tag == ''
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 24.2.9
+          extra_plugins: |
+            conventional-changelog-conventionalcommits@9.3.1
+            @semantic-release/exec@7.1.0
+            @semantic-release/git@11.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate release to resume
+        id: recovery
+        if: inputs.resume_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.resume_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          git show-ref --verify --quiet "refs/tags/$RELEASE_TAG" || {
+            echo "Release tag does not exist: $RELEASE_TAG" >&2
+            exit 1
+          }
+
+          tag_commit=$(git rev-list -n 1 "$RELEASE_TAG")
+          git merge-base --is-ancestor "$tag_commit" origin/master || {
+            echo "Release tag is not reachable from master: $RELEASE_TAG" >&2
+            exit 1
+          }
+
+          version=${RELEASE_TAG#v}
+          release_subject=$(git show -s --format=%s "$RELEASE_TAG")
+          expected_subject="chore: [skip ci] bump version to $version"
+
+          if [[ "$release_subject" != "$expected_subject" ]]; then
+            echo "Release tag does not point to its semantic-release version commit: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          tagged_version=$(git show "${RELEASE_TAG}:main.go" | sed -nE 's/^[[:space:]]*version = "([^"]+)"$/\1/p')
+
+          if [[ "$tagged_version" != "$version" ]]; then
+            echo "Tagged source version does not match $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          release_state=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json isDraft,assets --jq '[.isDraft, (.assets | length)] | @tsv') || {
+            echo "GitHub release does not exist: $RELEASE_TAG" >&2
+            exit 1
+          }
+
+          read -r is_draft asset_count <<< "$release_state"
+
+          if [[ "$is_draft" != "false" ]]; then
+            echo "GitHub release is still a draft: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          if [[ "$asset_count" != "0" ]]; then
+            echo "GitHub release already has $asset_count assets; refusing non-idempotent republishing." >&2
+            exit 1
+          fi
+
+      - name: Resolve release information
+        id: release_info
+        shell: bash
+        env:
+          RESUME_TAG: ${{ inputs.resume_tag }}
+          SEMANTIC_PUBLISHED: ${{ steps.semantic.outputs.new_release_published }}
+          SEMANTIC_TAG: ${{ steps.semantic.outputs.new_release_git_tag }}
+          SEMANTIC_VERSION: ${{ steps.semantic.outputs.new_release_version }}
+        run: |
+          if [[ -n "$RESUME_TAG" ]]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$RESUME_TAG" >> "$GITHUB_OUTPUT"
+            echo "version=${RESUME_TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=$SEMANTIC_PUBLISHED" >> "$GITHUB_OUTPUT"
+            echo "tag=$SEMANTIC_TAG" >> "$GITHUB_OUTPUT"
+            echo "version=$SEMANTIC_VERSION" >> "$GITHUB_OUTPUT"
+          fi
+
   goreleaser:
+    name: Build and publish release
+    needs: prepare_release
+    if: needs.prepare_release.outputs.published == 'true'
     runs-on: windows-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.prepare_release.outputs.tag }}
       - run: git fetch --force --tags
 
       - uses: actions/setup-go@v5
@@ -33,21 +168,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GHTOKEN_GORELEASER }}
           CHOCOLATEY_APIKEY: ${{ secrets.CHOCOLATEY_APIKEY }}
 
-      - run: echo ("VERSION_NAME=" + $env:GITHUB_REF_NAME.TrimStart("v")) >> $env:GITHUB_ENV
-      - run: echo $VERSION_NAME
-
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-deb
           path: |
-            dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.deb
-            dist/globalping_${{ env.VERSION_NAME }}_linux_arm64.deb
+            dist/globalping_${{ needs.prepare_release.outputs.version }}_linux_amd64.deb
+            dist/globalping_${{ needs.prepare_release.outputs.version }}_linux_arm64.deb
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-rpm
           path: |
-            dist/globalping_${{ env.VERSION_NAME }}_linux_amd64.rpm
-            dist/globalping_${{ env.VERSION_NAME }}_linux_arm64.rpm
+            dist/globalping_${{ needs.prepare_release.outputs.version }}_linux_amd64.rpm
+            dist/globalping_${{ needs.prepare_release.outputs.version }}_linux_arm64.rpm
       - uses: actions/upload-artifact@v4
         with:
           name: goreleaser-windows
@@ -57,9 +189,12 @@ jobs:
             dist/globalping_Windows_i386.zip
 
   release_linux:
-    needs: goreleaser
+    needs: [ prepare_release, goreleaser ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
+      VERSION_NAME: ${{ needs.prepare_release.outputs.version }}
       PACKAGECLOUD_USER: jsdelivr
       PACKAGECLOUD_REPO: globalping
       PACKAGECLOUD_APIKEY: ${{ secrets.PACKAGECLOUD_APIKEY }}
@@ -69,6 +204,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ needs.prepare_release.outputs.tag }}
 
       - uses: actions/setup-go@v5
         with:
@@ -82,7 +218,6 @@ jobs:
         with:
           name: goreleaser-rpm
 
-      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: ls -la
 
       - run: go run packagecloud/main.go upload "globalping_${{ env.VERSION_NAME }}_linux_amd64.deb" "deb"
@@ -92,14 +227,17 @@ jobs:
       - run: go run packagecloud/main.go cleanup
 
   release_windows:
-    needs: goreleaser
+    needs: [ prepare_release, goreleaser ]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      VERSION_NAME: ${{ needs.prepare_release.outputs.version }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: goreleaser-windows
 
-      - run: echo "VERSION_NAME=${GITHUB_REF_NAME:1}" >> $GITHUB_ENV
       - run: ls -la
 
       - name: Release to Winget
