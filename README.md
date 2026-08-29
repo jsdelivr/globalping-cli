@@ -191,7 +191,7 @@ Avg: 1.584 ms
 You can select multiple locations for running a command by using a comma `,` as a delimiter. When doing so, make sure to also specify the number of tests to run with the `--limit` flag.
 For example, to run ping from four different locations (as we did in the example above), add `--limit 4` to make sure you get one test result per location. Otherwise, the default limit of 1 will be selected, resulting in a random result from one of the four locations.
 
-Use `--timeout` to set the probe-side timeout for each test to a value between 5 and 30 seconds. The CLI allows 10 additional seconds for probe-to-API communication and measurement finalization before it stops waiting. When this option is omitted, the API chooses the probe-side timeout and the CLI derives its wait limit from the first measurement response, falling back to 45 seconds if no timeout is provided.
+Use `--timeout` to set the probe-side timeout for each test to a value between 5 and 30 seconds. The CLI uses the timeout included in the first GET measurement response, plus 10 additional seconds for probe-to-API communication and measurement finalization, as its client-side wait limit. If the response does not include a timeout, including when this option is omitted, the CLI uses a 45-second wait limit.
 
 Finally, you can use the `--latency` parameter to only get the summarized latency data instead of the full raw output.
 
