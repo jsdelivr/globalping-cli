@@ -98,7 +98,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		ctx := createDefaultContext()
 		ctx.Table = true
 		ctx.ToLatency = true
-		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+		utils := utilsMocks.NewMockUtils(ctrl)
+		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
 		require.NoError(t, root.handleMeasurement(t.Context(), measurement.ID, nil))
 	})
@@ -114,7 +116,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		ctx := createDefaultContext()
 		ctx.Table = true
 		ctx.ToJSON = true
-		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+		utils := utilsMocks.NewMockUtils(ctrl)
+		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
 		require.NoError(t, root.handleMeasurement(t.Context(), measurement.ID, nil))
 	})
@@ -129,7 +133,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext()
 		ctx.Table = true
-		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+		utils := utilsMocks.NewMockUtils(ctrl)
+		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
 		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), assert.AnError)
 		assert.True(t, root.Cmd.SilenceUsage)
@@ -146,7 +152,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext()
 		ctx.Table = true
-		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+		utils := utilsMocks.NewMockUtils(ctrl)
+		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
 		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), view.ErrAllProbesFailed)
 		assert.True(t, root.Cmd.SilenceUsage)
@@ -162,7 +170,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext()
 		ctx.Table = true
-		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, nil, client, nil, nil)
+		utils := utilsMocks.NewMockUtils(ctrl)
+		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
 		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), assert.AnError)
 		assert.True(t, root.Cmd.SilenceUsage)

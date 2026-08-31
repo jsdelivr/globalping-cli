@@ -283,17 +283,21 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedOpts1 := createDefaultMeasurementCreate("ping")
 	expectedOpts1.Options.Packets = 16
 	expectedOpts1.InProgressUpdates = true
+	expectedOpts1.Timeout = 17
 	expectedOpts2 := createDefaultMeasurementCreate("ping")
 	expectedOpts2.Options.Packets = 16
 	expectedOpts2.InProgressUpdates = true
+	expectedOpts2.Timeout = 17
 	expectedOpts2.Locations = globalping.PreviousMeasurementID(measurementID1)
 	expectedOpts3 := createDefaultMeasurementCreate("ping")
 	expectedOpts3.Options.Packets = 16
 	expectedOpts3.InProgressUpdates = true
+	expectedOpts3.Timeout = 17
 	expectedOpts3.Locations = globalping.PreviousMeasurementID(measurementID2)
 	expectedOpts4 := createDefaultMeasurementCreate("ping")
 	expectedOpts4.Options.Packets = 16
 	expectedOpts4.InProgressUpdates = true
+	expectedOpts4.Timeout = 17
 	expectedOpts4.Locations = globalping.PreviousMeasurementID(measurementID3)
 
 	expectedResponse1 := createDefaultMeasurementCreateResponse()
@@ -365,7 +369,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	}
 	_storage := createDefaultTestStorage(t, utilsMock)
 	root := NewRoot(printer, ctx, viewerMock, utilsMock, gbMock, nil, _storage)
-	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "--timeout", "17", "from", "Berlin"}
 
 	go func() {
 		<-finalOutputStarted
@@ -383,6 +387,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 		Limit:               1,
 		Packets:             16,
 		Infinite:            true,
+		Timeout:             17,
 		CIMode:              true,
 		Protocol:            "ICMP",
 		Port:                80,
@@ -441,7 +446,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	assert.NoError(t, err)
 	expectedHistoryItems := []string{createDefaultExpectedHistoryItem(
 		"1",
-		"ping jsdelivr.com --infinite from Berlin",
+		"ping jsdelivr.com --infinite --timeout 17 from Berlin",
 		measurementID1+"."+measurementID2+"."+measurementID3+"."+measurementID4,
 	)}
 	assert.Equal(t, expectedHistoryItems, items)

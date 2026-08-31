@@ -29,6 +29,7 @@
   * [Reselect probes from measurements in the current session](#reselect-probes-from-measurements-in-the-current-session)
   * [Run continuous non-stop measurements](#run-continuous-non-stop-measurements)
   * [Get TCP & TLS/SSL details](#get-tcp--tlsssl-details)
+  * [Set a test timeout](#set-a-test-timeout)
   * [View your measurement history](#view-your-measurement-history)
   * [Learn about available flags](#learn-about-available-flags)
 <!-- TOC -->
@@ -126,6 +127,8 @@ Global Measurement Flags:
       --share         print a link at the end of the results to visualize them online (default
                       false)
       --table         output results in a table format (default false)
+      --timeout int   specify the probe-side measurement timeout in seconds (minimum 5, maximum
+                      30)
 
 Global Flags:
   -C, --ci     disable real-time terminal updates and colors, suitable for CI and scripting
@@ -386,6 +389,12 @@ HTTP/1.1 301
 
 > [!TIP]
 > Use `globalping http jsdelivr.com --full --method head` to omit the response body.
+
+#### Set a test timeout
+
+Use `--timeout` to set how long each probe may spend running a test. The value must be between 5 and 30 seconds.
+
+The CLI waits up to 10 seconds beyond the timeout reported by the API to allow for communication and measurement finalization. If the API does not report a timeout, the CLI waits up to 45 seconds.
 
 #### View your measurement history
 
