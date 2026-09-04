@@ -23,6 +23,12 @@ func (v *viewer) OutputInfinite(measurement *globalping.Measurement) (string, er
 		v.ctx.Table = true
 	}
 
+	if v.ctx.ToLatency || v.ctx.Table {
+		if err := validateFinishedPingStats(measurement); err != nil {
+			return "", err
+		}
+	}
+
 	if v.ctx.ToLatency {
 		return v.outputInfinitePingLatency(measurement)
 	}
