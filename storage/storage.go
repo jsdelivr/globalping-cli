@@ -77,10 +77,14 @@ func (s *LocalStorage) Init(dirName string) error {
 			if err != nil {
 				return err
 			}
+		} else {
+			return fmt.Errorf("failed to load config: %w", err)
 		}
 	}
 
-	_ = s.Migrate()
+	if err := s.Migrate(); err != nil {
+		return fmt.Errorf("failed to migrate storage: %w", err)
+	}
 
 	return nil
 }
