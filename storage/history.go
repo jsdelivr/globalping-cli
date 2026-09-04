@@ -96,7 +96,7 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 			return items, nil
 		}
 
-		return nil, ErrReadHistory
+		return nil, fmt.Errorf("%w: %w", ErrReadHistory, err)
 	}
 
 	defer func() {
@@ -107,7 +107,7 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 		fStats, err := f.Stat()
 
 		if err != nil {
-			return nil, ErrReadHistory
+			return nil, fmt.Errorf("%w: %w", ErrReadHistory, err)
 		}
 
 		if fStats.Size() == 0 {
@@ -125,7 +125,7 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 					return items, nil
 				}
 
-				return nil, ErrReadHistory
+				return nil, fmt.Errorf("%w: %w", ErrReadHistory, err)
 			}
 
 			item, err := parseHistoryItem(string(b))
