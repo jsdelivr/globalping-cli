@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"errors"
+
+	"github.com/jsdelivr/globalping-cli/api"
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
@@ -20,8 +23,18 @@ func (r *Root) initLimits() {
 func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
-	introspection, _ := r.client.TokenIntrospection(ctx, "")
+	introspection, err := r.client.TokenIntrospection(ctx, "")
 	username := ""
+
+	if err != nil {
+		var authorizeErr *api.AuthorizeError
+
+		if !errors.As(err, &authorizeErr) || authorizeErr.ErrorType != api.ErrTypeNotAuthorized {
+			r.Cmd.SilenceUsage = true
+
+			return err
+		}
+	}
 
 	if introspection != nil {
 		username = introspection.Username
@@ -30,6 +43,8 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	limits, err := r.client.Limits(ctx)
 
 	if err != nil {
+		r.Cmd.SilenceUsage = true
+
 		return err
 	}
 

@@ -161,6 +161,10 @@ func (s *LocalStorage) GetHistory(limit int) ([]string, error) {
 		}
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrReadHistory, err)
+	}
+
 	return items, nil
 }
 

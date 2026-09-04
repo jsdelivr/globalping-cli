@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jsdelivr/globalping-cli/api"
@@ -116,7 +119,10 @@ func Test_Limits_IP(t *testing.T) {
 
 	gbMock := apiMocks.NewMockClient(ctrl)
 
-	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(nil, &api.AuthorizeError{Description: "client is not authorized"})
+	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(nil, fmt.Errorf("token introspection: %w", &api.AuthorizeError{
+		ErrorType:   api.ErrTypeNotAuthorized,
+		Description: "client is not authorized",
+	}))
 	gbMock.EXPECT().Limits(t.Context()).Return(&globalping.LimitsResponse{
 		RateLimits: globalping.RateLimits{
 			Measurements: globalping.MeasurementsLimits{
@@ -148,4 +154,46 @@ Creating measurements:
  - 150 consumed, 350 remaining
  - resets in 10 minutes
 `, w.String())
+}
+
+func Test_Limits_UnexpectedIntrospectionError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	gbMock := apiMocks.NewMockClient(ctrl)
+	introspectionErr := errors.New("introspection network error")
+	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(nil, introspectionErr)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, stdout, stderr), createDefaultContext(), nil, nil, gbMock, nil, nil)
+	os.Args = []string{"globalping", "limits"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.ErrorIs(t, err, introspectionErr)
+	assert.True(t, root.Cmd.SilenceUsage)
+	assert.Empty(t, stdout.String())
+	assert.Equal(t, "Error: introspection network error\n", stderr.String())
+	assert.Equal(t, 1, strings.Count(stderr.String(), "Error:"))
+}
+
+func Test_Limits_ServiceError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	gbMock := apiMocks.NewMockClient(ctrl)
+	limitsErr := errors.New("limits service error")
+	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(&api.IntrospectionResponse{
+		Active:   true,
+		Username: "test",
+	}, nil)
+	gbMock.EXPECT().Limits(t.Context()).Return(nil, limitsErr)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, stdout, stderr), createDefaultContext(), nil, nil, gbMock, nil, nil)
+	os.Args = []string{"globalping", "limits"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.ErrorIs(t, err, limitsErr)
+	assert.True(t, root.Cmd.SilenceUsage)
+	assert.Empty(t, stdout.String())
+	assert.Equal(t, "Error: limits service error\n", stderr.String())
+	assert.Equal(t, 1, strings.Count(stderr.String(), "Error:"))
 }
