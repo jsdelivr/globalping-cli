@@ -67,11 +67,11 @@ func (v *viewer) OutputLatency(id string, measurement *globalping.Measurement) e
 			}
 
 			v.printer.Println(v.latencyStatHeader("Total") + formatHTTPValue(timings.Total))
-			v.printer.Println(v.latencyStatHeader("Download") + formatHTTPValue(timings.Download))
-			v.printer.Println(v.latencyStatHeader("First byte") + formatHTTPValue(timings.FirstByte))
 			v.printer.Println(v.latencyStatHeader("DNS") + formatHTTPValue(timings.DNS))
-			v.printer.Println(v.latencyStatHeader("TLS") + formatHTTPValue(timings.TLS))
 			v.printer.Println(v.latencyStatHeader("TCP") + formatHTTPValue(timings.TCP))
+			v.printer.Println(v.latencyStatHeader("TLS") + formatHTTPValue(timings.TLS))
+			v.printer.Println(v.latencyStatHeader("First byte") + formatHTTPValue(timings.FirstByte))
+			v.printer.Println(v.latencyStatHeader("Download") + formatHTTPValue(timings.Download))
 		default:
 			return errors.New("unexpected command for latency output: " + v.ctx.Cmd)
 		}

@@ -230,11 +230,11 @@ func Test_Output_Latency_Http(t *testing.T) {
 
 	assert.Equal(t, "\033[1;38;5;43m> City (State), Country, Continent, Network (AS12345)\033[0m\n"+
 		"\033[1mTotal: \033[0m44 ms\n"+
-		"\033[1mDownload: \033[0m11 ms\n"+
-		"\033[1mFirst byte: \033[0m20 ms\n"+
 		"\033[1mDNS: \033[0m5 ms\n"+
+		"\033[1mTCP: \033[0m4 ms\n"+
 		"\033[1mTLS: \033[0m2 ms\n"+
-		"\033[1mTCP: \033[0m4 ms\n\n", w.String())
+		"\033[1mFirst byte: \033[0m20 ms\n"+
+		"\033[1mDownload: \033[0m11 ms\n\n", w.String())
 }
 
 func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
@@ -277,11 +277,11 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 	assert.Equal(t, `> City (State), Country, Continent, Network (AS12345)
 `, errW.String())
 	assert.Equal(t, `Total: 44 ms
-Download: 11 ms
-First byte: 20 ms
 DNS: 5 ms
-TLS: 2 ms
 TCP: 4 ms
+TLS: 2 ms
+First byte: 20 ms
+Download: 11 ms
 
 `, w.String())
 }
@@ -304,7 +304,7 @@ func Test_Output_Latency_NullableValues(t *testing.T) {
 			name:     "HTTP timings",
 			command:  "http",
 			timings:  json.RawMessage(`{"total":44,"download":null,"firstByte":20,"dns":null,"tls":null,"tcp":4}`),
-			expected: "Total: 44 ms\nDownload: -\nFirst byte: 20 ms\nDNS: -\nTLS: -\nTCP: 4 ms\n\n",
+			expected: "Total: 44 ms\nDNS: -\nTCP: 4 ms\nTLS: -\nFirst byte: 20 ms\nDownload: -\n\n",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
