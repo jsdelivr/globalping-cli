@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -54,8 +55,9 @@ Please confirm to pull and run our Docker container (globalping/globalping-probe
 func Test_Execute_Install_Probe_DetectionFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	probeMock := apiMocks.NewMockProbe(ctrl)
+	podmanErr := &exec.Error{Name: "podman", Err: exec.ErrNotFound}
 	detectErr := errors.New("  Docker: installed but unavailable: exit status 1: request returned 500; errors pretty printing info\n" +
-		"  Podman: not installed or not available in PATH: executable file not found in $PATH")
+		"  Podman: not installed or not available in PATH: " + podmanErr.Error())
 	probeMock.EXPECT().DetectContainerEngine().Return(probe.ContainerEngineUnknown, detectErr)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)

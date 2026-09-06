@@ -40,7 +40,7 @@ func TestDetectContainerEngine(t *testing.T) {
 	t.Run("docker", func(t *testing.T) {
 		p := &probe{execute: fakeExecutor(t, []expectedExecution{
 			{name: "docker", args: []string{"info"}},
-			{name: "type", args: []string{"docker"}, result: executionResult{stdout: []byte("docker is /usr/local/bin/docker\n")}},
+			{name: "type", args: []string{"docker"}, result: executionResult{stdout: []byte("docker")}},
 		})}
 
 		engine, err := p.DetectContainerEngine()
@@ -88,7 +88,7 @@ func TestDetectContainerEngine(t *testing.T) {
 		assert.ErrorIs(t, err, dockerErr)
 		assert.ErrorIs(t, err, podmanErr)
 		assert.EqualError(t, err, "  Docker: installed but unavailable: docker exit: cannot connect to docker; errors pretty printing info\n"+
-			"  Podman: not installed or not available in PATH: exec: \"podman\": executable file not found in $PATH")
+			"  Podman: not installed or not available in PATH: "+podmanErr.Error())
 	})
 }
 
