@@ -161,6 +161,20 @@ func Test_Limits_UnexpectedIntrospectionError(t *testing.T) {
 	gbMock := apiMocks.NewMockClient(ctrl)
 	introspectionErr := errors.New("introspection network error")
 	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(nil, introspectionErr)
+	gbMock.EXPECT().Limits(t.Context()).Return(&globalping.LimitsResponse{
+		RateLimits: globalping.RateLimits{
+			Measurements: globalping.MeasurementsLimits{
+				Create: globalping.MeasurementsCreateLimits{
+					Type:      "user",
+					Limit:     500,
+					Remaining: 350,
+				},
+			},
+		},
+		Credits: globalping.CreditLimits{
+			Remaining: 1000,
+		},
+	}, nil)
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
 	root := NewRoot(view.NewPrinter(nil, stdout, stderr), createDefaultContext(), nil, nil, gbMock, nil, nil)
@@ -168,11 +182,18 @@ func Test_Limits_UnexpectedIntrospectionError(t *testing.T) {
 
 	err := root.Cmd.ExecuteContext(t.Context())
 
-	assert.ErrorIs(t, err, introspectionErr)
-	assert.True(t, root.Cmd.SilenceUsage)
-	assert.Empty(t, stdout.String())
-	assert.Equal(t, "Error: introspection network error\n", stderr.String())
-	assert.Equal(t, 1, strings.Count(stderr.String(), "Error:"))
+	assert.NoError(t, err)
+	assert.False(t, root.Cmd.SilenceUsage)
+	assert.Equal(t, `Authentication: token
+
+Creating measurements:
+ - 500 tests per hour
+ - 150 consumed, 350 remaining
+
+Credits:
+ - 1000 credits remaining (may be used to create measurements above the hourly limits)
+`, stdout.String())
+	assert.Equal(t, "Warning: failed to retrieve authentication details: introspection network error\n", stderr.String())
 }
 
 func Test_Limits_ServiceError(t *testing.T) {

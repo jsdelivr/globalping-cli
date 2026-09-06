@@ -30,9 +30,7 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 		var authorizeErr *api.AuthorizeError
 
 		if !errors.As(err, &authorizeErr) || authorizeErr.ErrorType != api.ErrTypeNotAuthorized {
-			r.Cmd.SilenceUsage = true
-
-			return err
+			r.printer.ErrPrintf("Warning: failed to retrieve authentication details: %s\n", err)
 		}
 	}
 
@@ -54,7 +52,11 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	t := limits.RateLimits.Measurements.Create.Type
 
 	if t == globalping.CreateLimitTypeUser {
-		r.printer.Printf("Authentication: token (%s)\n\n", username)
+		if username == "" {
+			r.printer.Printf("Authentication: token\n\n")
+		} else {
+			r.printer.Printf("Authentication: token (%s)\n\n", username)
+		}
 	} else {
 		r.printer.Printf("Authentication: IP address\n\n")
 	}
