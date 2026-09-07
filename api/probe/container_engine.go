@@ -1,7 +1,8 @@
 package probe
 
 import (
-	"os"
+	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -14,18 +15,15 @@ const (
 	ContainerEnginePodman  ContainerEngine = "Podman"
 )
 
-func (*probe) DetectContainerEngine() (ContainerEngine, error) {
+func (p *probe) DetectContainerEngine() (ContainerEngine, error) {
 	// check if docker is installed
-	dockerInfoCmd := exec.Command("docker", "info")
-	dockerInfoCmd.Stderr = os.Stderr
-	dockerInfoErr := dockerInfoCmd.Run()
+	dockerInfo := p.execute("docker", "info")
 
-	if dockerInfoErr == nil {
+	if dockerInfo.err == nil {
 		// check if docker is aliased to podman
-		aliasCmd := exec.Command("type", "docker")
-		aliasResults, _ := aliasCmd.Output()
+		aliasResult := p.execute("type", "docker")
 
-		if strings.Contains(string(aliasResults), "podman") {
+		if aliasResult.err == nil && strings.Contains(strings.ToLower(string(aliasResult.stdout)), "podman") {
 			return ContainerEnginePodman, nil
 		}
 
@@ -33,13 +31,25 @@ func (*probe) DetectContainerEngine() (ContainerEngine, error) {
 	}
 
 	// check if podman is installed
-	podmanInfoCmd := exec.Command("podman", "info")
-	podmanInfoCmd.Stderr = os.Stderr
-	podmanInfoErr := podmanInfoCmd.Run()
+	podmanInfo := p.execute("podman", "info")
 
-	if podmanInfoErr == nil {
+	if podmanInfo.err == nil {
 		return ContainerEnginePodman, nil
 	}
 
-	return ContainerEngineUnknown, dockerInfoErr
+	return ContainerEngineUnknown, errors.Join(
+		containerEngineError("Docker", dockerInfo),
+		containerEngineError("Podman", podmanInfo),
+	)
+}
+
+func containerEngineError(name string, result executionResult) error {
+	err := executionError(result)
+	var execErr *exec.Error
+
+	if errors.As(result.err, &execErr) {
+		return fmt.Errorf("  %s: not installed or not available in PATH: %w", name, err)
+	}
+
+	return fmt.Errorf("  %s: installed but unavailable: %w", name, err)
 }

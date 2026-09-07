@@ -2,9 +2,19 @@ package probe
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"strings"
+)
+
+var ErrContainerAlreadyInstalled = errors.New("the globalping-probe container is already installed on your system")
+
+const (
+	containerName       = "globalping-probe"
+	containerListFormat = "{{.Names}}\t{{.State}}\t{{.Status}}"
 )
 
 type Probe interface {
@@ -13,106 +23,145 @@ type Probe interface {
 	RunContainer(containerEngine ContainerEngine) error
 }
 
-type probe struct{}
+type executionResult struct {
+	stdout []byte
+	stderr []byte
+	err    error
+}
+
+type executor func(name string, args ...string) executionResult
+
+type probe struct {
+	execute executor
+	stdout  io.Writer
+	stderr  io.Writer
+}
 
 func NewProbe() Probe {
-	return &probe{}
+	return &probe{
+		execute: executeCommand,
+		stdout:  os.Stdout,
+		stderr:  os.Stderr,
+	}
 }
 
-func (*probe) InspectContainer(containerEngine ContainerEngine) error {
+func (p *probe) InspectContainer(containerEngine ContainerEngine) error {
+	var result executionResult
+
 	switch containerEngine {
 	case ContainerEngineDocker:
-		err := inspectContainerDocker()
-
-		if err != nil {
-			return err
-		}
+		result = p.execute("docker", "ps", "--all", "--format", containerListFormat)
 	case ContainerEnginePodman:
-		err := inspectContainerPodman()
-
-		if err != nil {
-			return err
-		}
+		result = p.execute("sudo", "podman", "ps", "--all", "--format", containerListFormat)
 	default:
 		return fmt.Errorf("unknown container engine %s", containerEngine)
 	}
 
-	return nil
+	if result.err != nil {
+		return fmt.Errorf("failed to query %s containers: %w", containerEngine, executionError(result))
+	}
+
+	err := classifyContainerList(string(result.stdout))
+
+	if err != nil && !errors.Is(err, ErrContainerAlreadyInstalled) {
+		return fmt.Errorf("failed to classify %s container list: %w", containerEngine, err)
+	}
+
+	return err
 }
 
-func (*probe) RunContainer(containerEngine ContainerEngine) error {
+func (p *probe) RunContainer(containerEngine ContainerEngine) error {
+	var result executionResult
+
 	switch containerEngine {
 	case ContainerEngineDocker:
-		err := runContainerDocker()
-
-		if err != nil {
-			return err
-		}
+		result = p.execute("docker", "run", "-d", "--log-driver", "local", "--network", "host", "--restart", "always", "--name", containerName, "globalping/globalping-probe")
 	case ContainerEnginePodman:
-		err := runContainerPodman()
-
-		if err != nil {
-			return err
-		}
+		result = p.execute("sudo", "podman", "run", "--cap-add=NET_RAW", "-d", "--network", "host", "--restart=always", "--name", containerName, "globalping/globalping-probe")
 	default:
 		return fmt.Errorf("unknown container engine %s", containerEngine)
 	}
 
-	return nil
-}
+	if result.err != nil {
+		return fmt.Errorf("failed to run %s container: %w", containerEngine, executionError(result))
+	}
 
-func inspectContainerDocker() error {
-	cmd := exec.Command("docker", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
-	containerStatus, err := cmd.Output()
+	if p.stdout != nil {
+		_, _ = p.stdout.Write(result.stdout)
+	}
 
-	if err == nil {
-		containerStatusStr := string(bytes.TrimSpace(containerStatus))
-
-		return fmt.Errorf("the globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
+	if p.stderr != nil {
+		_, _ = p.stderr.Write(result.stderr)
 	}
 
 	return nil
 }
 
-func inspectContainerPodman() error {
-	cmd := exec.Command("sudo", "podman", "inspect", "globalping-probe", "-f", "{{.State.Status}}")
-	containerStatus, err := cmd.Output()
+func executeCommand(name string, args ...string) executionResult {
+	cmd := exec.Command(name, args...)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
 
-	if err == nil {
-		containerStatusStr := string(bytes.TrimSpace(containerStatus))
+	return executionResult{
+		stdout: stdout.Bytes(),
+		stderr: stderr.Bytes(),
+		err:    err,
+	}
+}
 
-		if containerStatusStr == "" {
-			// false positive as podmain keeps container info after deletion
-			return nil
+func executionError(result executionResult) error {
+	details := bytes.TrimSpace(result.stderr)
+
+	if len(details) == 0 {
+		details = bytes.TrimSpace(result.stdout)
+	}
+
+	if len(details) == 0 {
+		return result.err
+	}
+
+	detailText := strings.ReplaceAll(string(details), "\r\n", "\n")
+	detailText = strings.ReplaceAll(detailText, "\r", "\n")
+	detailText = strings.ReplaceAll(detailText, "\n", "; ")
+
+	return fmt.Errorf("%w: %s", result.err, detailText)
+}
+
+func classifyContainerList(output string) error {
+	output = strings.TrimSpace(output)
+
+	if output == "" {
+		return nil
+	}
+
+	installedRows := make([][]string, 0, 1)
+
+	for line := range strings.SplitSeq(output, "\n") {
+		parts := strings.SplitN(strings.TrimSuffix(line, "\r"), "\t", 3)
+
+		if len(parts) != 3 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" || strings.TrimSpace(parts[2]) == "" {
+			return fmt.Errorf("malformed container list output: %q", line)
 		}
 
-		return fmt.Errorf("the globalping-probe container is already installed on your system. Current status: %s", containerStatusStr)
+		if strings.TrimSpace(parts[0]) == containerName {
+			installedRows = append(installedRows, parts)
+		}
 	}
 
-	return nil
-}
-
-func runContainerDocker() error {
-	cmd := exec.Command("docker", "run", "-d", "--log-driver", "local", "--network", "host", "--restart", "always", "--name", "globalping-probe", "globalping/globalping-probe")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-
-	if err != nil {
-		return fmt.Errorf("failed to run container: %w", err)
+	if len(installedRows) > 1 {
+		return fmt.Errorf("ambiguous container list output: found %d %s rows", len(installedRows), containerName)
 	}
 
-	return nil
-}
-
-func runContainerPodman() error {
-	cmd := exec.Command("sudo", "podman", "run", "--cap-add=NET_RAW", "-d", "--network", "host", "--restart=always", "--name", "globalping-probe", "globalping/globalping-probe")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-
-	if err != nil {
-		return fmt.Errorf("failed to run container: %w", err)
+	if len(installedRows) == 1 {
+		return fmt.Errorf(
+			"%w. Current state: %s; status: %s",
+			ErrContainerAlreadyInstalled,
+			strings.TrimSpace(installedRows[0][1]),
+			strings.TrimSpace(installedRows[0][2]),
+		)
 	}
 
 	return nil

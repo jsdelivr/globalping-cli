@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +61,19 @@ func Test_GetHistory(t *testing.T) {
 	assert.Equal(t, []string{
 		fmt.Sprintf("2 | %s | command2\n> https://globalping.io?measurement=id2", time2.Format("2006-01-02 15:04:05")),
 	}, items)
+}
+
+func Test_GetHistory_ForwardScannerError(t *testing.T) {
+	_storage := createDefaultTestStorage(t)
+	history := "1|1|1730310880|id1|command1\n" +
+		"1|2|1730310890|id2|" + strings.Repeat("x", bufio.MaxScanTokenSize) + "\n"
+	assert.NoError(t, os.WriteFile(_storage.historyPath(), []byte(history), 0644))
+
+	items, err := _storage.GetHistory(0)
+
+	assert.ErrorIs(t, err, ErrReadHistory)
+	assert.ErrorContains(t, err, "token too long")
+	assert.Empty(t, items)
 }
 
 func Test_SaveCommandToHistory(t *testing.T) {

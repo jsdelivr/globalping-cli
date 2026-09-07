@@ -11,7 +11,7 @@ import (
 
 func (r *Root) initHistory() {
 	historyCmd := &cobra.Command{
-		Run:   r.RunHistory,
+		RunE:  r.RunHistory,
 		Use:   "history",
 		Short: "Display the measurement history of your current session",
 		Long: `Display the measurement history of your current session.
@@ -34,7 +34,7 @@ Examples:
 	r.Cmd.AddCommand(historyCmd)
 }
 
-func (r *Root) RunHistory(_ *cobra.Command, _ []string) {
+func (r *Root) RunHistory(_ *cobra.Command, _ []string) error {
 	limit := 0
 
 	if r.ctx.Head > 0 {
@@ -46,20 +46,22 @@ func (r *Root) RunHistory(_ *cobra.Command, _ []string) {
 	items, err := r.storage.GetHistory(limit)
 
 	if err != nil {
-		r.printer.Println(err)
+		r.Cmd.SilenceUsage = true
 
-		return
+		return fmt.Errorf("failed to get history: %w", err)
 	}
 
 	if len(items) == 0 {
 		r.printer.Println("No history items found")
 
-		return
+		return nil
 	}
 
 	for _, item := range items {
 		r.printer.Println(item)
 	}
+
+	return nil
 }
 
 func (r *Root) UpdateHistory() error {

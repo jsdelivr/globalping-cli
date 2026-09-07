@@ -70,6 +70,39 @@ func Test_Execute_Ping_Default(t *testing.T) {
 	assert.Equal(t, expectedHistoryItems, items)
 }
 
+func Test_Execute_Ping_FiniteLatencyOutputError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Locations = globalping.LocationOptions{{Magic: "world"}}
+	expectedResponse := createDefaultMeasurementCreateResponse()
+	expectedMeasurement := createDefaultMeasurement("ping")
+	outputErr := errors.New("latency output failed")
+
+	gbMock := apiMocks.NewMockClient(ctrl)
+	gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Return(expectedResponse, nil)
+	gbMock.EXPECT().AwaitMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
+
+	viewerMock := viewMocks.NewMockViewer(ctrl)
+	viewerMock.EXPECT().OutputLatency(measurementID1, expectedMeasurement).Return(outputErr)
+
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	ctx := createDefaultContext()
+	_storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(view.NewPrinter(nil, stdout, stderr), ctx, viewerMock, utilsMock, gbMock, nil, _storage)
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--latency"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.ErrorIs(t, err, outputErr)
+	assert.True(t, root.Cmd.SilenceUsage)
+	assert.Empty(t, stdout.String())
+	assert.Equal(t, "Error: latency output failed\n", stderr.String())
+}
+
 func Test_Execute_Ping_Locations_And_Session(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

@@ -48,6 +48,12 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 		return "", v.outputFailSummary(measurement)
 	}
 
+	if measurement.Type == "ping" {
+		if err := validateFinishedPingStats(measurement); err != nil {
+			return "", err
+		}
+	}
+
 	v.ctx.TableOutputRows = len(measurement.Results)
 	v.outputTableView(measurement)
 
@@ -56,6 +62,22 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 	}
 
 	return "", nil
+}
+
+func validateFinishedPingStats(measurement *globalping.Measurement) error {
+	for i := range measurement.Results {
+		result := &measurement.Results[i].Result
+
+		if result.Status != globalping.TestStatusFinished {
+			continue
+		}
+
+		if _, err := globalping.DecodePingStats(result.StatsRaw); err != nil {
+			return fmt.Errorf("failed to decode ping statistics for result %d: %w", i+1, err)
+		}
+	}
+
+	return nil
 }
 
 func (v *viewer) outputTableView(m *globalping.Measurement) {

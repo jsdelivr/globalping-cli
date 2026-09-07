@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"errors"
+
+	"github.com/jsdelivr/globalping-cli/api"
 	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
@@ -20,8 +23,16 @@ func (r *Root) initLimits() {
 func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 
-	introspection, _ := r.client.TokenIntrospection(ctx, "")
+	introspection, err := r.client.TokenIntrospection(ctx, "")
 	username := ""
+
+	if err != nil {
+		var authorizeErr *api.AuthorizeError
+
+		if !errors.As(err, &authorizeErr) || authorizeErr.ErrorType != api.ErrTypeNotAuthorized {
+			r.printer.ErrPrintf("Warning: failed to retrieve authentication details: %s\n", err)
+		}
+	}
 
 	if introspection != nil {
 		username = introspection.Username
@@ -30,6 +41,8 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	limits, err := r.client.Limits(ctx)
 
 	if err != nil {
+		r.Cmd.SilenceUsage = true
+
 		return err
 	}
 
@@ -39,7 +52,11 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	t := limits.RateLimits.Measurements.Create.Type
 
 	if t == globalping.CreateLimitTypeUser {
-		r.printer.Printf("Authentication: token (%s)\n\n", username)
+		if username == "" {
+			r.printer.Printf("Authentication: token\n\n")
+		} else {
+			r.printer.Printf("Authentication: token (%s)\n\n", username)
+		}
 	} else {
 		r.printer.Printf("Authentication: IP address\n\n")
 	}

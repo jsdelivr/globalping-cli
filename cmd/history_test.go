@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"os"
+	"strings"
 	"testing"
 
 	utilsMocks "github.com/jsdelivr/globalping-cli/mocks/utils"
+	"github.com/jsdelivr/globalping-cli/storage"
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
@@ -84,4 +87,41 @@ func Test_Execute_History_Default(t *testing.T) {
 		createDefaultExpectedHistoryItem("1", "ping jsdelivr.com", measurementID1)+"\n"+
 			createDefaultExpectedHistoryItem("-", "ping jsdelivr.com from last", measurementID2)+"\n",
 		w.String())
+}
+
+func Test_Execute_History_Empty(t *testing.T) {
+	utilsMock := utilsMocks.NewMockUtils(gomock.NewController(t))
+	_storage := createDefaultTestStorage(t, utilsMock)
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, stdout, stderr), createDefaultContext(), nil, utilsMock, nil, nil, _storage)
+	os.Args = []string{"globalping", "history"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.NoError(t, err)
+	assert.Equal(t, "No history items found\n", stdout.String())
+	assert.Empty(t, stderr.String())
+}
+
+func Test_Execute_History_ForwardScannerError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
+	_storage := createDefaultTestStorage(t, utilsMock)
+	assert.NoError(t, _storage.SaveCommandToHistory("1", defaultCurrentTime.Unix(), measurementID1, "command1"))
+	assert.NoError(t, _storage.SaveCommandToHistory("2", defaultCurrentTime.Unix(), measurementID2, strings.Repeat("x", bufio.MaxScanTokenSize)))
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, stdout, stderr), createDefaultContext(), nil, utilsMock, nil, nil, _storage)
+	os.Args = []string{"globalping", "history"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.ErrorIs(t, err, storage.ErrReadHistory)
+	assert.ErrorContains(t, err, "token too long")
+	assert.True(t, root.Cmd.SilenceUsage)
+	assert.Empty(t, stdout.String())
+	assert.Equal(t, 1, strings.Count(stderr.String(), "Error:"))
+	assert.Contains(t, stderr.String(), "failed to get history")
+	assert.Contains(t, stderr.String(), "token too long")
 }
