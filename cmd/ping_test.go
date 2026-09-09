@@ -614,7 +614,8 @@ func Test_Execute_Ping_Infinite_AllProbesFailedExitsSuccessfully(t *testing.T) {
 	utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 	ctx := createDefaultContext()
 	storage := createDefaultTestStorage(t, utils)
-	root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, storage)
+	w := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewer, utils, client, nil, storage)
 	oldArgs := os.Args
 	t.Cleanup(func() { os.Args = oldArgs })
 	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
@@ -622,6 +623,7 @@ func Test_Execute_Ping_Infinite_AllProbesFailedExitsSuccessfully(t *testing.T) {
 	err := root.Cmd.ExecuteContext(t.Context())
 
 	assert.NoError(t, err)
+	assert.Empty(t, w.String())
 }
 
 func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {

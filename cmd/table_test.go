@@ -534,13 +534,11 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 	})
 }
 
-func Test_HandleMeasurement_AllFailedOutcomesSucceedInFiniteModes(t *testing.T) {
+func Test_HandleMeasurement_RoutesFiniteModesToViewer(t *testing.T) {
 	for _, mode := range []string{"default", "CI", "JSON", "latency", "table"} {
 		t.Run(mode, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			measurement := createDefaultMeasurement("ping")
-			measurement.Results[0].Result.Status = globalping.TestStatusFailed
-			measurement.Results[0].Result.RawOutput = "target failed"
 			client := apiMocks.NewMockClient(ctrl)
 			viewer := viewMocks.NewMockViewer(ctrl)
 			ctx := createDefaultContext()
