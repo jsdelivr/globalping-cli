@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -13,7 +12,7 @@ import (
 func (r *Root) initDNS(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	dnsCmd := &cobra.Command{
 		RunE:    r.RunDNS,
-		Use:     "dns [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "dns [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Resolve DNS records, similar to the dig command",
 		Long: `The dns command (similar to the "dig" command) performs DNS lookups and displays the responses from the queried name servers, helping you troubleshoot DNS-related issues.
@@ -117,31 +116,5 @@ func (r *Root) RunDNS(cmd *cobra.Command, args []string) error {
 		opts.Options.IPVersion = globalping.IPVersion6
 	}
 
-	res, err := r.client.CreateMeasurement(ctx, opts)
-
-	if err != nil {
-		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
-		r.evaluateError(err)
-
-		return err
-	}
-
-	r.ctx.MeasurementsCreated++
-	hm := &view.HistoryItem{
-		Id:        res.ID,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: r.utils.Now(),
-	}
-	r.ctx.History.Push(hm)
-
-	if r.ctx.RecordToSession {
-		r.ctx.RecordToSession = false
-		err := r.storage.SaveIdToSession(res.ID)
-
-		if err != nil {
-			r.printer.Printf("Warning: %s\n", err)
-		}
-	}
-
-	return r.handleMeasurement(ctx, res.ID, opts)
+	return r.createAndHandleMeasurements(ctx, r.comparisonRequests(opts))
 }

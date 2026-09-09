@@ -280,7 +280,7 @@ func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
 
 	cmd := &cobra.Command{}
 
-	m, err := root.buildHttpMeasurementRequest(cmd)
+	m, err := root.buildHttpMeasurementRequest(cmd, ctx.Target)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -315,7 +315,7 @@ func Test_BuildHttpMeasurementRequest_FullHead(t *testing.T) {
 
 	cmd := &cobra.Command{}
 
-	m, err := root.buildHttpMeasurementRequest(cmd)
+	m, err := root.buildHttpMeasurementRequest(cmd, ctx.Target)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -348,7 +348,7 @@ func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 
 	cmd := &cobra.Command{}
 
-	m, err := root.buildHttpMeasurementRequest(cmd)
+	m, err := root.buildHttpMeasurementRequest(cmd, ctx.Target)
 	assert.NoError(t, err)
 
 	expectedM := &globalping.MeasurementCreate{
@@ -368,4 +368,51 @@ func Test_BuildHttpMeasurementRequest_HEAD(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedM, m)
+}
+
+func Test_BuildHttpMeasurementRequest_UsesTargetSpecificURLDefaults(t *testing.T) {
+	ctx := createDefaultContext()
+	ctx.Port = 443
+	root := NewRoot(view.NewPrinter(nil, nil, nil), ctx, nil, nil, nil, nil, nil)
+	cmd, _, err := root.Cmd.Find([]string{"http"})
+	assert.NoError(t, err)
+
+	first, err := root.buildHttpMeasurementRequest(cmd, "http://one.example/first?x=1")
+	assert.NoError(t, err)
+	second, err := root.buildHttpMeasurementRequest(cmd, "https://two.example/second?y=2")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "one.example", first.Target)
+	assert.Equal(t, "HTTP", first.Options.Protocol)
+	assert.Equal(t, uint16(80), first.Options.Port)
+	assert.Equal(t, "/first", first.Options.Request.Path)
+	assert.Equal(t, "x=1", first.Options.Request.Query)
+	assert.Equal(t, "two.example", second.Target)
+	assert.Equal(t, "HTTPS", second.Options.Protocol)
+	assert.Equal(t, uint16(443), second.Options.Port)
+	assert.Equal(t, "/second", second.Options.Request.Path)
+	assert.Equal(t, "y=2", second.Options.Request.Query)
+}
+
+func Test_BuildHttpMeasurementRequest_ExplicitFlagsOverrideEachURL(t *testing.T) {
+	ctx := createDefaultContext()
+	ctx.Protocol = "HTTP2"
+	ctx.Port = 9443
+	ctx.Path = "/override"
+	ctx.Query = "override=1"
+	root := NewRoot(view.NewPrinter(nil, nil, nil), ctx, nil, nil, nil, nil, nil)
+	cmd, _, err := root.Cmd.Find([]string{"http"})
+	assert.NoError(t, err)
+	assert.NoError(t, cmd.Flags().Set("protocol", "HTTP2"))
+	assert.NoError(t, cmd.Flags().Set("port", "9443"))
+
+	for _, target := range []string{"http://one.example:8080/first?x=1", "https://two.example:8443/second?y=2"} {
+		measurement, err := root.buildHttpMeasurementRequest(cmd, target)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "HTTP2", measurement.Options.Protocol)
+		assert.Equal(t, uint16(9443), measurement.Options.Port)
+		assert.Equal(t, "/override", measurement.Options.Request.Path)
+		assert.Equal(t, "override=1", measurement.Options.Request.Query)
+	}
 }

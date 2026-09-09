@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
 	"testing"
 
@@ -9,6 +10,106 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
+
+func Test_ParseTargets(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		input   string
+		want    []string
+		wantErr string
+	}{
+		{name: "single", input: " example.com ", want: []string{"example.com"}},
+		{name: "comparison whitespace", input: " first.example , second.example ", want: []string{"first.example", "second.example"}},
+		{name: "encoded comma", input: "https://example.com/a%2Cb", want: []string{"https://example.com/a%2Cb"}},
+		{name: "empty first", input: ",example.com", wantErr: "provided target is empty"},
+		{name: "empty second", input: "example.com,", wantErr: "provided target is empty"},
+		{name: "duplicate", input: "example.com,example.com", wantErr: "comparison targets must be distinct"},
+		{name: "too many", input: "one,two,three", wantErr: "maximum of two targets"},
+		{name: "URL comma", input: "https://example.com/a,b", want: []string{"https://example.com/a", "b"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			targets, err := parseTargets(test.input)
+
+			if test.wantErr != "" {
+				assert.ErrorContains(t, err, test.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.want, targets)
+		})
+	}
+}
+
+func Test_UpdateContext_ComparisonModes(t *testing.T) {
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+	os.Args = []string{"globalping", "ping", "one.example,two.example"}
+
+	for _, test := range []struct {
+		name    string
+		flags   map[string]string
+		wantErr string
+	}{
+		{name: "automatic table"},
+		{name: "explicit table", flags: map[string]string{"table": "true"}},
+		{name: "CI", flags: map[string]string{"ci": "true"}},
+		{name: "inactive flags", flags: map[string]string{"json": "false", "latency": "false", "infinite": "false"}},
+		{name: "table false", flags: map[string]string{"table": "false"}, wantErr: "table output cannot be disabled"},
+		{name: "JSON", flags: map[string]string{"json": "true"}, wantErr: "json flag is not supported"},
+		{name: "latency", flags: map[string]string{"latency": "true"}, wantErr: "latency flag is not supported"},
+		{name: "infinite", flags: map[string]string{"infinite": "true"}, wantErr: "infinite flag is not supported"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := createDefaultContext()
+			root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, nil, nil, nil, nil, nil)
+			cmd, _, err := root.Cmd.Find([]string{"ping"})
+			assert.NoError(t, err)
+
+			for name, value := range test.flags {
+				flags := cmd.Flags()
+
+				if flags.Lookup(name) == nil {
+					flags = root.Cmd.PersistentFlags()
+				}
+
+				assert.NoError(t, flags.Set(name, value))
+			}
+
+			err = root.updateContext(cmd, []string{"one.example,two.example"})
+
+			if test.wantErr != "" {
+				assert.ErrorContains(t, err, test.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.True(t, ctx.Comparison)
+			assert.True(t, ctx.Table)
+			assert.Equal(t, "one.example", ctx.Target)
+			assert.Equal(t, []string{"one.example", "two.example"}, ctx.Targets)
+		})
+	}
+}
+
+func Test_UpdateContext_ComparisonValidatesEveryTargetIPVersion(t *testing.T) {
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+	os.Args = []string{"globalping", "ping", "example.com,1.1.1.1"}
+
+	ctx := createDefaultContext()
+	ctx.Ipv4 = true
+	root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, nil, nil, nil, nil, nil)
+	cmd, _, err := root.Cmd.Find([]string{"ping"})
+	assert.NoError(t, err)
+
+	err = root.updateContext(cmd, []string{"example.com,1.1.1.1"})
+
+	assert.ErrorIs(t, err, ErrTargetIPVersionNotAllowed)
+	assert.True(t, isIPTarget("http", "https://[2001:db8::1]/path"))
+}
 
 func Test_UpdateContext(t *testing.T) {
 	for scenario, fn := range map[string]func(t *testing.T){
