@@ -416,6 +416,7 @@ func Test_Execute_Ping_Infinite(t *testing.T) {
 	expectedCtx := &view.Context{
 		Cmd:                 "ping",
 		Target:              "jsdelivr.com",
+		Targets:             []string{"jsdelivr.com"},
 		From:                "Berlin",
 		Limit:               1,
 		Packets:             16,
@@ -594,6 +595,35 @@ func Test_Execute_Ping_Infinite_Output_Error(t *testing.T) {
 		measurementID1,
 	)}
 	assert.Equal(t, expectedHistoryItems, items)
+}
+
+func Test_Execute_Ping_Infinite_AllProbesFailedExitsSuccessfully(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	expectedOpts := createDefaultMeasurementCreate("ping")
+	expectedOpts.Options.Packets = 16
+	expectedOpts.InProgressUpdates = true
+	client := apiMocks.NewMockClient(ctrl)
+	client.EXPECT().CreateMeasurement(gomock.Any(), expectedOpts).Return(createDefaultMeasurementCreateResponse(), nil)
+	measurement := createDefaultMeasurement("ping")
+	client.EXPECT().GetMeasurement(gomock.Any(), measurementID1).Return(measurement, nil)
+	viewer := viewMocks.NewMockViewer(ctrl)
+	viewer.EXPECT().OutputInfinite(measurement).Return("failed output", view.ErrAllProbesFailed)
+	viewer.EXPECT().OutputSummary(gomock.Any()).Times(0)
+	viewer.EXPECT().OutputShare()
+	utils := utilsMocks.NewMockUtils(ctrl)
+	utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	ctx := createDefaultContext()
+	storage := createDefaultTestStorage(t, utils)
+	w := new(bytes.Buffer)
+	root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewer, utils, client, nil, storage)
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+	os.Args = []string{"globalping", "ping", "jsdelivr.com", "--infinite", "from", "Berlin"}
+
+	err := root.Cmd.ExecuteContext(t.Context())
+
+	assert.NoError(t, err)
+	assert.Empty(t, w.String())
 }
 
 func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {

@@ -35,18 +35,12 @@ const (
 )
 
 type tableRenderOptions struct {
-	minimumWidths []int
+	minimumWidths    []int
+	httpStatusColumn int
 }
 
 func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error) {
 	v.ctx.TableOutputRows = 0
-
-	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
-	renderFailedTable := allProbesFailed && v.ctx.Table
-
-	if allProbesFailed && !renderFailedTable {
-		return "", v.outputFailSummary(measurement)
-	}
 
 	if measurement.Type == "ping" {
 		if err := validateFinishedPingStats(measurement); err != nil {
@@ -57,9 +51,30 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 	v.ctx.TableOutputRows = len(measurement.Results)
 	v.outputTableView(measurement)
 
-	if renderFailedTable {
-		return "", ErrAllProbesFailed
+	return "", nil
+}
+
+func (v *viewer) OutputComparisonTable(first, second *globalping.Measurement) (string, error) {
+	v.ctx.TableOutputRows = 2 * max(len(first.Results), len(second.Results))
+
+	if first.Type == "ping" {
+		if err := validateFinishedPingStats(first); err != nil {
+			return "", err
+		}
+
+		if err := validateFinishedPingStats(second); err != nil {
+			return "", err
+		}
 	}
+
+	width, height := v.printer.GetSize()
+	output := v.generateComparisonTable(first, second, width-2)
+
+	if first.Status == globalping.MeasurementStatusInProgress || second.Status == globalping.MeasurementStatusInProgress {
+		output = limitTableRows(output, height-1)
+	}
+
+	v.printer.AreaUpdate(&output)
 
 	return "", nil
 }
@@ -258,6 +273,69 @@ func (v *viewer) generateMeasurementTable(m *globalping.Measurement, areaWidth i
 	}
 
 	return v.renderMeasurementTable(rows, areaWidth, m.Type)
+}
+
+func (v *viewer) generateComparisonTable(first, second *globalping.Measurement, areaWidth int) string {
+	httpSize := httpComparisonSizeColumn(first, second)
+	header := tableHeader(first.Type, v.ctx.Trace, httpSize)
+	header = slices.Insert(header, 1, "Target")
+	rows := [][]string{header}
+	resultCount := max(len(first.Results), len(second.Results))
+
+	for i := range resultCount {
+		location := ""
+
+		if i < len(first.Results) {
+			location = getLocationText(&first.Results[i])
+		} else if i < len(second.Results) {
+			location = getLocationText(&second.Results[i])
+		}
+
+		rows = append(rows,
+			comparisonTableRow(first.Type, v.ctx.Trace, len(header)-1, first.Results, i, location, "T1", httpSize),
+			comparisonTableRow(second.Type, v.ctx.Trace, len(header)-1, second.Results, i, "", "T2", httpSize),
+		)
+	}
+
+	options := tableRenderOptions{httpStatusColumn: 2}
+
+	switch first.Type {
+	case "ping":
+		options.minimumWidths = []int{0, 6, 4, 7, 8, 8, 8, 8}
+	case "traceroute", "mtr":
+		options.minimumWidths = []int{0, 6, 4, 8, 8, 8, 8}
+	}
+
+	return v.renderTable(rows, areaWidth, first.Type, options)
+}
+
+func comparisonTableRow(
+	measurementType globalping.MeasurementType,
+	trace bool,
+	columns int,
+	results []globalping.ProbeMeasurement,
+	index int,
+	location string,
+	label string,
+	httpSize httpSizeColumn,
+) []string {
+	if index >= len(results) {
+		row := make([]string, columns+1)
+
+		for i := range row {
+			row[i] = "-"
+		}
+
+		row[0] = location
+		row[1] = label
+
+		return row
+	}
+
+	row := tableRow(measurementType, trace, columns, &results[index], httpSize)
+	row[0] = location
+
+	return slices.Insert(row, 1, label)
 }
 
 func tableHeader(measurementType globalping.MeasurementType, trace bool, httpSize httpSizeColumn) []string {
@@ -539,6 +617,22 @@ func httpTableSizeColumn(measurement *globalping.Measurement) httpSizeColumn {
 	return httpSizeNone
 }
 
+func httpComparisonSizeColumn(first, second *globalping.Measurement) httpSizeColumn {
+	if first.Type != "http" {
+		return httpSizeNone
+	}
+
+	if hasHTTPContentLength(first.Results) || hasHTTPContentLength(second.Results) {
+		return httpSizeContentLength
+	}
+
+	if hasHTTPBody(first.Results) || hasHTTPBody(second.Results) {
+		return httpSizeBytes
+	}
+
+	return httpSizeNone
+}
+
 func hasHTTPContentLength(results []globalping.ProbeMeasurement) bool {
 	for i := range results {
 		if results[i].Result.Status == globalping.TestStatusFinished {
@@ -731,7 +825,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	for rowIndex, row := range rows {
 		for column, value := range row {
 			if column < len(columnWidths) {
-				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == 1 {
+				if rowIndex > 0 && isSpanningRow(row, len(columnWidths)) && column == len(row)-1 {
 					continue
 				}
 
@@ -753,8 +847,14 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	var shrinkableColumns []int
 
 	if measurementType == "http" && len(rows[0]) > 1 {
+		statusColumn := options.httpStatusColumn
+
+		// Zero is the default for single-target tables, where Status is column 1.
+		if statusColumn == 0 {
+			statusColumn = 1
+		}
+
 		if tableWidth(columnWidths) > areaWidth {
-			statusColumn := 1
 			rows, columnWidths[statusColumn] = compactHTTPStatuses(rows, statusColumn, len(columnWidths))
 		}
 
@@ -778,45 +878,54 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			color = FGBrightCyan
 		}
 
-		location := normalizeTableLocation(strings.ReplaceAll(row[0], "\t", "  "))
-		location = truncateTableCell(location, columnWidths[0])
-		location = padTableCell(location, columnWidths[0], false)
+		spanning := isSpanningRow(row, len(columnWidths))
+		regularColumns := len(row)
 
-		if color != ColorNone {
-			location = v.printer.Color(location, color)
+		if spanning {
+			regularColumns--
 		}
 
-		output.WriteString(location)
-
-		if isSpanningRow(row, len(columnWidths)) {
-			output.WriteString(colSeparator)
-			value := fmt.Sprintf("--- %s ---", strings.ReplaceAll(row[1], "\t", "  "))
-			availableWidth := max(areaWidth-columnWidths[0]-runewidth.StringWidth(colSeparator), 0)
-			spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - 2)
-
-			for _, width := range columnWidths[1:] {
-				spanWidth += width
+		for column := range regularColumns {
+			if column > 0 {
+				output.WriteString(colSeparator)
 			}
 
-			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
-			value = truncateTableCell(value, spanWidth)
-			output.WriteString(centerTableCell(value, spanWidth))
-			output.WriteByte('\n')
-
-			continue
-		}
-
-		for column := 1; column < len(row); column++ {
-			output.WriteString(colSeparator)
 			value := strings.ReplaceAll(row[column], "\t", "  ")
+
+			if column == 0 {
+				value = normalizeTableLocation(value)
+			}
+
 			value = truncateTableCell(value, columnWidths[column])
-			value = padTableCell(value, columnWidths[column], true)
+			value = padTableCell(value, columnWidths[column], column > 0)
 
 			if color != ColorNone {
 				value = v.printer.Color(value, color)
 			}
 
 			output.WriteString(value)
+		}
+
+		if spanning {
+			spanStart := len(row) - 1
+			output.WriteString(colSeparator)
+			value := fmt.Sprintf("--- %s ---", strings.ReplaceAll(row[spanStart], "\t", "  "))
+			prefixWidth := runewidth.StringWidth(colSeparator) * spanStart
+
+			for _, width := range columnWidths[:spanStart] {
+				prefixWidth += width
+			}
+
+			availableWidth := max(areaWidth-prefixWidth, 0)
+			spanWidth := runewidth.StringWidth(colSeparator) * (len(columnWidths) - spanStart - 1)
+
+			for _, width := range columnWidths[spanStart:] {
+				spanWidth += width
+			}
+
+			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
+			value = truncateTableCell(value, spanWidth)
+			output.WriteString(centerTableCell(value, spanWidth))
 		}
 
 		output.WriteByte('\n')
@@ -846,7 +955,7 @@ func limitTableRows(output string, maxRows int) string {
 }
 
 func isSpanningRow(row []string, columns int) bool {
-	return columns > 2 && len(row) == 2
+	return columns > 2 && len(row) >= 2 && len(row) < columns
 }
 
 func tableWidth(columnWidths []int) int {

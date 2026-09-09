@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -14,7 +13,7 @@ import (
 func (r *Root) initMTR(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	mtrCmd := &cobra.Command{
 		RunE:    r.RunMTR,
-		Use:     "mtr [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "mtr [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Run a MTR test, which combines traceroute and ping",
 		Long: `The MTR command combines the functionalities of traceroute and ping, providing real-time insights into the sent packets' routes. Use it to diagnose network issues such as packet loss, latency, and route instability.
@@ -107,31 +106,5 @@ func (r *Root) RunMTR(cmd *cobra.Command, args []string) error {
 		opts.Options.IPVersion = globalping.IPVersion6
 	}
 
-	res, err := r.client.CreateMeasurement(ctx, opts)
-
-	if err != nil {
-		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
-		r.evaluateError(err)
-
-		return err
-	}
-
-	r.ctx.MeasurementsCreated++
-	hm := &view.HistoryItem{
-		Id:        res.ID,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: r.utils.Now(),
-	}
-	r.ctx.History.Push(hm)
-
-	if r.ctx.RecordToSession {
-		r.ctx.RecordToSession = false
-		err := r.storage.SaveIdToSession(res.ID)
-
-		if err != nil {
-			r.printer.Printf("Warning: %s\n", err)
-		}
-	}
-
-	return r.handleMeasurement(ctx, res.ID, opts)
+	return r.createAndHandleMeasurements(ctx, r.comparisonRequests(opts))
 }

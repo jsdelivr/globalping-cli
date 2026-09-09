@@ -140,6 +140,16 @@ Use "globalping [command] --help" for more information about a command.
 
 Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags.
 
+#### Compare two targets
+
+Pass two comma-separated targets to compare them from the same probes, comparisons accept exactly two distinct targets. Percent-encode a literal comma as `%2C`.
+
+```bash
+globalping ping jsdelivr.com,cloudflare.com from Berlin --limit 2
+```
+
+Comparison mode is incompatible with `--json`, `--latency`, and `--infinite`.
+
 #### Filter locations
 
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:

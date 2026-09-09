@@ -114,10 +114,6 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 				_, err = r.viewer.OutputTable(res)
 
 				if err != nil {
-					if errors.Is(err, view.ErrAllProbesFailed) {
-						r.Cmd.SilenceErrors = true
-					}
-
 					return err
 				}
 			}
@@ -181,6 +177,152 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 	return nil
 }
 
+func (r *Root) createAndHandleMeasurements(ctx context.Context, opts []*globalping.MeasurementCreate) error {
+	first, err := r.createMeasurement(ctx, opts[0])
+
+	if err != nil {
+		r.evaluateError(err)
+
+		return err
+	}
+
+	if len(opts) == 1 {
+		return r.handleMeasurement(ctx, first.Id, opts[0])
+	}
+
+	opts[1].Locations = globalping.PreviousMeasurementID(first.Id)
+	second, createErr := r.createMeasurement(ctx, opts[1])
+
+	if createErr != nil {
+		r.evaluateError(createErr)
+		displayErr := r.handleMeasurement(ctx, first.Id, opts[0])
+
+		if displayErr != nil && r.Cmd.SilenceErrors {
+			r.printer.ErrPrintf("Error: %v\n", displayErr)
+		}
+
+		return errors.Join(createErr, displayErr)
+	}
+
+	return r.handleComparisonMeasurements(ctx, first.Id, second.Id)
+}
+
+func (r *Root) createMeasurement(ctx context.Context, opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
+	res, err := r.client.CreateMeasurement(ctx, opts)
+
+	if err != nil {
+		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
+
+		return nil, err
+	}
+
+	r.ctx.MeasurementsCreated++
+	hm := &view.HistoryItem{
+		Id:        res.ID,
+		Status:    globalping.MeasurementStatusInProgress,
+		StartedAt: r.utils.Now(),
+	}
+	r.ctx.History.Push(hm)
+
+	if r.ctx.RecordToSession {
+		r.ctx.RecordToSession = false
+		err := r.storage.SaveIdToSession(res.ID)
+
+		if err != nil {
+			if r.ctx.Cmd == "ping" {
+				r.printer.ErrPrintf("Warning: %s\n", err)
+			} else {
+				r.printer.Printf("Warning: %s\n", err)
+			}
+		}
+	}
+
+	return hm, nil
+}
+
+func (r *Root) comparisonRequests(first *globalping.MeasurementCreate) []*globalping.MeasurementCreate {
+	requests := []*globalping.MeasurementCreate{first}
+
+	if !r.ctx.Comparison {
+		return requests
+	}
+
+	second := *first
+	second.Target = r.ctx.Targets[1]
+	second.Locations = nil
+
+	return append(requests, &second)
+}
+
+func (r *Root) handleComparisonMeasurements(ctx context.Context, firstID, secondID string) (err error) {
+	defer func() {
+		if err != nil {
+			r.Cmd.SilenceUsage = true
+		}
+	}()
+	defer r.viewer.OutputShare()
+
+	measurements := make([]*globalping.Measurement, 2)
+	states := make([]*measurementAwaitState, 2)
+	ids := []string{firstID, secondID}
+
+	for i, id := range ids {
+		startedAt := r.utils.Now()
+		measurements[i], err = r.client.GetMeasurement(ctx, id)
+
+		if err != nil {
+			return err
+		}
+
+		states[i] = newMeasurementAwaitState(id, startedAt, measurements[i].Timeout)
+	}
+
+	for {
+		inProgress := measurements[0].Status == globalping.MeasurementStatusInProgress ||
+			measurements[1].Status == globalping.MeasurementStatusInProgress
+
+		if !r.ctx.CIMode || !inProgress {
+			if _, err = r.viewer.OutputComparisonTable(measurements[0], measurements[1]); err != nil {
+				return err
+			}
+		}
+
+		if !inProgress {
+			return nil
+		}
+
+		for i := range measurements {
+			if measurements[i].Status == globalping.MeasurementStatusInProgress {
+				if err := states[i].checkTimeout(r.utils.Now()); err != nil {
+					return err
+				}
+			}
+		}
+
+		timer := time.NewTimer(r.ctx.APIMinInterval)
+
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+
+			return ctx.Err()
+		case <-timer.C:
+		}
+
+		for i, id := range ids {
+			if measurements[i].Status != globalping.MeasurementStatusInProgress {
+				continue
+			}
+
+			measurements[i], err = r.client.GetMeasurement(ctx, id)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
 func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	r.ctx.Cmd = cmd.CalledAs() // Get the command name
 
@@ -206,7 +348,29 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	r.ctx.Target = targetQuery.Target
+	r.ctx.Targets, err = parseTargets(targetQuery.Target)
+
+	if err != nil {
+		return err
+	}
+
+	r.ctx.Target = r.ctx.Targets[0]
+	r.ctx.Comparison = len(r.ctx.Targets) == 2
+
+	if r.ctx.Comparison {
+		switch {
+		case r.ctx.ToJSON:
+			return errors.New("the json flag is not supported when comparing targets")
+		case r.ctx.ToLatency:
+			return errors.New("the latency flag is not supported when comparing targets")
+		case r.ctx.Infinite:
+			return errors.New("the infinite flag is not supported when comparing targets")
+		case cmd.Flags().Changed("table") && !r.ctx.Table:
+			return errors.New("table output cannot be disabled when comparing targets")
+		}
+
+		r.ctx.Table = true
+	}
 
 	if r.ctx.Table {
 		r.ctx.ToLatency = false
@@ -222,8 +386,10 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.Ipv4 || r.ctx.Ipv6 {
-		if net.ParseIP(r.ctx.Target) != nil {
-			return ErrTargetIPVersionNotAllowed
+		for _, target := range r.ctx.Targets {
+			if isIPTarget(r.ctx.Cmd, target) {
+				return ErrTargetIPVersionNotAllowed
+			}
 		}
 
 		if r.ctx.Resolver != "" && net.ParseIP(r.ctx.Resolver) != nil {
@@ -272,6 +438,48 @@ func (r *Root) updateContext(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func isIPTarget(command, target string) bool {
+	if net.ParseIP(target) != nil {
+		return true
+	}
+
+	if command != "http" {
+		return false
+	}
+
+	urlData, err := parseUrlData(target)
+
+	return err == nil && net.ParseIP(urlData.Host) != nil
+}
+
+func parseTargets(input string) ([]string, error) {
+	parts := strings.Split(input, ",")
+
+	if len(parts) > 2 {
+		return nil, errors.New("a maximum of two targets is supported")
+	}
+
+	targets := make([]string, len(parts))
+	seen := map[string]struct{}{}
+
+	for i, part := range parts {
+		target := strings.TrimSpace(part)
+
+		if target == "" {
+			return nil, errors.New("provided target is empty")
+		}
+
+		if _, ok := seen[target]; ok {
+			return nil, errors.New("comparison targets must be distinct")
+		}
+
+		seen[target] = struct{}{}
+		targets[i] = target
+	}
+
+	return targets, nil
 }
 
 func (r *Root) getLocations() (globalping.LocationSelection, error) {

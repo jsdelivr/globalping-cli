@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -18,7 +16,7 @@ import (
 func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	httpCmd := &cobra.Command{
 		RunE:    r.RunHTTP,
-		Use:     "http [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "http [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Perform a HEAD, GET, or OPTIONS request to a host",
 		Long: `The http command sends an HTTP request to a host and can perform a HEAD, GET, or OPTIONS operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.
@@ -107,13 +105,17 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	}()
 	r.ctx.RecordToSession = true
 
-	opts, err := r.buildHttpMeasurementRequest(cmd)
+	opts := make([]*globalping.MeasurementCreate, len(r.ctx.Targets))
 
-	if err != nil {
-		return err
+	for i, target := range r.ctx.Targets {
+		opts[i], err = r.buildHttpMeasurementRequest(cmd, target)
+
+		if err != nil {
+			return err
+		}
 	}
 
-	opts.Locations, err = r.getLocations()
+	opts[0].Locations, err = r.getLocations()
 
 	if err != nil {
 		cmd.SilenceUsage = true
@@ -122,51 +124,29 @@ func (r *Root) RunHTTP(cmd *cobra.Command, args []string) error {
 	}
 
 	if r.ctx.Ipv4 {
-		opts.Options.IPVersion = globalping.IPVersion4
+		for _, opts := range opts {
+			opts.Options.IPVersion = globalping.IPVersion4
+		}
 	} else if r.ctx.Ipv6 {
-		opts.Options.IPVersion = globalping.IPVersion6
-	}
-
-	res, err := r.client.CreateMeasurement(ctx, opts)
-
-	if err != nil {
-		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
-		r.evaluateError(err)
-
-		return err
-	}
-
-	r.ctx.MeasurementsCreated++
-	hm := &view.HistoryItem{
-		Id:        res.ID,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: r.utils.Now(),
-	}
-	r.ctx.History.Push(hm)
-
-	if r.ctx.RecordToSession {
-		r.ctx.RecordToSession = false
-		err := r.storage.SaveIdToSession(res.ID)
-
-		if err != nil {
-			r.printer.Printf("Warning: %s\n", err)
+		for _, opts := range opts {
+			opts.Options.IPVersion = globalping.IPVersion6
 		}
 	}
 
-	return r.handleMeasurement(ctx, res.ID, opts)
+	return r.createAndHandleMeasurements(ctx, opts)
 }
 
 const PostMeasurementTypeHttp = "http"
 
 // buildHttpMeasurementRequest builds the measurement request for the http type
-func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.MeasurementCreate, error) {
+func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command, target string) (*globalping.MeasurementCreate, error) {
 	opts := &globalping.MeasurementCreate{
 		Type:              PostMeasurementTypeHttp,
 		Limit:             r.ctx.Limit,
 		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 	}
-	urlData, err := parseUrlData(r.ctx.Target)
+	urlData, err := parseUrlData(target)
 
 	if err != nil {
 		return nil, err
@@ -203,15 +183,16 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command) (*globalping.Meas
 		opts.Options.Protocol = r.ctx.Protocol
 	}
 
-	if urlData.HasPort {
-		portFlag := cmd.Flag("port")
+	portFlag := cmd.Flag("port")
 
-		if portFlag != nil && portFlag.Changed {
-			opts.Options.Port = r.ctx.Port
-		} else {
-			opts.Options.Port = urlData.Port
-		}
-	} else {
+	switch {
+	case portFlag != nil && portFlag.Changed:
+		opts.Options.Port = r.ctx.Port
+	case urlData.HasPort:
+		opts.Options.Port = urlData.Port
+	case opts.Options.Protocol == "HTTP":
+		opts.Options.Port = 80
+	default:
 		opts.Options.Port = r.ctx.Port
 	}
 
@@ -263,18 +244,8 @@ func parseUrlData(input string) (*UrlData, error) {
 	urlData.Path = u.Path
 	urlData.Query = u.RawQuery
 
-	h, p, err := net.SplitHostPort(u.Host)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "missing port in address") {
-			// u.Host is not in the format "host:port"
-			h = u.Host
-		} else {
-			return nil, errors.Wrapf(err, "failed to parse url host/port")
-		}
-	}
-
-	urlData.Host = h
+	urlData.Host = u.Hostname()
+	p := u.Port()
 
 	if p != "" {
 		// parse port if present

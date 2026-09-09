@@ -18,7 +18,7 @@ import (
 func (r *Root) initPing(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	pingCmd := &cobra.Command{
 		RunE:    r.RunPing,
-		Use:     "ping [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "ping [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Perform a ping test",
 		Long: `The ping command checks a target's reachability by sending small data packets. Use it to test network latency and stability, as well as obtain information about packet loss and round-trip times.
@@ -126,15 +126,7 @@ func (r *Root) RunPing(cmd *cobra.Command, args []string) error {
 		return r.pingInfinite(ctx, opts)
 	}
 
-	hm, err := r.createMeasurement(ctx, opts)
-
-	if err != nil {
-		r.evaluateError(err)
-
-		return err
-	}
-
-	return r.handleMeasurement(ctx, hm.Id, opts)
+	return r.createAndHandleMeasurements(ctx, r.comparisonRequests(opts))
 }
 
 func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCreate) error {
@@ -171,7 +163,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	}
 
 	if errors.Is(err, view.ErrAllProbesFailed) {
-		r.Cmd.SilenceErrors = true
+		err = nil
 	}
 
 	r.evaluateError(err)
@@ -310,35 +302,6 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 
 		mbuf.Append(hm)
 	}
-}
-
-func (r *Root) createMeasurement(ctx context.Context, opts *globalping.MeasurementCreate) (*view.HistoryItem, error) {
-	res, err := r.client.CreateMeasurement(ctx, opts)
-
-	if err != nil {
-		r.Cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
-
-		return nil, err
-	}
-
-	r.ctx.MeasurementsCreated++
-	hm := &view.HistoryItem{
-		Id:        res.ID,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: r.utils.Now(),
-	}
-	r.ctx.History.Push(hm)
-
-	if r.ctx.RecordToSession {
-		r.ctx.RecordToSession = false
-		err := r.storage.SaveIdToSession(res.ID)
-
-		if err != nil {
-			r.printer.ErrPrintf("Warning: %s\n", err)
-		}
-	}
-
-	return hm, nil
 }
 
 type MeasurementsBuffer struct {

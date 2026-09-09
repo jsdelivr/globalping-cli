@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -14,7 +13,7 @@ import (
 func (r *Root) initTraceroute(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	var tracerouteCmd = &cobra.Command{
 		RunE:    r.RunTraceroute,
-		Use:     "traceroute [target] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "traceroute [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Run a traceroute test",
 		Long: `The traceroute command traces the path packets take to reach a target, displaying each hop along the way, including its round-trip time. Use it to troubleshoot network connectivity issues and identify latency problems.
@@ -108,31 +107,5 @@ func (r *Root) RunTraceroute(cmd *cobra.Command, args []string) error {
 		opts.Options.IPVersion = globalping.IPVersion6
 	}
 
-	res, err := r.client.CreateMeasurement(ctx, opts)
-
-	if err != nil {
-		cmd.SilenceUsage = silenceUsageOnCreateMeasurementError(err)
-		r.evaluateError(err)
-
-		return err
-	}
-
-	r.ctx.MeasurementsCreated++
-	hm := &view.HistoryItem{
-		Id:        res.ID,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: r.utils.Now(),
-	}
-	r.ctx.History.Push(hm)
-
-	if r.ctx.RecordToSession {
-		r.ctx.RecordToSession = false
-		err := r.storage.SaveIdToSession(res.ID)
-
-		if err != nil {
-			r.printer.Printf("Warning: %s\n", err)
-		}
-	}
-
-	return r.handleMeasurement(ctx, res.ID, opts)
+	return r.createAndHandleMeasurements(ctx, r.comparisonRequests(opts))
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/jsdelivr/globalping-cli/view"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -102,6 +103,31 @@ func Test_Execute_History_Empty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "No history items found\n", stdout.String())
 	assert.Empty(t, stderr.String())
+}
+
+func Test_UpdateHistory_ComparisonUsesCommaDelimiter(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	utilsMock := utilsMocks.NewMockUtils(ctrl)
+	utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+	ctx := createDefaultContext()
+	ctx.Comparison = true
+	ctx.History = view.NewHistoryBuffer(2)
+	ctx.History.Push(&view.HistoryItem{Id: measurementID1})
+	ctx.History.Push(&view.HistoryItem{Id: measurementID2})
+	storage := createDefaultTestStorage(t, utilsMock)
+	root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, nil, utilsMock, nil, nil, storage)
+	oldArgs := os.Args
+	t.Cleanup(func() { os.Args = oldArgs })
+	os.Args = []string{"globalping", "ping", "one.example,two.example"}
+
+	err := root.UpdateHistory()
+
+	require.NoError(t, err)
+	history, err := storage.GetHistory(0)
+	require.NoError(t, err)
+	require.Len(t, history, 1)
+	assert.Contains(t, history[0], "measurement="+measurementID1+","+measurementID2)
+	assert.NotContains(t, history[0], "&display=table")
 }
 
 func Test_Execute_History_ForwardScannerError(t *testing.T) {
