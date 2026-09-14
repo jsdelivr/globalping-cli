@@ -13,7 +13,7 @@ import (
 func (r *Root) initTraceroute(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	var tracerouteCmd = &cobra.Command{
 		RunE:    r.RunTraceroute,
-		Use:     "traceroute [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "traceroute [target1[, target2] | target1 target2] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Run a traceroute test",
 		Long: `The traceroute command traces the path packets take to reach a target, displaying each hop along the way, including its round-trip time. Use it to troubleshoot network connectivity issues and identify latency problems.

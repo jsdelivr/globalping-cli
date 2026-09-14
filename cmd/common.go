@@ -569,10 +569,22 @@ func parseTargetQuery(cmd string, args []string) (*TargetQuery, error) {
 	}
 
 	targetQuery.Target = argsWithoutResolver[0]
+	fromIndex := 1
 
-	if len(argsWithoutResolver) > 1 {
-		if argsWithoutResolver[1] == "from" {
-			targetQuery.From = strings.TrimSpace(strings.Join(argsWithoutResolver[2:], " "))
+	if len(argsWithoutResolver) > 1 && argsWithoutResolver[1] != "from" {
+		separator := ","
+
+		if strings.HasSuffix(targetQuery.Target, ",") || strings.HasPrefix(argsWithoutResolver[1], ",") {
+			separator = ""
+		}
+
+		targetQuery.Target += separator + argsWithoutResolver[1]
+		fromIndex++
+	}
+
+	if len(argsWithoutResolver) > fromIndex {
+		if argsWithoutResolver[fromIndex] == "from" {
+			targetQuery.From = strings.TrimSpace(strings.Join(argsWithoutResolver[fromIndex+1:], " "))
 		} else {
 			return nil, errors.New("invalid command format")
 		}

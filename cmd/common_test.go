@@ -303,6 +303,54 @@ func Test_ParseTargetQuery_TargetFromXWithResolver(t *testing.T) {
 	assert.Equal(t, TargetQuery{Target: "example.com", From: "London", Resolver: "1.1.1.1"}, *q)
 }
 
+func Test_ParseTargetQuery_ComparisonTargetSyntax(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		args    []string
+		want    TargetQuery
+		wantErr string
+	}{
+		{
+			name: "whitespace separated",
+			args: []string{"one.example", "two.example"},
+			want: TargetQuery{Target: "one.example,two.example"},
+		},
+		{
+			name: "comma and whitespace separated",
+			args: []string{"one.example,", "two.example"},
+			want: TargetQuery{Target: "one.example,two.example"},
+		},
+		{
+			name: "whitespace separated with location",
+			args: []string{"one.example", "two.example", "from", "New", "York"},
+			want: TargetQuery{Target: "one.example,two.example", From: "New York"},
+		},
+		{
+			name: "comma and whitespace separated with location",
+			args: []string{"one.example,", "two.example", "from", "New", "York"},
+			want: TargetQuery{Target: "one.example,two.example", From: "New York"},
+		},
+		{
+			name:    "unexpected third target",
+			args:    []string{"one.example", "two.example", "three.example"},
+			wantErr: "invalid command format",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			q, err := parseTargetQuery("ping", test.args)
+
+			if test.wantErr != "" {
+				assert.ErrorContains(t, err, test.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.want, *q)
+		})
+	}
+}
+
 func Test_FindAndRemoveResolver_SimpleNoResolver(t *testing.T) {
 	args := []string{"example.com"}
 

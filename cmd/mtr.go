@@ -13,7 +13,7 @@ import (
 func (r *Root) initMTR(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	mtrCmd := &cobra.Command{
 		RunE:    r.RunMTR,
-		Use:     "mtr [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "mtr [target1[, target2] | target1 target2] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Run a MTR test, which combines traceroute and ping",
 		Long: `The MTR command combines the functionalities of traceroute and ping, providing real-time insights into the sent packets' routes. Use it to diagnose network issues such as packet loss, latency, and route instability.

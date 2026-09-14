@@ -12,7 +12,7 @@ import (
 func (r *Root) initDNS(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	dnsCmd := &cobra.Command{
 		RunE:    r.RunDNS,
-		Use:     "dns [target[,target]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "dns [target1[, target2] | target1 target2] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Resolve DNS records, similar to the dig command",
 		Long: `The dns command (similar to the "dig" command) performs DNS lookups and displays the responses from the queried name servers, helping you troubleshoot DNS-related issues.
