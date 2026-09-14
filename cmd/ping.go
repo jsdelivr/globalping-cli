@@ -18,7 +18,7 @@ import (
 func (r *Root) initPing(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	pingCmd := &cobra.Command{
 		RunE:    r.RunPing,
-		Use:     "ping [target1[, target2] | target1 target2] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "ping [target1[, target2]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Perform a ping test",
 		Long: `The ping command checks a target's reachability by sending small data packets. Use it to test network latency and stability, as well as obtain information about packet loss and round-trip times.

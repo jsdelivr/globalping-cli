@@ -16,7 +16,7 @@ import (
 func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagSet) {
 	httpCmd := &cobra.Command{
 		RunE:    r.RunHTTP,
-		Use:     "http [target1[, target2] | target1 target2] from [location | measurement ID | @1 | first | @-1 | last | previous]",
+		Use:     "http [target1[, target2]] from [location | measurement ID | @1 | first | @-1 | last | previous]",
 		GroupID: "Measurements",
 		Short:   "Perform a HEAD, GET, or OPTIONS request to a host",
 		Long: `The http command sends an HTTP request to a host and can perform a HEAD, GET, or OPTIONS operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.

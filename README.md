@@ -142,12 +142,10 @@ Globalping relies on a community-hosted probe network, enabling you to run netwo
 
 #### Compare two targets
 
-Pass two targets separated by a comma or whitespace to compare them from the same probes. Spaces after the comma are also accepted. Comparisons accept exactly two distinct targets. Percent-encode a literal comma as `%2C`.
+Pass two targets separated by a comma to compare them from the same probes. A space after the comma is optional. Comparisons accept exactly two distinct targets. Percent-encode a literal comma as `%2C`.
 
 ```bash
-globalping ping jsdelivr.com,cloudflare.com from Berlin --limit 2
 globalping ping jsdelivr.com, cloudflare.com from Berlin --limit 2
-globalping http https://example.com/a%2Cb https://example.org from Berlin --limit 2
 ```
 
 Comparison mode is incompatible with `--json`, `--latency`, and `--infinite`.
