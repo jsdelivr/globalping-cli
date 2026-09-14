@@ -23,6 +23,7 @@
   * [Get started with Globalping CLI](#get-started-with-globalping-cli)
   * [Filter locations](#filter-locations)
   * [Define multiple locations and basic flags](#define-multiple-locations-and-basic-flags)
+  * [Compare two targets](#compare-two-targets)
   * [Share results online](#share-results-online)
   * [Authenticate](#authenticate)
   * [Reselect probes](#reselect-probes)
@@ -140,16 +141,6 @@ Use "globalping [command] --help" for more information about a command.
 
 Globalping relies on a community-hosted probe network, enabling you to run network tests from any location with an active probe. The following examples show you through some tests, exploring how to define locations, set limits, and use some command flags.
 
-#### Compare two targets
-
-Pass two targets separated by a comma or whitespace to compare them from the same probes. Comparisons accept exactly two distinct targets. Percent-encode a literal comma as `%2C`.
-
-```bash
-globalping ping jsdelivr.com, cloudflare.com from Berlin --limit 2
-```
-
-Comparison mode is incompatible with `--json`, `--latency`, and `--infinite`.
-
 #### Filter locations
 
 For example, if you want to run ping from a probe in Seattle that is also part of the Comcast network, run the following:
@@ -206,6 +197,17 @@ Finally, you can use the `--latency` parameter to only get the summarized latenc
 
 > [!TIP]
 > We recommend reading our [tips and best practices](https://github.com/jsdelivr/globalping#best-practices-and-tips) to learn more about defining locations effectively!
+
+#### Compare two targets
+
+Pass two targets separated by a comma or whitespace to compare them from the same probes. Comparisons accept exactly two distinct targets. Percent-encode a literal comma as `%2C`.
+
+```bash
+globalping ping jsdelivr.com, cloudflare.com from Berlin --limit 2
+```
+
+Comparison mode is incompatible with `--json`, `--latency`, and `--infinite`.
+
 
 #### Share results online
 
