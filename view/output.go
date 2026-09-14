@@ -124,7 +124,7 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 func (v *viewer) getShareMessage(id string) string {
 	shareURL := utils.ShareURL + id
 
-	if v.ctx.Table {
+	if v.ctx.Table && !v.ctx.Comparison {
 		shareURL += "&display=table"
 	}
 

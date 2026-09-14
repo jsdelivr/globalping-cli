@@ -6,16 +6,18 @@ import (
 )
 
 type Context struct {
-	Cmd       string
-	Target    string
-	From      string
-	Limit     int  // Number of probes to use
-	Timeout   int  // Probe-side measurement timeout in seconds
-	CIMode    bool // Determine whether the output should be in a format that is easy to parse by a CI tool
-	ToJSON    bool // Determines whether the output should be in JSON format.
-	ToLatency bool // Determines whether the output should be only the stats of a measurement
-	Table     bool // Display measurement results in a table
-	Share     bool // Display share message
+	Cmd        string
+	Target     string
+	Targets    []string
+	Comparison bool
+	From       string
+	Limit      int  // Number of probes to use
+	Timeout    int  // Probe-side measurement timeout in seconds
+	CIMode     bool // Determine whether the output should be in a format that is easy to parse by a CI tool
+	ToJSON     bool // Determines whether the output should be in JSON format.
+	ToLatency  bool // Determines whether the output should be only the stats of a measurement
+	Table      bool // Display measurement results in a table
+	Share      bool // Display share message
 
 	Packets   int // Number of packets to send
 	Port      uint16

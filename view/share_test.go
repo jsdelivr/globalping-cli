@@ -65,6 +65,28 @@ func Test_OutputShare(t *testing.T) {
 		assert.Equal(t, expectedOutput, errw.String())
 	})
 
+	t.Run("Comparison", func(t *testing.T) {
+		ctx := createDefaultContext("ping")
+		ctx.History = NewHistoryBuffer(2)
+		ctx.History.Push(&HistoryItem{Id: measurementID1})
+		ctx.History.Push(&HistoryItem{Id: measurementID2})
+		ctx.Comparison = true
+		ctx.Table = true
+		ctx.Share = true
+		w := new(bytes.Buffer)
+		errw := new(bytes.Buffer)
+		printer := NewPrinter(nil, w, errw)
+		printer.DisableStyling()
+		viewer := NewViewer(ctx, printer, nil)
+
+		viewer.OutputShare()
+
+		assert.Equal(t,
+			"> View the results online: https://globalping.io?measurement="+measurementID1+","+measurementID2+"\n",
+			errw.String(),
+		)
+	})
+
 	t.Run("Multiple_locations_More_calls_than_MaxHistory", func(t *testing.T) {
 		history := NewHistoryBuffer(1)
 		history.Push(&HistoryItem{Id: measurementID2})

@@ -767,8 +767,7 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 
 			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 7)
 
-			require.EqualError(t, err, "all probes failed")
-			assert.ErrorIs(t, err, ErrAllProbesFailed)
+			require.NoError(t, err)
 			assert.Equal(t, 2, ctx.TableOutputRows)
 
 			var expectedRows [][]string
@@ -800,6 +799,156 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 				"Berlin, DE, EU, Failed Network (AS64500)", "Target error")
 		})
 	}
+}
+
+func Test_OutputComparisonTable_AllSchemasGroupTargetsWithoutLeakingNames(t *testing.T) {
+	for _, test := range []struct {
+		measurementType globalping.MeasurementType
+		header          []string
+		trace           bool
+	}{
+		{measurementType: "ping", header: []string{"Location", "Target", "Sent", "Loss", "Last", "Min", "Avg", "Max"}},
+		{measurementType: "traceroute", header: []string{"Location", "Target", "Hops", "Last", "Min", "Avg", "Max"}},
+		{measurementType: "mtr", header: []string{"Location", "Target", "Hops", "Last", "Min", "Avg", "Max"}},
+		{measurementType: "dns", header: []string{"Location", "Target", "Status", "Answers", "Time", "Resolver"}},
+		{measurementType: "http", header: []string{"Location", "Target", "Status", "Total", "Resolved IP"}},
+	} {
+		t.Run(string(test.measurementType), func(t *testing.T) {
+			firstResult := tableProbe("Berlin", "DE", "First Network", globalping.TestStatusOffline)
+			secondResult := tableProbe("Paris", "FR", "Second Network", globalping.TestStatusInProgress)
+			first := tableMeasurement(test.measurementType, firstResult)
+			second := tableMeasurement(test.measurementType, secondResult)
+			second.ID = measurementID2
+			second.Status = globalping.MeasurementStatusInProgress
+			ctx := createDefaultContext(string(test.measurementType))
+			ctx.Cmd = string(test.measurementType)
+			ctx.Table = true
+			ctx.CIMode = true
+			ctx.Targets = []string{"private-first.example", "private-second.example"}
+			w := new(bytes.Buffer)
+			printer := NewPrinter(nil, w, w)
+			printer.DisableStyling()
+			viewer := NewViewer(ctx, printer, nil)
+
+			_, err := viewer.OutputComparisonTable(first, second)
+
+			require.NoError(t, err)
+			output := w.String()
+			require.NotContains(t, output, "\x1b")
+			assert.NotContains(t, output, "private-first.example")
+			assert.NotContains(t, output, "private-second.example")
+			lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+			require.Len(t, lines, 3)
+			cells := func(line string) []string {
+				parts := strings.Split(line, colSeparator)
+
+				for i := range parts {
+					parts[i] = strings.TrimSpace(parts[i])
+				}
+
+				return parts
+			}
+			assert.Equal(t, test.header, cells(lines[0]))
+			assert.Equal(t, "Berlin, DE, EU, First Network (AS64500)", cells(lines[1])[0])
+			assert.Equal(t, "T1", cells(lines[1])[1])
+			assert.Empty(t, cells(lines[2])[0])
+			assert.Equal(t, "T2", cells(lines[2])[1])
+			assert.Equal(t, 2, ctx.TableOutputRows)
+		})
+	}
+}
+
+func Test_GenerateComparisonTable_PreservesTargetLabelForFailuresAndMissingResults(t *testing.T) {
+	failed := tableProbe("Berlin", "DE", "Failed Network", globalping.TestStatusFailed)
+	failed.Result.FailureSource = globalping.FailureSourceTarget
+	first := tableMeasurement("ping", failed)
+	second := tableMeasurement("ping")
+	ctx := createDefaultContext("ping")
+	ctx.Cmd = "ping"
+	printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
+	printer.DisableStyling()
+	v := &viewer{ctx: ctx, printer: printer}
+
+	output := v.generateComparisonTable(first, second, 500)
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+
+	require.Len(t, lines, 3)
+	firstParts := strings.Split(lines[1], colSeparator)
+	require.Len(t, firstParts, 3)
+	assert.Equal(t, "T1", strings.TrimSpace(firstParts[1]))
+	assert.Contains(t, firstParts[2], "Target error")
+	secondParts := strings.Split(lines[2], colSeparator)
+	require.Len(t, secondParts, 8)
+	assert.Equal(t, "T2", strings.TrimSpace(secondParts[1]))
+	assert.Equal(t, []string{"-", "-", "-", "-", "-", "-"}, trimCellsForTest(secondParts[2:]))
+
+	orphan := limitTableRows(output, 1)
+	assert.Equal(t, lines[2]+"\n", orphan)
+}
+
+func Test_GenerateComparisonTable_HTTPSizeColumnUsesBothMeasurements(t *testing.T) {
+	firstResult := tableProbe("Berlin", "DE", "First Network", globalping.TestStatusFinished)
+	firstResult.Result.RawOutput = "HTTP/1.1 200 OK\r\n\r\nbody"
+	secondResult := tableProbe("Berlin", "DE", "First Network", globalping.TestStatusFinished)
+	secondResult.Result.HeadersRaw = json.RawMessage(`{"Content-Length":"12"}`)
+	first := tableMeasurement("http", firstResult)
+	second := tableMeasurement("http", secondResult)
+	ctx := createDefaultContext("http")
+	printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
+	printer.DisableStyling()
+	v := &viewer{ctx: ctx, printer: printer}
+
+	output := v.generateComparisonTable(first, second, 500)
+
+	header := strings.Split(strings.Split(strings.TrimSuffix(output, "\n"), "\n")[0], colSeparator)
+	assert.Equal(t, "Content-Length", strings.TrimSpace(header[3]))
+}
+
+func Test_GenerateComparisonTable_NarrowHTTPKeepsTargetAndShiftedStatusColumns(t *testing.T) {
+	resolved := "2001:db8:1234:5678:90ab:cdef:1234:5678"
+	firstResult := tableProbe("A very long city name", "DE", "A very long network name", globalping.TestStatusFinished)
+	firstResult.Result.StatusCode = 599
+	firstResult.Result.StatusCodeName = "An unusually long status name"
+	firstResult.Result.HeadersRaw = json.RawMessage(`{"Content-Length":"123456789"}`)
+	firstResult.Result.TimingsRaw = json.RawMessage(`{"total":123}`)
+	firstResult.Result.ResolvedAddress = &resolved
+	secondResult := tableProbe("A very long city name", "DE", "A very long network name", globalping.TestStatusFailed)
+	secondResult.Result.FailureSource = globalping.FailureSourceTarget
+	first := tableMeasurement("http", firstResult)
+	second := tableMeasurement("http", secondResult)
+	ctx := createDefaultContext("http")
+	printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
+	printer.DisableStyling()
+	v := &viewer{ctx: ctx, printer: printer}
+	const areaWidth = 72
+
+	output := v.generateComparisonTable(first, second, areaWidth)
+	lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+
+	require.Len(t, lines, 3)
+
+	for i, line := range lines {
+		assert.LessOrEqual(t, runewidth.StringWidth(line), areaWidth, "line %d exceeds the requested width", i+1)
+	}
+
+	headerOffsets := displaySeparatorOffsetsForTest(lines[0])
+	firstOffsets := displaySeparatorOffsetsForTest(lines[1])
+	secondOffsets := displaySeparatorOffsetsForTest(lines[2])
+	assert.Equal(t, headerOffsets, firstOffsets)
+	require.Len(t, secondOffsets, 2)
+	assert.Equal(t, headerOffsets[:2], secondOffsets)
+
+	firstCells := trimCellsForTest(strings.Split(lines[1], colSeparator))
+	require.Len(t, firstCells, 6)
+	assert.Equal(t, "T1", firstCells[1])
+	assert.Equal(t, "599", firstCells[2], "HTTP status compaction must use the column after Target")
+	secondCells := strings.Split(lines[2], colSeparator)
+	require.Len(t, secondCells, 3)
+	assert.Equal(t, "T2", strings.TrimSpace(secondCells[1]))
+	assert.Equal(t, "--- Target error ---", strings.TrimSpace(secondCells[2]))
+	leftPadding := runewidth.StringWidth(secondCells[2]) - runewidth.StringWidth(strings.TrimLeft(secondCells[2], " "))
+	rightPadding := runewidth.StringWidth(secondCells[2]) - runewidth.StringWidth(strings.TrimRight(secondCells[2], " "))
+	assert.InDelta(t, leftPadding, rightPadding, 1)
 }
 
 func tableMeasurement(measurementType globalping.MeasurementType, results ...globalping.ProbeMeasurement) *globalping.Measurement {

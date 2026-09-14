@@ -65,7 +65,13 @@ func (r *Root) RunHistory(_ *cobra.Command, _ []string) error {
 }
 
 func (r *Root) UpdateHistory() error {
-	ids := r.ctx.History.ToString(".")
+	separator := "."
+
+	if r.ctx.Comparison {
+		separator = ","
+	}
+
+	ids := r.ctx.History.ToString(separator)
 
 	if ids == "" {
 		return nil

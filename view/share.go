@@ -13,7 +13,13 @@ func (v *viewer) OutputShare() {
 		v.printer.ErrPrintln() // Add a newline in table view
 	}
 
-	ids := v.ctx.History.ToString(".")
+	separator := "."
+
+	if v.ctx.Comparison {
+		separator = ","
+	}
+
+	ids := v.ctx.History.ToString(separator)
 
 	if ids != "" {
 		v.printer.ErrPrintln(v.getShareMessage(ids))

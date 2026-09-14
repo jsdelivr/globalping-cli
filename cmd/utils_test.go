@@ -133,6 +133,7 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 	ctx := &view.Context{
 		Cmd:                 cmd,
 		Target:              "jsdelivr.com",
+		Targets:             []string{"jsdelivr.com"},
 		From:                "Berlin",
 		Limit:               1,
 		CIMode:              true,

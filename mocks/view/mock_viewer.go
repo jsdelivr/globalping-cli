@@ -39,6 +39,21 @@ func (m *MockViewer) EXPECT() *MockViewerMockRecorder {
 	return m.recorder
 }
 
+// OutputComparisonTable mocks base method.
+func (m *MockViewer) OutputComparisonTable(first, second *globalping.Measurement) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OutputComparisonTable", first, second)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// OutputComparisonTable indicates an expected call of OutputComparisonTable.
+func (mr *MockViewerMockRecorder) OutputComparisonTable(first, second any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputComparisonTable", reflect.TypeOf((*MockViewer)(nil).OutputComparisonTable), first, second)
+}
+
 // OutputDefault mocks base method.
 func (m *MockViewer) OutputDefault(id string, measurement *globalping.Measurement, opts *globalping.MeasurementCreate) {
 	m.ctrl.T.Helper()
