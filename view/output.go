@@ -183,7 +183,7 @@ func resultStatusLabel(result *globalping.ProbeResult) string {
 func (v *viewer) getShareMessage(id string) string {
 	shareURL := utils.ShareURL + id
 
-	if v.ctx.Table {
+	if v.ctx.Table && !v.ctx.Comparison {
 		shareURL += "&display=table"
 	}
 

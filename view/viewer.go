@@ -8,6 +8,7 @@ type Viewer interface {
 	OutputLatency(id string, measurement *globalping.Measurement) error
 	OutputInfinite(output *InfinitePingOutput) (string, error)
 	OutputTable(measurement *globalping.Measurement) (string, error)
+	OutputComparisonTable(first, second *globalping.Measurement) (string, error)
 	OutputLive(measurement *globalping.Measurement, opts *globalping.MeasurementCreate, w, h int)
 	OutputPingSummary(infiniteTableOutput string, summary *PingSummary)
 	OutputShare()
