@@ -41,13 +41,6 @@ type tableRenderOptions struct {
 func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error) {
 	v.ctx.TableOutputRows = 0
 
-	allProbesFailed := measurement.Status != globalping.MeasurementStatusInProgress && !isSomeTestFinished(measurement)
-	renderFailedTable := allProbesFailed && v.ctx.Table
-
-	if allProbesFailed && !renderFailedTable {
-		return "", v.outputFailSummary(measurement)
-	}
-
 	if measurement.Type == "ping" {
 		if err := validateFinishedPingStats(measurement); err != nil {
 			return "", err
@@ -56,10 +49,6 @@ func (v *viewer) OutputTable(measurement *globalping.Measurement) (string, error
 
 	v.ctx.TableOutputRows = len(measurement.Results)
 	v.outputTableView(measurement)
-
-	if renderFailedTable {
-		return "", ErrAllProbesFailed
-	}
 
 	return "", nil
 }
@@ -143,8 +132,8 @@ func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaW
 		var liveRow []string
 		var completedRow []string
 
-		if !probeStats.statsAvailable {
-			liveRow = []string{"", "-", "-", "-", "-", "-", "-"}
+		if probeStats.statusMessage != "" {
+			liveRow = []string{"", probeStats.statusMessage}
 			completedRow = append([]string(nil), liveRow...)
 		} else {
 			liveValues := pingTableRowValues(probeStats.stats, false)
@@ -297,8 +286,8 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 
 	row[0] = getLocationText(measurement)
 
-	if measurement.Result.Status == globalping.TestStatusFailed {
-		return []string{row[0], failureTableMessage(&measurement.Result)}
+	if measurement.Result.Status == globalping.TestStatusFailed || measurement.Result.Status == globalping.TestStatusOffline {
+		return []string{row[0], resultStatusLabel(&measurement.Result)}
 	}
 
 	if measurement.Result.Status != globalping.TestStatusFinished {
@@ -324,19 +313,6 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 
 	return row
-}
-
-func failureTableMessage(result *globalping.ProbeResult) string {
-	switch result.FailureSource {
-	case globalping.FailureSourceTarget:
-		return "Target error"
-	case globalping.FailureSourceResolver:
-		return "Resolver error"
-	case globalping.FailureSourceInternal:
-		return "Internal error"
-	default:
-		return "Error"
-	}
 }
 
 type tracerouteTableTiming struct {

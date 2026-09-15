@@ -73,6 +73,37 @@ Body 2
 `, w.String())
 }
 
+func Test_Output_Default_HTTP_Get_FailedUsesCompleteRawOutput(t *testing.T) {
+	measurement := &globalping.Measurement{Results: []globalping.ProbeMeasurement{
+		{
+			Probe: globalping.ProbeDetails{Continent: "EU", Country: "DE", City: "Berlin", ASN: 123, Network: "Network"},
+			Result: globalping.ProbeResult{
+				Status:        globalping.TestStatusFailed,
+				FailureSource: globalping.FailureSourceResolver,
+				RawOutput:     "first failure line\nsecond failure line",
+				RawBody:       pointerTo("successful body formatting must be skipped"),
+			},
+		},
+		{
+			Probe:  globalping.ProbeDetails{Continent: "NA", Country: "US", City: "New York", ASN: 456, Network: "Other Network"},
+			Result: globalping.ProbeResult{Status: globalping.TestStatusFailed, RawBody: pointerTo("body must also be skipped")},
+		},
+	}}
+	opts := &globalping.MeasurementCreate{Options: &globalping.MeasurementOptions{
+		Request: &globalping.RequestOptions{Method: http.MethodGet},
+	}}
+	w := new(bytes.Buffer)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
+	printer.DisableStyling()
+	viewer := NewViewer(&Context{Cmd: "http", CIMode: true}, printer, nil)
+
+	viewer.OutputDefault(measurementID1, measurement, opts)
+
+	assert.Equal(t, "> Berlin, DE, EU, Network (AS123) — Resolver error\n> New York, US, NA, Other Network (AS456) — Error\n", errW.String())
+	assert.Equal(t, "first failure line\nsecond failure line\n\n\n", w.String())
+}
+
 func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 	measurement := &globalping.Measurement{
 		Results: []globalping.ProbeMeasurement{

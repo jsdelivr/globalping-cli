@@ -666,6 +666,46 @@ func Test_Execute_Ping_Infinite_Output_TooManyRequests_Error(t *testing.T) {
 	assert.Equal(t, expectedHistoryItems, items)
 }
 
+func Test_Ping_InfiniteCreationFailureFinishesPendingMeasurement(t *testing.T) {
+	for _, finalStatus := range []globalping.TestStatus{globalping.TestStatusFinished, globalping.TestStatusFailed} {
+		t.Run(string(finalStatus), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			firstResponse := createDefaultMeasurementCreateResponse()
+			measurement := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusInProgress, globalping.TestStatusInProgress)
+			measurement.Results[0].Result.Status = globalping.TestStatusFinished
+
+			client := apiMocks.NewMockClient(ctrl)
+			firstCreate := client.EXPECT().CreateMeasurement(gomock.Any(), gomock.Any()).Return(firstResponse, nil)
+			firstPoll := client.EXPECT().GetMeasurement(gomock.Any(), firstResponse.ID).Return(measurement, nil).After(firstCreate)
+			viewer := viewMocks.NewMockViewer(ctrl)
+			firstOutput := viewer.EXPECT().OutputInfinite(measurement).Return("current output", nil).After(firstPoll)
+			failedCreate := client.EXPECT().CreateMeasurement(gomock.Any(), gomock.Any()).Return(nil, assert.AnError).After(firstOutput)
+			completed := createDefaultMeasurement_MultipleProbes(globalping.MeasurementStatusFinished, finalStatus)
+			var outputErr error
+
+			if finalStatus == globalping.TestStatusFailed {
+				outputErr = view.ErrAllProbesFailed
+			}
+
+			finalPoll := client.EXPECT().GetMeasurement(gomock.Any(), firstResponse.ID).Return(completed, nil).After(failedCreate)
+			viewer.EXPECT().OutputInfinite(completed).Return("completed output", outputErr).After(finalPoll)
+			utilsMock := utilsMocks.NewMockUtils(ctrl)
+			utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+			ctx := createDefaultContext()
+			ctx.Infinite = true
+			ctx.Packets = 16
+			root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utilsMock, client, nil, nil)
+			opts := createDefaultMeasurementCreate("ping")
+
+			output, err := root.ping(t.Context(), opts)
+
+			assert.ErrorIs(t, err, assert.AnError)
+			assert.Equal(t, "completed output", output)
+			assert.Equal(t, globalping.MeasurementStatusFinished, ctx.History.Find(firstResponse.ID).Status)
+		})
+	}
+}
+
 func Test_Execute_Ping_IPv4(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

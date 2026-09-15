@@ -20,6 +20,10 @@ type viewer struct {
 	ctx     *Context
 	printer *Printer
 	utils   utils.Utils
+
+	pingProbeStatuses []infinitePingProbeStatus
+	pingRoundOrders   map[string]uint64
+	pingRoundCount    uint64
 }
 
 func NewViewer(

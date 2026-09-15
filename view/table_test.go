@@ -224,7 +224,7 @@ func Test_OutputTable_Ping_UnknownHistoryItem(t *testing.T) {
 	}
 }
 
-func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
+func Test_OutputTable_Ping_PartialOfflineShowsOfflineLabel(t *testing.T) {
 	measurement := createPingMeasurement(measurementID1)
 	measurement.Results = append(measurement.Results, tableProbe("Paris", "FR", "Offline Network", globalping.TestStatusOffline))
 	measurement.ProbesCount = len(measurement.Results)
@@ -232,11 +232,10 @@ func Test_OutputTable_Ping_PartialOfflineUsesPlaceholders(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, Deutsche Telekom AG (AS3320)", "1", "0.00%", "17.6 ms", "17.6 ms", "17.6 ms", "17.6 ms"},
-		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-", "-"},
-	})
+	}, "Paris, FR, EU, Offline Network (AS64500)", "Probe offline")
 }
 
 func Test_OutputTable_Ping_PartialFailureShowsFailureLabel(t *testing.T) {
@@ -256,7 +255,7 @@ func Test_OutputTable_Ping_PartialFailureShowsFailureLabel(t *testing.T) {
 	}, "Paris, FR, EU, Failed Network (AS64500)", "Resolver error")
 }
 
-func Test_FailureTableMessage_MapsFailureSources(t *testing.T) {
+func Test_ResultStatusLabel_MapsFailureSources(t *testing.T) {
 	for _, test := range []struct {
 		name          string
 		failureSource globalping.FailureSource
@@ -267,11 +266,16 @@ func Test_FailureTableMessage_MapsFailureSources(t *testing.T) {
 		{name: "internal", failureSource: globalping.FailureSourceInternal, expected: "Internal error"},
 		{name: "null", expected: "Error"},
 		{name: "unknown", failureSource: globalping.FailureSource("other"), expected: "Error"},
+		{name: "offline", expected: "Probe offline"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			result := globalping.ProbeResult{FailureSource: test.failureSource, RawOutput: "details"}
 
-			assert.Equal(t, test.expected, failureTableMessage(&result))
+			if test.name == "offline" {
+				result.Status = globalping.TestStatusOffline
+			}
+
+			assert.Equal(t, test.expected, resultStatusLabel(&result))
 		})
 	}
 }
@@ -334,12 +338,11 @@ func Test_OutputTable_Traceroute(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Hops", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, Trace Network (AS64500)", "3", "100 ms", "1.20 ms", "34.6 ms", "100 ms"},
 		{"Falkenstein, DE, EU, Timed Out Network (AS64500)", "2", tableTimeoutValue, tableTimeoutValue, tableTimeoutValue, tableTimeoutValue},
-		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
-	})
+	}, "Paris, FR, EU, Offline Network (AS64500)", "Probe offline")
 }
 
 func Test_OutputTable_Traceroute_LastSkipsTrailingTimeouts(t *testing.T) {
@@ -400,12 +403,11 @@ func Test_OutputTable_MTR(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Hops", "Last", "Min", "Avg", "Max"},
 		{"Berlin, DE, EU, MTR Network (AS64500)", "2", "12.3 ms", "1.23 ms", "8.35 ms", "123 ms"},
 		{"Falkenstein, DE, EU, Timed Out Network (AS64500)", "2", tableTimeoutValue, tableTimeoutValue, tableTimeoutValue, tableTimeoutValue},
-		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
-	})
+	}, "Paris, FR, EU, Offline Network (AS64500)", "Probe offline")
 }
 
 func Test_OutputTable_MTR_LastSkipsTrailingTimeouts(t *testing.T) {
@@ -468,12 +470,11 @@ func Test_OutputTable_DNS(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Status", "Answers", "Time", "Resolver"},
 		{"Berlin, DE, EU, DNS Network (AS64500)", "NOERROR", "2", "4.57 ms", "1.1.1.1"},
 		{"London, GB, EU, Empty DNS Network (AS64500)", "3", "0", "0 ms", "-"},
-		{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-"},
-	})
+	}, "Paris, FR, EU, Offline Network (AS64500)", "Probe offline")
 }
 
 func Test_OutputTable_DNS_MalformedDecodedFieldsUsePlaceholders(t *testing.T) {
@@ -553,15 +554,14 @@ func Test_OutputTable_HTTP(t *testing.T) {
 	output, err := renderTableForTest(t, measurement, false)
 
 	require.NoError(t, err)
-	assertTableForTest(t, output, [][]string{
+	assertTableWithFailureForTest(t, output, [][]string{
 		{"Location", "Status", "Content-Length", "Total", "Resolved IP"},
 		{"Berlin, DE, EU, HTTP Network (AS64500)", "200 OK", "123 B", "44 ms", "192.0.2.10"},
 		{"London, GB, EU, Numeric Header Network (AS64500)", "204 No Content", "42 B", "5 ms", "192.0.2.11"},
 		{"Paris, FR, EU, Missing Header Network (AS64500)", "304", "-", "100 ms", "192.0.2.12"},
 		{"Prague, CZ, EU, Invalid Header Network (AS64500)", "500 Internal Server Error", "-", "1 ms", "192.0.2.13"},
 		{"Rome, IT, EU, Array Header Network (AS64500)", "200 OK", "12 B", "-", "-"},
-		{"Madrid, ES, EU, Offline Network (AS64500)", "-", "-", "-", "-"},
-	})
+	}, "Madrid, ES, EU, Offline Network (AS64500)", "Probe offline")
 }
 
 func Test_ContentLength_MultiValue(t *testing.T) {
@@ -767,37 +767,27 @@ func Test_OutputTable_AllFailedRendersFailureRows(t *testing.T) {
 
 			output, ctx, err := renderTableWithContextForTest(t, measurement, measurementType == "dns", 7)
 
-			require.EqualError(t, err, "all probes failed")
-			assert.ErrorIs(t, err, ErrAllProbesFailed)
+			require.NoError(t, err)
 			assert.Equal(t, 2, ctx.TableOutputRows)
 
-			var expectedRows [][]string
+			var header []string
 
 			switch measurementType {
 			case "ping":
-				expectedRows = [][]string{
-					{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"},
-					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-", "-"},
-				}
+				header = []string{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}
 			case "traceroute", "mtr":
-				expectedRows = [][]string{
-					{"Location", "Hops", "Last", "Min", "Avg", "Max"},
-					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-", "-", "-"},
-				}
+				header = []string{"Location", "Hops", "Last", "Min", "Avg", "Max"}
 			case "dns":
-				expectedRows = [][]string{
-					{"Location", "Answers", "Time", "Resolver"},
-					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-"},
-				}
+				header = []string{"Location", "Answers", "Time", "Resolver"}
 			case "http":
-				expectedRows = [][]string{
-					{"Location", "Status", "Total", "Resolved IP"},
-					{"Paris, FR, EU, Offline Network (AS64500)", "-", "-", "-"},
-				}
+				header = []string{"Location", "Status", "Total", "Resolved IP"}
 			}
 
-			assertTableWithFailureForTest(t, output, expectedRows,
-				"Berlin, DE, EU, Failed Network (AS64500)", "Target error")
+			lines := strings.Split(strings.TrimSuffix(output, "\n"), "\n")
+			require.Len(t, lines, 3)
+			assertTableForTest(t, lines[0]+"\n", [][]string{header})
+			assertSpanningRowForTest(t, lines[0], lines[1], "Paris, FR, EU, Offline Network (AS64500)", "Probe offline")
+			assertSpanningRowForTest(t, lines[0], lines[2], "Berlin, DE, EU, Failed Network (AS64500)", "Target error")
 		})
 	}
 }
@@ -880,12 +870,17 @@ func assertTableWithFailureForTest(t *testing.T, output string, expectedRows [][
 	require.Len(t, lines, len(expectedRows)+1)
 	assertTableForTest(t, strings.Join(lines[:len(expectedRows)], "\n")+"\n", expectedRows)
 
-	headerSeparatorOffsets := displaySeparatorOffsetsForTest(lines[0])
-	failureParts := strings.Split(lines[len(lines)-1], colSeparator)
+	assertSpanningRowForTest(t, lines[0], lines[len(lines)-1], failureLocation, failureMessage)
+}
+
+func assertSpanningRowForTest(t *testing.T, header, row, location, message string) {
+	t.Helper()
+	headerSeparatorOffsets := displaySeparatorOffsetsForTest(header)
+	failureParts := strings.Split(row, colSeparator)
 	require.Len(t, failureParts, 2)
-	assert.Equal(t, headerSeparatorOffsets[0], displaySeparatorOffsetsForTest(lines[len(lines)-1])[0])
-	assert.Equal(t, failureLocation, strings.TrimSpace(failureParts[0]))
-	assert.Equal(t, "--- "+failureMessage+" ---", strings.TrimSpace(failureParts[1]))
+	assert.Equal(t, headerSeparatorOffsets[0], displaySeparatorOffsetsForTest(row)[0])
+	assert.Equal(t, location, strings.TrimSpace(failureParts[0]))
+	assert.Equal(t, "--- "+message+" ---", strings.TrimSpace(failureParts[1]))
 	leftPadding := runewidth.StringWidth(failureParts[1]) - runewidth.StringWidth(strings.TrimLeft(failureParts[1], " "))
 	rightPadding := runewidth.StringWidth(failureParts[1]) - runewidth.StringWidth(strings.TrimRight(failureParts[1], " "))
 	assert.InDelta(t, leftPadding, rightPadding, 1, "failure message must be centered")

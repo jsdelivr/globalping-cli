@@ -114,10 +114,6 @@ func (r *Root) handleMeasurement(ctx context.Context, id string, opts *globalpin
 				_, err = r.viewer.OutputTable(res)
 
 				if err != nil {
-					if errors.Is(err, view.ErrAllProbesFailed) {
-						r.Cmd.SilenceErrors = true
-					}
-
 					return err
 				}
 			}

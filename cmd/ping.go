@@ -171,7 +171,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	}
 
 	if errors.Is(err, view.ErrAllProbesFailed) {
-		r.Cmd.SilenceErrors = true
+		err = nil
 	}
 
 	r.evaluateError(err)
@@ -229,6 +229,11 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 			}
 
 			infiniteTableOutput, err = r.viewer.OutputInfinite(measurement)
+
+			// Do not let ErrAllProbesFailed mask the earlier creation error
+			if runErr != nil && errors.Is(err, view.ErrAllProbesFailed) {
+				err = nil
+			}
 
 			if err != nil {
 				r.Cmd.SilenceUsage = true

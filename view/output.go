@@ -15,7 +15,7 @@ var ErrAllProbesFailed = errors.New("all probes failed")
 
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
-		v.printer.ErrPrintln(v.getProbeInfo(&m.Results[i]))
+		v.printer.ErrPrintln(v.getProbeInfoWithTerminalStatus(&m.Results[i]))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
 
@@ -34,25 +34,55 @@ func isSomeTestFinished(m *globalping.Measurement) bool {
 
 func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalping.MeasurementCreate, w, h int) {
 	output := &strings.Builder{}
+	headerLines := make(map[int]bool)
+	lineCount := 0
 
 	// Output every result in case of multiple probes
 	for i := range measurement.Results {
 		result := &measurement.Results[i]
-		// Output slightly different format if state is available
-		output.WriteString(v.getProbeInfo(result) + "\n")
+		// Keep headers plain until both width and height have been trimmed.
+		header := normalizeTableLocation(getProbeInfoText(result))
+		status := ""
 
-		if v.isBodyOnlyHttpGet(opts) {
+		if result.Result.Status == globalping.TestStatusFailed {
+			status = " — " + resultStatusLabel(&result.Result)
+		}
+
+		maxW := w - 4
+		status = runewidth.Truncate(status, max(maxW, 0), "")
+		header = truncateTableCell(strings.ReplaceAll(header, "\t", "  "), max(maxW-runewidth.StringWidth(status), 0))
+		headerLines[lineCount] = true
+		output.WriteString(header + status + "\n")
+		bodyStart := output.Len()
+
+		switch {
+		case result.Result.Status == globalping.TestStatusFailed:
+			output.WriteString(result.Result.RawOutput + "\n\n")
+		case v.isBodyOnlyHttpGet(opts):
 			if result.Result.RawBody != nil {
 				output.WriteString(strings.TrimSpace(*result.Result.RawBody))
 			}
 
 			output.WriteString("\n\n")
-		} else {
+		default:
 			output.WriteString(strings.TrimSpace(result.Result.RawOutput) + "\n\n")
+		}
+
+		lineCount += 1 + strings.Count(output.String()[bodyStart:], "\n")
+	}
+
+	trimmed := trimOutput(output, w, h)
+	lines := strings.Split(*trimmed, "\n")
+	firstLine := lineCount + 1 - len(lines)
+
+	for i := range lines {
+		if headerLines[firstLine+i] {
+			lines[i] = v.printer.BoldForeground(lines[i], BGYellow)
 		}
 	}
 
-	v.printer.AreaUpdate(trimOutput(output, w, h))
+	text := strings.Join(lines, "\n")
+	v.printer.AreaUpdate(&text)
 }
 
 // Used to trim the output to fit the terminal in live view
@@ -72,14 +102,8 @@ func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 		lines = lines[len(lines)-maxH:]
 	}
 
-	for i := 0; i < len(lines); i++ {
-		rWidth := runewidth.StringWidth(lines[i])
-
-		if rWidth > maxW {
-			line := lines[i]
-			trimmedLine := lines[i][:len(line)-rWidth+maxW]
-			lines[i] = trimmedLine
-		}
+	for i := range lines {
+		lines[i] = runewidth.Truncate(lines[i], maxW, "")
 	}
 
 	txt := strings.Join(lines, "\n")
@@ -88,6 +112,24 @@ func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 }
 
 func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
+	return v.getProbeInfoWithStatus(result, false)
+}
+
+func (v *viewer) getProbeInfoWithTerminalStatus(result *globalping.ProbeMeasurement) string {
+	return v.getProbeInfoWithStatus(result, true)
+}
+
+func (v *viewer) getProbeInfoWithStatus(result *globalping.ProbeMeasurement, includeOffline bool) string {
+	text := getProbeInfoText(result)
+
+	if result.Result.Status == globalping.TestStatusFailed || includeOffline && result.Result.Status == globalping.TestStatusOffline {
+		text += " — " + resultStatusLabel(&result.Result)
+	}
+
+	return v.printer.BoldForeground(text, BGYellow)
+}
+
+func getProbeInfoText(result *globalping.ProbeMeasurement) string {
 	var output strings.Builder
 	output.WriteString("> ")
 	output.WriteString(getLocationText(result))
@@ -118,7 +160,24 @@ func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 		}
 	}
 
-	return v.printer.BoldForeground(output.String(), BGYellow)
+	return output.String()
+}
+
+func resultStatusLabel(result *globalping.ProbeResult) string {
+	if result.Status == globalping.TestStatusOffline {
+		return "Probe offline"
+	}
+
+	switch result.FailureSource {
+	case globalping.FailureSourceTarget:
+		return "Target error"
+	case globalping.FailureSourceResolver:
+		return "Resolver error"
+	case globalping.FailureSourceInternal:
+		return "Internal error"
+	default:
+		return "Error"
+	}
 }
 
 func (v *viewer) getShareMessage(id string) string {

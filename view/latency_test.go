@@ -384,3 +384,27 @@ func Test_Output_Latency_Offline(t *testing.T) {
 `, errW.String())
 	assert.Equal(t, "This probe is currently offline. Please try again later.\n\n", w.String())
 }
+
+func Test_Output_Latency_Failed(t *testing.T) {
+	measurement := &globalping.Measurement{Results: []globalping.ProbeMeasurement{{
+		Probe: globalping.ProbeDetails{Continent: "EU", Country: "DE", City: "Berlin", ASN: 123, Network: "Network"},
+		Result: globalping.ProbeResult{
+			Status:        globalping.TestStatusFailed,
+			FailureSource: globalping.FailureSourceTarget,
+			RawOutput:     "first failure line\nsecond failure line",
+			StatsRaw:      json.RawMessage(`{"min":1,"avg":2,"max":3}`),
+		},
+	}}}
+	w := new(bytes.Buffer)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
+	printer.DisableStyling()
+	viewer := NewViewer(&Context{Cmd: "ping", ToLatency: true}, printer, nil)
+
+	err := viewer.OutputLatency(measurementID1, measurement)
+
+	require.NoError(t, err)
+	assert.Equal(t, "> Berlin, DE, EU, Network (AS123) — Target error\n", errW.String())
+	assert.Equal(t, "first failure line\nsecond failure line\n\n", w.String())
+	assert.NotContains(t, w.String(), "Min:")
+}

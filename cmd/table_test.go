@@ -36,49 +36,58 @@ func Test_TableFlag_IsAvailableOnlyForMeasurementCommands(t *testing.T) {
 
 func Test_Execute_TableMeasurement(t *testing.T) {
 	for _, measurementType := range []globalping.MeasurementType{"ping", "traceroute", "mtr", "dns", "http"} {
-		t.Run(string(measurementType), func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			expectedOpts := createDefaultMeasurementCreate(measurementType)
-			locations, ok := expectedOpts.Locations.(globalping.LocationOptions)
-			require.True(t, ok)
-			locations[0].Magic = "world"
+		for _, status := range []globalping.TestStatus{globalping.TestStatusFinished, globalping.TestStatusFailed} {
+			name := string(measurementType) + "/" + string(status)
 
-			switch measurementType {
-			case "dns":
-				expectedOpts.Options.Query = &globalping.QueryOptions{}
-			case "http":
-				expectedOpts.Options.Request = &globalping.RequestOptions{Headers: map[string]string{}}
-			}
+			t.Run(name, func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				expectedOpts := createDefaultMeasurementCreate(measurementType)
+				locations, ok := expectedOpts.Locations.(globalping.LocationOptions)
+				require.True(t, ok)
+				locations[0].Magic = "world"
 
-			expectedResponse := createDefaultMeasurementCreateResponse()
-			expectedMeasurement := createDefaultMeasurement(measurementType)
-			gbMock := apiMocks.NewMockClient(ctrl)
-			gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Return(expectedResponse, nil)
-			gbMock.EXPECT().GetMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
+				switch measurementType {
+				case "dns":
+					expectedOpts.Options.Query = &globalping.QueryOptions{}
+				case "http":
+					expectedOpts.Options.Request = &globalping.RequestOptions{Headers: map[string]string{}}
+				}
 
-			viewerMock := viewMocks.NewMockViewer(ctrl)
-			viewerMock.EXPECT().OutputTable(expectedMeasurement).Return("", nil)
-			viewerMock.EXPECT().OutputShare()
+				expectedResponse := createDefaultMeasurementCreateResponse()
+				expectedMeasurement := createDefaultMeasurement(measurementType)
 
-			utilsMock := utilsMocks.NewMockUtils(ctrl)
-			utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+				for i := range expectedMeasurement.Results {
+					expectedMeasurement.Results[i].Result.Status = status
+				}
 
-			w := new(bytes.Buffer)
-			ctx := createDefaultContext()
-			storage := createDefaultTestStorage(t, utilsMock)
-			root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
-			oldArgs := os.Args
-			t.Cleanup(func() { os.Args = oldArgs })
-			os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--latency", "--json", "--ci"}
+				gbMock := apiMocks.NewMockClient(ctrl)
+				gbMock.EXPECT().CreateMeasurement(t.Context(), expectedOpts).Return(expectedResponse, nil)
+				gbMock.EXPECT().GetMeasurement(t.Context(), expectedResponse.ID).Return(expectedMeasurement, nil)
 
-			err := root.Cmd.ExecuteContext(t.Context())
+				viewerMock := viewMocks.NewMockViewer(ctrl)
+				viewerMock.EXPECT().OutputTable(expectedMeasurement).Return("", nil)
+				viewerMock.EXPECT().OutputShare()
 
-			require.NoError(t, err)
-			assert.True(t, ctx.Table)
-			assert.False(t, ctx.ToLatency)
-			assert.False(t, ctx.ToJSON)
-			assert.Empty(t, w.String())
-		})
+				utilsMock := utilsMocks.NewMockUtils(ctrl)
+				utilsMock.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
+
+				w := new(bytes.Buffer)
+				ctx := createDefaultContext()
+				storage := createDefaultTestStorage(t, utilsMock)
+				root := NewRoot(view.NewPrinter(nil, w, w), ctx, viewerMock, utilsMock, gbMock, nil, storage)
+				oldArgs := os.Args
+				t.Cleanup(func() { os.Args = oldArgs })
+				os.Args = []string{"globalping", string(measurementType), "jsdelivr.com", "--table", "--latency", "--json", "--ci"}
+
+				err := root.Cmd.ExecuteContext(t.Context())
+
+				require.NoError(t, err)
+				assert.True(t, ctx.Table)
+				assert.False(t, ctx.ToLatency)
+				assert.False(t, ctx.ToJSON)
+				assert.Empty(t, w.String())
+			})
+		}
 	}
 }
 
@@ -142,13 +151,18 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		assert.False(t, root.Cmd.SilenceErrors)
 	})
 
-	t.Run("all-failed table output suppresses error text", func(t *testing.T) {
+	t.Run("all-failed table output completes successfully", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		measurement := createDefaultMeasurement("ping")
+
+		for i := range measurement.Results {
+			measurement.Results[i].Result.Status = globalping.TestStatusFailed
+		}
+
 		client := apiMocks.NewMockClient(ctrl)
 		client.EXPECT().GetMeasurement(t.Context(), measurement.ID).Return(measurement, nil)
 		viewer := viewMocks.NewMockViewer(ctrl)
-		viewer.EXPECT().OutputTable(measurement).Return("", view.ErrAllProbesFailed)
+		viewer.EXPECT().OutputTable(measurement).Return("", nil)
 		viewer.EXPECT().OutputShare()
 		ctx := createDefaultContext()
 		ctx.Table = true
@@ -156,9 +170,9 @@ func Test_HandleMeasurement_TableTakesOutputPrecedence(t *testing.T) {
 		utils.EXPECT().Now().Return(defaultCurrentTime).AnyTimes()
 		root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), ctx, viewer, utils, client, nil, nil)
 
-		require.ErrorIs(t, root.handleMeasurement(t.Context(), measurement.ID, nil), view.ErrAllProbesFailed)
-		assert.True(t, root.Cmd.SilenceUsage)
-		assert.True(t, root.Cmd.SilenceErrors)
+		require.NoError(t, root.handleMeasurement(t.Context(), measurement.ID, nil))
+		assert.False(t, root.Cmd.SilenceUsage)
+		assert.False(t, root.Cmd.SilenceErrors)
 	})
 
 	t.Run("polling error finalizes table output", func(t *testing.T) {
