@@ -15,7 +15,7 @@ var ErrAllProbesFailed = errors.New("all probes failed")
 
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
-		v.printer.ErrPrintln(v.getProbeInfoWithTerminalStatus(&m.Results[i]))
+		v.printer.ErrPrintln(v.getProbeInfoWithStatus(&m.Results[i], true))
 		v.printer.Println(m.Results[i].Result.RawOutput)
 	}
 
@@ -113,10 +113,6 @@ func trimOutput(output *strings.Builder, terminalW, terminalH int) *string {
 
 func (v *viewer) getProbeInfo(result *globalping.ProbeMeasurement) string {
 	return v.getProbeInfoWithStatus(result, false)
-}
-
-func (v *viewer) getProbeInfoWithTerminalStatus(result *globalping.ProbeMeasurement) string {
-	return v.getProbeInfoWithStatus(result, true)
 }
 
 func (v *viewer) getProbeInfoWithStatus(result *globalping.ProbeMeasurement, includeOffline bool) string {
