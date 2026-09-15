@@ -13,12 +13,10 @@ type HistoryBuffer struct {
 }
 
 type HistoryItem struct {
-	Id           string
-	Status       globalping.MeasurementStatus
-	ProbeStatus  []globalping.TestStatus
-	LinesPrinted int
-	StartedAt    time.Time
-	Stats        []*MeasurementStats
+	Id          string
+	Status      globalping.MeasurementStatus
+	ProbeStatus []globalping.TestStatus
+	StartedAt   time.Time
 }
 
 func NewHistoryBuffer(size int) *HistoryBuffer {
@@ -48,25 +46,6 @@ func (h *HistoryBuffer) Find(id string) *HistoryItem {
 	}
 
 	return nil
-}
-
-func (h *HistoryBuffer) FilterByStatus(status globalping.MeasurementStatus) []*HistoryItem {
-	items := make([]*HistoryItem, 0, len(h.Slice))
-	i := h.Index
-
-	for {
-		if h.Slice[i] != nil && h.Slice[i].Status == status {
-			items = append(items, h.Slice[i])
-		}
-
-		i = (i + 1) % len(h.Slice)
-
-		if i == h.Index {
-			break
-		}
-	}
-
-	return items
 }
 
 func (h *HistoryBuffer) Push(m *HistoryItem) {

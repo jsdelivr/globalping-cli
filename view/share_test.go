@@ -3,7 +3,6 @@ package view
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,13 +11,10 @@ import (
 func Test_OutputShare(t *testing.T) {
 	t.Run("Single_location", func(t *testing.T) {
 		ctx := createDefaultContext("ping")
-		ctx.AggregatedStats = []*MeasurementStats{
-			{Sent: 1, Rcv: 0, Lost: 1, Loss: 100, Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1, Time: 0},
-		}
 		ctx.Share = true
 		w := new(bytes.Buffer)
 		errw := new(bytes.Buffer)
-		viewer := NewViewer(ctx, NewPrinter(nil, w, errw), nil)
+		viewer := NewViewer(ctx, NewPrinter(nil, w, errw))
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
@@ -36,7 +32,7 @@ func Test_OutputShare(t *testing.T) {
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
 		printer.DisableStyling()
-		viewer := NewViewer(ctx, printer, nil)
+		viewer := NewViewer(ctx, printer)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
@@ -46,10 +42,6 @@ func Test_OutputShare(t *testing.T) {
 
 	t.Run("Multiple_locations", func(t *testing.T) {
 		ctx := createDefaultContext("ping")
-		ctx.AggregatedStats = []*MeasurementStats{
-			NewMeasurementStats(),
-			NewMeasurementStats(),
-		}
 		ctx.TableOutputRows = 2
 		ctx.History.Push(&HistoryItem{Id: measurementID2})
 		ctx.Share = true
@@ -57,7 +49,7 @@ func Test_OutputShare(t *testing.T) {
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
 		printer.DisableStyling()
-		viewer := NewViewer(ctx, printer, nil)
+		viewer := NewViewer(ctx, printer)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())
@@ -69,10 +61,6 @@ func Test_OutputShare(t *testing.T) {
 		history := NewHistoryBuffer(1)
 		history.Push(&HistoryItem{Id: measurementID2})
 		ctx := &Context{
-			AggregatedStats: []*MeasurementStats{
-				NewMeasurementStats(),
-				NewMeasurementStats(),
-			},
 			TableOutputRows:     2,
 			History:             history,
 			Share:               true,
@@ -83,7 +71,7 @@ func Test_OutputShare(t *testing.T) {
 		errw := new(bytes.Buffer)
 		printer := NewPrinter(nil, w, errw)
 		printer.DisableStyling()
-		viewer := NewViewer(ctx, printer, nil)
+		viewer := NewViewer(ctx, printer)
 		viewer.OutputShare()
 
 		assert.Equal(t, "", w.String())

@@ -54,7 +54,6 @@ func Test_Output_Latency_Ping(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, errW),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -100,7 +99,6 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -142,7 +140,6 @@ func Test_Output_Latency_DNS(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, w),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -182,7 +179,6 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -222,7 +218,6 @@ func Test_Output_Latency_Http(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, w),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -268,7 +263,6 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -330,7 +324,7 @@ func Test_Output_Latency_NullableValues(t *testing.T) {
 			errW := new(bytes.Buffer)
 			printer := NewPrinter(nil, w, errW)
 			printer.DisableStyling()
-			viewer := NewViewer(&Context{Cmd: test.command, ToLatency: true}, printer, nil)
+			viewer := NewViewer(&Context{Cmd: test.command, ToLatency: true}, printer)
 
 			err := viewer.OutputLatency(measurementID1, measurement)
 
@@ -373,7 +367,6 @@ func Test_Output_Latency_Offline(t *testing.T) {
 			Share:     true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -399,7 +392,7 @@ func Test_Output_Latency_Failed(t *testing.T) {
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
-	viewer := NewViewer(&Context{Cmd: "ping", ToLatency: true}, printer, nil)
+	viewer := NewViewer(&Context{Cmd: "ping", ToLatency: true}, printer)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
 

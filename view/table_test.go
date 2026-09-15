@@ -214,7 +214,7 @@ func Test_OutputTable_Ping_UnknownHistoryItem(t *testing.T) {
 			w := new(bytes.Buffer)
 			printer := NewPrinter(nil, w, w)
 			printer.DisableStyling()
-			viewer := NewViewer(ctx, printer, nil)
+			viewer := NewViewer(ctx, printer)
 
 			_, err := viewer.OutputTable(measurement)
 			require.NoError(t, err)
@@ -746,7 +746,7 @@ func Test_OutputTableThenShare_SeparatesMultiRowTable(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	v := NewViewer(ctx, printer, nil)
+	v := NewViewer(ctx, printer)
 
 	_, err := v.OutputTable(measurement)
 	require.NoError(t, err)
@@ -836,7 +836,7 @@ func renderTableWithContextForTest(t *testing.T, measurement *globalping.Measure
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	viewer := NewViewer(ctx, printer)
 	_, err := viewer.OutputTable(measurement)
 
 	return w.String(), ctx, err

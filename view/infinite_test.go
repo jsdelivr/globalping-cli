@@ -7,11 +7,36 @@ import (
 	"time"
 
 	utilsMocks "github.com/jsdelivr/globalping-cli/mocks/utils"
+	"github.com/jsdelivr/globalping-cli/utils"
 	"github.com/jsdelivr/globalping-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
+
+func newPingTestRun(ctx *Context, clock utils.Utils) *InfinitePingRun {
+	var now func() time.Time
+
+	if clock != nil {
+		now = clock.Now
+	}
+
+	run := NewInfinitePingRun(ctx.Protocol, ctx.Packets, defaultCurrentTime, now)
+	run.Add(measurementID1, defaultCurrentTime)
+
+	return run
+}
+
+func outputPing(viewer Viewer, run *InfinitePingRun, ctx *Context, m *globalping.Measurement) (string, error) {
+	streamRawOutput := len(m.Results) == 1 && !ctx.Table && !ctx.ToLatency
+	output, err := run.Update(m, streamRawOutput, ctx.MeasurementsCreated)
+
+	if err != nil {
+		return "", err
+	}
+
+	return viewer.OutputInfinite(output)
+}
 
 func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -22,19 +47,19 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
-	hm := ctx.History.Find(measurementID1)
 	w := new(bytes.Buffer)
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, utilsMock)
+	run := newPingTestRun(ctx, utilsMock)
+	viewer := NewViewer(ctx, printer)
 
 	measurement := createPingMeasurement(measurementID1)
 	measurement.Status = globalping.MeasurementStatusInProgress
 	measurement.Results[0].Result.Status = globalping.TestStatusInProgress
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.`
 
-	_, err := viewer.OutputInfinite(measurement)
+	_, err := outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, apiCreditInfo+
@@ -47,7 +72,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = `PING jsdelivr.map.fastly.net (151.101.1.229) 56(84) bytes of data.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms`
 
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, apiCreditInfo+
@@ -62,7 +87,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=56 time=12.9 ms
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=2 ttl=56 time=12.7 ms`
 
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, apiCreditInfo+
@@ -76,7 +101,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 
 	expectedStats := &MeasurementStats{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 12.7, Min: 12.7,
 		Avg: 12.8, Max: 12.9, Time: 500, Tsum: 25.6, Tsum2: 327.7, Mdev: 0.0999}
-	assertMeasurementStats(t, expectedStats, hm.Stats[0])
+	assertMeasurementStats(t, expectedStats, run.rounds[0].stats[0])
 
 	measurement.Status = globalping.MeasurementStatusFinished
 	measurement.Results[0].Result.Status = globalping.TestStatusFinished
@@ -89,7 +114,7 @@ func Test_OutputInfinite_SingleProbe_InProgress(t *testing.T) {
 3 packets transmitted, 3 received, 0% packet loss, time 1001ms
 rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, apiCreditInfo+
@@ -104,15 +129,12 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 
 	expectedStats = &MeasurementStats{Sent: 3, Rcv: 3, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
 		Avg: 12.8666, Max: 13, Time: 1001, Tsum: 38.6, Tsum2: 496.7, Mdev: 0.1247}
-	assertMeasurementStats(t, expectedStats, ctx.AggregatedStats[0])
+	assertMeasurementStats(t, expectedStats, run.completed[0])
 
 	ctx.MeasurementsCreated = 2
-	ctx.History.Push(&HistoryItem{
-		Id:        measurementID2,
-		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
-	})
+	run.Add(measurementID2, defaultCurrentTime.Add(1*time.Millisecond))
 	measurement.ID = measurementID2
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	assert.Equal(t, apiCreditInfo+
@@ -131,7 +153,7 @@ rtt min/avg/max/mdev = 12.711/12.854/12.952/0.103 ms`
 
 	expectedStats = &MeasurementStats{Sent: 6, Rcv: 6, Lost: 0, Loss: 0, Last: 13, Min: 12.7,
 		Avg: 12.8666, Max: 13, Time: 2002, Tsum: 77.2, Tsum2: 993.4, Mdev: 0.1247}
-	assertMeasurementStats(t, expectedStats, ctx.AggregatedStats[0])
+	assertMeasurementStats(t, expectedStats, run.completed[0])
 }
 
 func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
@@ -146,8 +168,9 @@ func Test_OutputInfinite_SingleProbe_Failed(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
-	_, err := viewer.OutputInfinite(measurement)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
+	_, err := outputPing(viewer, run, ctx, measurement)
 	assert.Equal(t, "all probes failed", err.Error())
 
 	assert.Equal(t,
@@ -157,7 +180,7 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 		w.String(),
 	)
 
-	assert.Nil(t, ctx.AggregatedStats)
+	assert.Nil(t, run.completed)
 }
 
 func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
@@ -170,9 +193,10 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
 
-	output, err := viewer.OutputInfinite(measurement)
+	output, err := outputPing(viewer, run, ctx, measurement)
 
 	assert.NoError(t, err)
 	assert.Contains(t, w.String(), "Location")
@@ -180,7 +204,7 @@ func Test_OutputInfinite_SingleProbe_TableUsesTableOutput(t *testing.T) {
 	assert.NotContains(t, w.String(), "PING ")
 	assert.NotContains(t, w.String(), tableTimeoutValue)
 
-	viewer.OutputSummary(output)
+	viewer.OutputPingSummary(output, run.Summary())
 
 	assert.Contains(t, w.String(), tableTimeoutValue)
 	assert.Equal(t, 1, ctx.TableOutputRows)
@@ -220,9 +244,10 @@ func Test_OutputInfinite_SingleProbe_LatencyUsesCompletedOutput(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
 
-	output, err := viewer.OutputInfinite(measurement)
+	output, err := outputPing(viewer, run, ctx, measurement)
 
 	require.NoError(t, err)
 	assert.Contains(t, output, "Location")
@@ -239,8 +264,9 @@ func Test_OutputInfinite_Table_AllFailedWithoutStats(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
-	_, err := viewer.OutputInfinite(createPingMeasurement(measurementID1))
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
+	_, err := outputPing(viewer, run, ctx, createPingMeasurement(measurementID1))
 	require.NoError(t, err)
 	w.Reset()
 
@@ -249,11 +275,11 @@ func Test_OutputInfinite_Table_AllFailedWithoutStats(t *testing.T) {
 	measurement.Results[0].Result.RawOutput = "ping: unknown host"
 	measurement.Results[0].Result.StatsRaw = nil
 	measurement.Results[0].Result.TimingsRaw = nil
-	ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
+	run.Add(measurementID2, defaultCurrentTime)
 
-	output, err := viewer.OutputInfinite(measurement)
+	output, err := outputPing(viewer, run, ctx, measurement)
 	failureOutput := w.String()
-	viewer.OutputSummary(output)
+	viewer.OutputPingSummary(output, run.Summary())
 
 	assert.EqualError(t, err, "all probes failed")
 	assert.Equal(t, failureOutput, w.String())
@@ -275,16 +301,17 @@ func Test_OutputInfinite_Table_AllFailedWithPacketStatsTerminates(t *testing.T) 
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
 
-	output, err := viewer.OutputInfinite(measurement)
+	output, err := outputPing(viewer, run, ctx, measurement)
 
 	assert.ErrorIs(t, err, ErrAllProbesFailed)
 	assert.Empty(t, output)
 	assert.Contains(t, w.String(), " — Error\n"+measurement.Results[0].Result.RawOutput)
 	assert.NotContains(t, w.String(), "Location")
 	assert.Equal(t, 0, ctx.TableOutputRows)
-	assert.Nil(t, ctx.AggregatedStats)
+	assert.Nil(t, run.completed)
 }
 
 func Test_OutputInfinite_FailedProbeCountsPartialRoundAndRestoresAggregate(t *testing.T) {
@@ -297,9 +324,10 @@ func Test_OutputInfinite_FailedProbeCountsPartialRoundAndRestoresAggregate(t *te
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
 
-	_, err := viewer.OutputInfinite(first)
+	_, err := outputPing(viewer, run, ctx, first)
 	require.NoError(t, err)
 	assert.True(t, ctx.Table)
 	second := createPingMeasurement_MultipleProbes(measurementID2)
@@ -310,43 +338,43 @@ func Test_OutputInfinite_FailedProbeCountsPartialRoundAndRestoresAggregate(t *te
 	second.Results[1].Result.RawOutput = "probe failed"
 	second.Results[1].Result.StatsRaw = json.RawMessage(`{"min":null,"avg":null,"max":null,"total":0,"rcv":0,"drop":0,"loss":0}`)
 	second.Results[1].Result.TimingsRaw = json.RawMessage(`[{"rtt":5},{"rtt":7}]`)
-	ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
+	run.Add(measurementID2, defaultCurrentTime)
 
-	failedOutput, err := viewer.OutputInfinite(second)
+	failedOutput, err := outputPing(viewer, run, ctx, second)
 	require.NoError(t, err)
 	assert.Contains(t, failedOutput, "--- Target error ---")
-	assert.Equal(t, 17, ctx.AggregatedStats[1].Sent)
-	assert.Equal(t, 3, ctx.AggregatedStats[1].Rcv)
-	assert.Equal(t, 14, ctx.AggregatedStats[1].Lost)
-	assert.InDelta(t, (5.457+5+7)/3, ctx.AggregatedStats[1].Avg, 0.0001)
-	assert.InDelta(t, 29.778849+25+49, ctx.AggregatedStats[1].Tsum2, 0.0001)
+	assert.Equal(t, 17, run.completed[1].Sent)
+	assert.Equal(t, 3, run.completed[1].Rcv)
+	assert.Equal(t, 14, run.completed[1].Lost)
+	assert.InDelta(t, (5.457+5+7)/3, run.completed[1].Avg, 0.0001)
+	assert.InDelta(t, 29.778849+25+49, run.completed[1].Tsum2, 0.0001)
 
 	thirdMeasurementID := "3sZfUs3cnzGz1I20"
 	third := createPingMeasurement_MultipleProbes(thirdMeasurementID)
 	third.Results = third.Results[:2]
 	third.ProbesCount = len(third.Results)
-	ctx.History.Push(&HistoryItem{Id: thirdMeasurementID, StartedAt: defaultCurrentTime})
+	run.Add(thirdMeasurementID, defaultCurrentTime)
 
 	finishedResult := third.Results[1].Result
 	third.Status = globalping.MeasurementStatusInProgress
 	third.Results[1].Result = globalping.ProbeResult{Status: globalping.TestStatusInProgress}
 
 	for range 2 {
-		pendingOutput, pendingErr := viewer.OutputInfinite(third)
+		pendingOutput, pendingErr := outputPing(viewer, run, ctx, third)
 		require.NoError(t, pendingErr)
 		assert.Contains(t, pendingOutput, "--- Target error ---")
-		assert.Equal(t, 17, ctx.AggregatedStats[1].Sent)
-		assert.Equal(t, 3, ctx.AggregatedStats[1].Rcv)
+		assert.Equal(t, 17, run.completed[1].Sent)
+		assert.Equal(t, 3, run.completed[1].Rcv)
 	}
 
 	third.Status = globalping.MeasurementStatusFinished
 	third.Results[1].Result = finishedResult
 
-	restoredOutput, err := viewer.OutputInfinite(third)
+	restoredOutput, err := outputPing(viewer, run, ctx, third)
 	require.NoError(t, err)
 	assert.NotContains(t, restoredOutput, "Target error")
 	assert.Contains(t, restoredOutput, "|   18 |  77.78%")
-	assert.Equal(t, 18, ctx.AggregatedStats[1].Sent)
+	assert.Equal(t, 18, run.completed[1].Sent)
 }
 
 func Test_OutputInfinite_MultipleProbesShowsFailedAndOfflineStatusRows(t *testing.T) {
@@ -366,19 +394,20 @@ func Test_OutputInfinite_MultipleProbesShowsFailedAndOfflineStatusRows(t *testin
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
 
-	output, err := viewer.OutputInfinite(measurement)
+	output, err := outputPing(viewer, run, ctx, measurement)
 
 	require.NoError(t, err)
 	assert.Contains(t, output, "--- Internal error ---")
 	assert.Contains(t, output, "--- Probe offline ---")
 	assert.NotContains(t, output, "internal details")
 	assert.NotContains(t, output, "offline details")
-	assert.Equal(t, 16, ctx.AggregatedStats[1].Sent)
-	assert.Equal(t, 16, ctx.AggregatedStats[1].Lost)
-	assert.Equal(t, 16, ctx.AggregatedStats[2].Sent)
-	assert.Equal(t, 16, ctx.AggregatedStats[2].Lost)
+	assert.Equal(t, 16, run.completed[1].Sent)
+	assert.Equal(t, 16, run.completed[1].Lost)
+	assert.Equal(t, 16, run.completed[2].Sent)
+	assert.Equal(t, 16, run.completed[2].Lost)
 }
 
 func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
@@ -400,7 +429,8 @@ func Test_OutputInfinite_MultipleProbes_MultipleCalls(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, utilsMock)
+	run := newPingTestRun(ctx, utilsMock)
+	viewer := NewViewer(ctx, printer)
 
 	// Call 1
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -408,7 +438,7 @@ London, GB, EU, OVH SAS (AS0)                  |    0 |   0.00% |        - |    
 Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.46 ms |  5.46 ms |  5.46 ms
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
-	_, err := viewer.OutputInfinite(measurement)
+	_, err := outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	expectedStats := []*MeasurementStats{
@@ -416,9 +446,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 		NewMeasurementStats(),
 		NewMeasurementStats(),
 	}
-	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
-	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
-	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
+	assertMeasurementStats(t, expectedStats[0], run.completed[0])
+	assertMeasurementStats(t, expectedStats[1], run.completed[1])
+	assertMeasurementStats(t, expectedStats[2], run.completed[2])
 
 	measurement.Results[0].Result.RawOutput = `PING  (146.75.73.229) 56(84) bytes of data.
 64 bytes from 146.75.73.229 (146.75.73.229): icmp_seq=1 ttl=52 time=17.6 ms
@@ -432,12 +462,12 @@ Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
-	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
-	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
-	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
+	assertMeasurementStats(t, expectedStats[0], run.completed[0])
+	assertMeasurementStats(t, expectedStats[1], run.completed[1])
+	assertMeasurementStats(t, expectedStats[2], run.completed[2])
 
 	measurement.Status = globalping.MeasurementStatusFinished
 	measurement.Results[0].Result.Status = globalping.TestStatusFinished
@@ -461,7 +491,7 @@ Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    1 |   0.00% |  5.46 ms |  5.
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	_, err = viewer.OutputInfinite(measurement)
+	_, err = outputPing(viewer, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
@@ -469,9 +499,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
 		{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 	}
-	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
-	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
-	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
+	assertMeasurementStats(t, expectedStats[0], run.completed[0])
+	assertMeasurementStats(t, expectedStats[1], run.completed[1])
+	assertMeasurementStats(t, expectedStats[2], run.completed[2])
 
 	// Call 4
 	measurement2 := createPingMeasurement_MultipleProbes(measurementID2)
@@ -479,12 +509,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 	measurement2.Results[0].Result.StatsRaw = measurement.Results[0].Result.StatsRaw
 	measurement2.Results[0].Result.TimingsRaw = measurement.Results[0].Result.TimingsRaw
 
-	ctx.History.Push(&HistoryItem{
-		Id:        measurementID2,
-		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
-	})
+	run.Add(measurementID2, defaultCurrentTime.Add(1*time.Millisecond))
 
-	_, err = viewer.OutputInfinite(measurement2)
+	_, err = outputPing(viewer, run, ctx, measurement2)
 	assert.NoError(t, err)
 
 	expectedStats = []*MeasurementStats{
@@ -492,9 +519,9 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 10.914, Tsum2: 59.557698},
 		{Sent: 2, Rcv: 2, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 8.138, Tsum2: 33.113522},
 	}
-	assertMeasurementStats(t, expectedStats[0], ctx.AggregatedStats[0])
-	assertMeasurementStats(t, expectedStats[1], ctx.AggregatedStats[1])
-	assertMeasurementStats(t, expectedStats[2], ctx.AggregatedStats[2])
+	assertMeasurementStats(t, expectedStats[0], run.completed[0])
+	assertMeasurementStats(t, expectedStats[1], run.completed[1])
+	assertMeasurementStats(t, expectedStats[2], run.completed[2])
 
 	expectedOutput += "\033[4A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -527,12 +554,11 @@ func Test_OutputInfinite_MultipleProbes_MultipleConcurrentCalls(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
-	hm1 := ctx.History.Find(measurementID1)
-	hm1.Status = globalping.MeasurementStatusInProgress
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, utilsMock)
+	run := newPingTestRun(ctx, utilsMock)
+	viewer := NewViewer(ctx, printer)
 
 	expectedOutput := `Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
 London, GB, EU, OVH SAS (AS0)                  |    1 |   0.00% |  10.0 ms |  10.0 ms |  10.0 ms |  10.0 ms
@@ -540,7 +566,7 @@ Falkenstein, DE, EU, Hetzner Online GmbH (AS0) |    0 |   0.00% |        - |    
 Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.07 ms |  4.07 ms |  4.07 ms
 `
 
-	_, err := viewer.OutputInfinite(measurement1)
+	_, err := outputPing(viewer, run, ctx, measurement1)
 	assert.NoError(t, err)
 
 	// Call 2
@@ -555,11 +581,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 64 bytes from 151.101.1.229 (151.101.1.229): icmp_seq=1 ttl=60 time=20 ms`
 	measurement2.Results[1].Result.StatsRaw = nil
 	measurement2.Results[1].Result.TimingsRaw = nil
-	ctx.History.Push(&HistoryItem{
-		Id:        measurementID2,
-		Status:    globalping.MeasurementStatusInProgress,
-		StartedAt: defaultCurrentTime.Add(1 * time.Millisecond),
-	})
+	run.Add(measurementID2, defaultCurrentTime.Add(1*time.Millisecond))
 	ctx.MeasurementsCreated = 2
 
 	expectedOutput += "\033[4A\033[0J" +
@@ -570,7 +592,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 Consuming ~360 API credits/minute.
 `
 
-	_, err = viewer.OutputInfinite(measurement2)
+	_, err = outputPing(viewer, run, ctx, measurement2)
 	assert.NoError(t, err)
 
 	// Call 3
@@ -586,7 +608,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 Consuming ~360 API credits/minute.
 `
 
-	_, err = viewer.OutputInfinite(measurement1)
+	_, err = outputPing(viewer, run, ctx, measurement1)
 	assert.NoError(t, err)
 
 	// Call 4
@@ -613,7 +635,6 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 rtt min/avg/max/mdev = 20/25/30/5 ms`
 	measurement1.Results[1].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":25,"max":30,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":4.082}`)
 	measurement1.Results[1].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":20},{"ttl":30,"rtt":25},{"ttl":30,"rtt":30}]`)
-	hm1.Status = globalping.MeasurementStatusFinished
 
 	expectedOutput += "\033[5A\033[0J" +
 		`Location                                       | Sent |    Loss |     Last |      Min |      Avg |      Max
@@ -623,7 +644,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    2 |   0.00% |  4.07 ms |  4.
 Consuming ~360 API credits/minute.
 `
 
-	_, err = viewer.OutputInfinite(measurement1)
+	_, err = outputPing(viewer, run, ctx, measurement1)
 	assert.NoError(t, err)
 
 	// Call 5
@@ -639,7 +660,7 @@ rtt min/avg/max/mdev = 10/15/25/5 ms`
 	measurement2.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":16.667,"max":25,"total":3,"rcv":3,"drop":0,"loss":0,"mdev":6.236}`)
 	measurement2.Results[0].Result.TimingsRaw = json.RawMessage(`[{"ttl":60,"rtt":10},{"ttl":30,"rtt":15},{"ttl":30,"rtt":25}]`)
 
-	_, err = viewer.OutputInfinite(measurement2)
+	_, err = outputPing(viewer, run, ctx, measurement2)
 	assert.NoError(t, err)
 
 	expectedOutput += "\033[5A\033[0J" +
@@ -664,8 +685,9 @@ func Test_OutputInfinite_MultipleProbes(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.Infinite = true
 	w := new(bytes.Buffer)
-	v := NewViewer(ctx, NewPrinter(nil, w, w), utilsMock)
-	_, err := v.OutputInfinite(measurement)
+	run := newPingTestRun(ctx, utilsMock)
+	v := NewViewer(ctx, NewPrinter(nil, w, w))
+	_, err := outputPing(v, run, ctx, measurement)
 	assert.NoError(t, err)
 
 	expectedOutput := "\033[96mLocation                                      \033[0m | \033[96mSent\033[0m | \033[96m   Loss\033[0m | \033[96m    Last\033[0m | \033[96m     Min\033[0m | \033[96m     Avg\033[0m | \033[96m     Max\033[0m" +
@@ -681,7 +703,7 @@ Nuremberg, DE, EU, Hetzner Online GmbH (AS0)   |    1 |   0.00% |  4.07 ms |  4.
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 5.46, Min: 5.457, Avg: 5.457, Max: 5.457, Tsum: 5.457, Tsum2: 29.778849},
 			{Sent: 1, Rcv: 1, Lost: 0, Loss: 0, Last: 4.07, Min: 4.069, Avg: 4.069, Max: 4.069, Tsum: 4.069, Tsum2: 16.556761},
 		},
-		ctx.AggregatedStats,
+		run.completed,
 	)
 }
 
@@ -701,8 +723,9 @@ func Test_OutputInfinite_MultipleProbes_All_Failed(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	v := NewViewer(ctx, printer, nil)
-	_, err := v.OutputInfinite(measurement)
+	run := newPingTestRun(ctx, nil)
+	v := NewViewer(ctx, printer)
+	_, err := outputPing(v, run, ctx, measurement)
 
 	assert.Equal(t, "all probes failed", err.Error())
 	assert.Equal(t, `> London, GB, EU, OVH SAS (AS0) — Error
@@ -713,7 +736,7 @@ ping: cdn.jsdelivr.net.xc: Name or service not known
 ping: cdn.jsdelivr.net.xc: Name or service not known
 `, w.String())
 
-	assert.Nil(t, ctx.AggregatedStats)
+	assert.Nil(t, run.completed)
 }
 
 func Test_OutputInfinite_SingleProbe_Offline(t *testing.T) {
@@ -727,8 +750,9 @@ func Test_OutputInfinite_SingleProbe_Offline(t *testing.T) {
 	w := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, w)
 	printer.DisableStyling()
-	viewer := NewViewer(ctx, printer, nil)
-	_, err := viewer.OutputInfinite(measurement)
+	run := newPingTestRun(ctx, nil)
+	viewer := NewViewer(ctx, printer)
+	_, err := outputPing(viewer, run, ctx, measurement)
 
 	assert.Equal(t, "all probes failed", err.Error())
 	assert.Equal(t,
@@ -737,13 +761,12 @@ This probe is currently offline. Please try again later.
 `,
 		w.String(),
 	)
-	assert.Nil(t, ctx.AggregatedStats)
+	assert.Nil(t, run.completed)
 }
 
 func Test_ParsePingRawOutput_Full(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.Protocol = "ICMP"
-	v := viewer{ctx: ctx}
 
 	hm := ctx.History.Find(measurementID1)
 	m := &globalping.ProbeMeasurement{
@@ -759,7 +782,7 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 		},
 	}
 
-	res := v.parsePingRawOutput(hm, m, -1)
+	res := parsePingRawOutput(ctx.Protocol, hm.StartedAt, nil, m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -787,7 +810,6 @@ rtt min/avg/max/mdev = 1.061/1.090/1.108/0.020 ms`,
 func Test_ParsePingRawOutput_Full_TCP(t *testing.T) {
 	ctx := createDefaultContext("ping")
 	ctx.Protocol = "TCP"
-	v := viewer{ctx: ctx}
 
 	hm := ctx.History.Find(measurementID1)
 	m := &globalping.ProbeMeasurement{
@@ -803,7 +825,7 @@ rtt min/avg/max/mdev = 28.915/29.034/29.225/0.136 ms`,
 		},
 	}
 
-	res := v.parsePingRawOutput(hm, m, -1)
+	res := parsePingRawOutput(ctx.Protocol, hm.StartedAt, nil, m, -1)
 	assert.Equal(t, "104.21.23.24", res.Address)
 	assert.Equal(t, "", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -837,7 +859,6 @@ func Test_ParsePingRawOutput_NoStats(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.Protocol = "ICMP"
-	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 
@@ -852,7 +873,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := v.parsePingRawOutput(hm, m, -1)
+	res := parsePingRawOutput(ctx.Protocol, hm.StartedAt, utilsMock.Now, m, -1)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Nil(t, res.RawPacketLines)
@@ -886,7 +907,6 @@ func Test_ParsePingRawOutput_NoStats_WithStartIncmpSeq(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.Protocol = "ICMP"
-	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 
@@ -901,7 +921,7 @@ no answer yet for icmp_seq=2
 no answer yet for icmp_seq=4`,
 		},
 	}
-	res := v.parsePingRawOutput(hm, m, 4)
+	res := parsePingRawOutput(ctx.Protocol, hm.StartedAt, utilsMock.Now, m, 4)
 	assert.Equal(t, "142.250.65.174", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Equal(t, []string{
@@ -943,7 +963,6 @@ func Test_ParsePingRawOutput_WithRedirect(t *testing.T) {
 
 	ctx := createDefaultContext("ping")
 	ctx.Protocol = "ICMP"
-	v := viewer{ctx: ctx, utils: utilsMock}
 
 	hm := ctx.History.Find(measurementID1)
 
@@ -956,7 +975,7 @@ From goldenfast.net (103.102.153.1): icmp_seq=2 Redirect Host(New nexthop: golde
 64 bytes from 104.18.187.31 (104.18.187.31): icmp_seq=2 ttl=59 time=0.705 ms`,
 		},
 	}
-	res := v.parsePingRawOutput(hm, m, 0)
+	res := parsePingRawOutput(ctx.Protocol, hm.StartedAt, utilsMock.Now, m, 0)
 	assert.Equal(t, "104.18.187.31", res.Address)
 	assert.Equal(t, "56(84)", res.BytesOfData)
 	assert.Equal(t, []string{
@@ -1029,22 +1048,40 @@ func Test_OutputInfinite_LateOlderResultPreservesNewerStatus(t *testing.T) {
 			ctx.Packets = 16
 			printer := NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer))
 			printer.DisableStyling()
+			run := newPingTestRun(ctx, nil)
 			v := &viewer{ctx: ctx, printer: printer}
 
 			older := createPingMeasurement_MultipleProbes(measurementID1)
 			older.Status = globalping.MeasurementStatusInProgress
 			older.Results[1].Result = globalping.ProbeResult{Status: globalping.TestStatusInProgress}
-			_, err := v.OutputInfinite(older)
+			_, err := outputPing(v, run, ctx, older)
 			require.NoError(t, err)
 
 			newer := createPingMeasurement_MultipleProbes(measurementID2)
+			newer.Results[0].Result.StatsRaw = json.RawMessage(`{"min":20,"avg":20,"max":20,"total":1,"rcv":1,"drop":0,"loss":0}`)
+			newer.Results[0].Result.TimingsRaw = json.RawMessage(`[{"rtt":20}]`)
 			newer.Results[1].Result.Status = newerStatus
 			newer.Results[1].Result.FailureSource = globalping.FailureSourceInternal
-			ctx.History.Push(&HistoryItem{Id: measurementID2, StartedAt: defaultCurrentTime})
-			_, err = v.OutputInfinite(newer)
+			run.Add(measurementID2, defaultCurrentTime)
+			_, err = outputPing(v, run, ctx, newer)
 			require.NoError(t, err)
-			assert.Len(t, v.pingRoundOrders, 1)
+			assert.Len(t, run.rounds, 2)
+			assert.Equal(t, 20.0, run.aggregatePending(run.completed[0], 0).Last)
 
+			// A newer completed round without replies must preserve the last available RTT,
+			// including when its state is compacted with the preceding completed round.
+			withoutReplies := createPingMeasurement_MultipleProbes("without-replies")
+			withoutReplies.Results[0].Result.StatsRaw = json.RawMessage(`{"total":16,"rcv":0,"drop":16,"loss":100}`)
+			withoutReplies.Results[0].Result.TimingsRaw = nil
+			withoutReplies.Results[1].Result = newer.Results[1].Result
+			run.Add(withoutReplies.ID, defaultCurrentTime)
+			prepared, err := run.Update(withoutReplies, false, 1)
+			require.NoError(t, err)
+			assert.Equal(t, 20.0, prepared.probes[0].stats.Last)
+			assert.Len(t, run.rounds, 2)
+
+			older.Results[0].Result.StatsRaw = json.RawMessage(`{"min":10,"avg":10,"max":10,"total":1,"rcv":1,"drop":0,"loss":0}`)
+			older.Results[0].Result.TimingsRaw = json.RawMessage(`[{"rtt":10}]`)
 			older.Status = globalping.MeasurementStatusFinished
 			older.Results[1].Result = createPingMeasurement_MultipleProbes(measurementID1).Results[1].Result
 
@@ -1053,9 +1090,11 @@ func Test_OutputInfinite_LateOlderResultPreservesNewerStatus(t *testing.T) {
 				older.Results[1].Result.FailureSource = globalping.FailureSourceTarget
 			}
 
-			output, err := v.OutputInfinite(older)
+			output, err := outputPing(v, run, ctx, older)
 			require.NoError(t, err)
-			assert.Empty(t, v.pingRoundOrders)
+			assert.Empty(t, run.rounds)
+			assert.Equal(t, 20.0, run.aggregatePending(run.completed[0], 0).Last)
+			assert.Contains(t, output, "20.0 ms")
 
 			switch newerStatus {
 			case globalping.TestStatusFinished:

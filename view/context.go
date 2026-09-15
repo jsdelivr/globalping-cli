@@ -1,9 +1,6 @@
 package view
 
-import (
-	"math"
-	"time"
-)
+import "time"
 
 type Context struct {
 	Cmd       string
@@ -41,30 +38,7 @@ type Context struct {
 	IsLocationFromSession bool // Determine whether the previous location is used
 	RecordToSession       bool // Record measurement to session history
 
-	Hostname            string
-	IsHeaderPrinted     bool
 	TableOutputRows     int
-	AggregatedStats     []*MeasurementStats
 	MeasurementsCreated int
 	History             *HistoryBuffer // History of measurements
-	RunSessionStartedAt time.Time
-}
-
-type MeasurementStats struct {
-	Sent  int     // Number of packets sent
-	Rcv   int     // Number of packets received
-	Lost  int     // Number of packets lost
-	Loss  float64 // Percentage of packets lost
-	Last  float64 // Last RTT
-	Min   float64 // Minimum RTT
-	Avg   float64 // Average RTT
-	Max   float64 // Maximum RTT
-	Mdev  float64 // Mean deviation of RTT
-	Time  float64 // Total time of measurement, in milliseconds
-	Tsum  float64 // Total sum of RTT
-	Tsum2 float64 // Total sum of RTT squared
-}
-
-func NewMeasurementStats() *MeasurementStats {
-	return &MeasurementStats{Last: -1, Min: math.MaxFloat64, Avg: -1, Max: -1}
 }

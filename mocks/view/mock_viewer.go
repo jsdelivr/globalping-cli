@@ -12,6 +12,7 @@ package view
 import (
 	reflect "reflect"
 
+	view "github.com/jsdelivr/globalping-cli/view"
 	globalping "github.com/jsdelivr/globalping-go"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -52,18 +53,18 @@ func (mr *MockViewerMockRecorder) OutputDefault(id, measurement, opts any) *gomo
 }
 
 // OutputInfinite mocks base method.
-func (m *MockViewer) OutputInfinite(measurement *globalping.Measurement) (string, error) {
+func (m *MockViewer) OutputInfinite(output *view.InfinitePingOutput) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "OutputInfinite", measurement)
+	ret := m.ctrl.Call(m, "OutputInfinite", output)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // OutputInfinite indicates an expected call of OutputInfinite.
-func (mr *MockViewerMockRecorder) OutputInfinite(measurement any) *gomock.Call {
+func (mr *MockViewerMockRecorder) OutputInfinite(output any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputInfinite", reflect.TypeOf((*MockViewer)(nil).OutputInfinite), measurement)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputInfinite", reflect.TypeOf((*MockViewer)(nil).OutputInfinite), output)
 }
 
 // OutputJSON mocks base method.
@@ -104,6 +105,18 @@ func (mr *MockViewerMockRecorder) OutputLive(measurement, opts, w, h any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputLive", reflect.TypeOf((*MockViewer)(nil).OutputLive), measurement, opts, w, h)
 }
 
+// OutputPingSummary mocks base method.
+func (m *MockViewer) OutputPingSummary(infiniteTableOutput string, summary *view.PingSummary) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OutputPingSummary", infiniteTableOutput, summary)
+}
+
+// OutputPingSummary indicates an expected call of OutputPingSummary.
+func (mr *MockViewerMockRecorder) OutputPingSummary(infiniteTableOutput, summary any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputPingSummary", reflect.TypeOf((*MockViewer)(nil).OutputPingSummary), infiniteTableOutput, summary)
+}
+
 // OutputShare mocks base method.
 func (m *MockViewer) OutputShare() {
 	m.ctrl.T.Helper()
@@ -114,18 +127,6 @@ func (m *MockViewer) OutputShare() {
 func (mr *MockViewerMockRecorder) OutputShare() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputShare", reflect.TypeOf((*MockViewer)(nil).OutputShare))
-}
-
-// OutputSummary mocks base method.
-func (m *MockViewer) OutputSummary(infiniteTableOutput string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OutputSummary", infiniteTableOutput)
-}
-
-// OutputSummary indicates an expected call of OutputSummary.
-func (mr *MockViewerMockRecorder) OutputSummary(infiniteTableOutput any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OutputSummary", reflect.TypeOf((*MockViewer)(nil).OutputSummary), infiniteTableOutput)
 }
 
 // OutputTable mocks base method.

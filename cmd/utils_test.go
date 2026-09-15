@@ -84,17 +84,20 @@ func createDefaultMeasurement_MultipleProbes(measurementStatus globalping.Measur
 		Results: []globalping.ProbeMeasurement{
 			{
 				Result: globalping.ProbeResult{
-					Status: testStatus,
+					Status:   testStatus,
+					StatsRaw: []byte(`{"total":0,"rcv":0,"drop":0,"loss":0}`),
 				},
 			},
 			{
 				Result: globalping.ProbeResult{
-					Status: testStatus,
+					Status:   testStatus,
+					StatsRaw: []byte(`{"total":0,"rcv":0,"drop":0,"loss":0}`),
 				},
 			},
 			{
 				Result: globalping.ProbeResult{
-					Status: testStatus,
+					Status:   testStatus,
+					StatsRaw: []byte(`{"total":0,"rcv":0,"drop":0,"loss":0}`),
 				},
 			},
 		},
@@ -103,10 +106,9 @@ func createDefaultMeasurement_MultipleProbes(measurementStatus globalping.Measur
 
 func createDefaultContext() *view.Context {
 	ctx := &view.Context{
-		History:             view.NewHistoryBuffer(1),
-		From:                "world",
-		Limit:               1,
-		RunSessionStartedAt: defaultCurrentTime,
+		History: view.NewHistoryBuffer(1),
+		From:    "world",
+		Limit:   1,
 	}
 
 	return ctx
@@ -138,7 +140,6 @@ func createDefaultExpectedContext(cmd string) *view.Context {
 		CIMode:              true,
 		History:             view.NewHistoryBuffer(1),
 		MeasurementsCreated: 1,
-		RunSessionStartedAt: defaultCurrentTime,
 	}
 
 	switch cmd {

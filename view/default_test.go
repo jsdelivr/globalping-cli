@@ -61,7 +61,7 @@ func Test_Output_Default_HTTP_Get(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, printer, nil)
+	}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -96,7 +96,7 @@ func Test_Output_Default_HTTP_Get_FailedUsesCompleteRawOutput(t *testing.T) {
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
-	viewer := NewViewer(&Context{Cmd: "http", CIMode: true}, printer, nil)
+	viewer := NewViewer(&Context{Cmd: "http", CIMode: true}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -155,7 +155,7 @@ func Test_Output_Default_HTTP_Get_Share(t *testing.T) {
 		Cmd:    "http",
 		CIMode: true,
 		Share:  true,
-	}, printer, nil)
+	}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -264,7 +264,7 @@ func Test_Output_Default_HTTP_Get_Full(t *testing.T) {
 		Cmd:    "http",
 		CIMode: true,
 		Full:   true,
-	}, printer, nil)
+	}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -352,7 +352,7 @@ func Test_Output_Default_HTTP_Head(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "http",
 		CIMode: true,
-	}, printer, nil)
+	}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -408,7 +408,7 @@ func Test_Output_Default_HTTP_Get_NullableFields(t *testing.T) {
 	errW := new(bytes.Buffer)
 	printer := NewPrinter(nil, w, errW)
 	printer.DisableStyling()
-	viewer := NewViewer(&Context{Cmd: "http", Full: true}, printer, nil)
+	viewer := NewViewer(&Context{Cmd: "http", Full: true}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 
@@ -469,7 +469,7 @@ func Test_Output_Default_Ping(t *testing.T) {
 	viewer := NewViewer(&Context{
 		Cmd:    "ping",
 		CIMode: true,
-	}, printer, nil)
+	}, printer)
 
 	viewer.OutputDefault(measurementID1, measurement, opts)
 

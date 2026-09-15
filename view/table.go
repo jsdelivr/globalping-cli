@@ -80,7 +80,7 @@ func (v *viewer) outputTableView(m *globalping.Measurement) {
 	v.printer.AreaUpdate(&output)
 }
 
-func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, error) {
+func (v *viewer) outputInfinitePingTableView(stats *InfinitePingOutput) (string, error) {
 	v.ctx.TableOutputRows = len(stats.probes)
 	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
@@ -95,7 +95,7 @@ func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, 
 	return completedOutput, nil
 }
 
-func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats *infinitePingStats) (string, error) {
+func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats *InfinitePingOutput) (string, error) {
 	v.ctx.TableOutputRows = len(stats.probes)
 	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
@@ -115,15 +115,15 @@ func (v *viewer) clearInfiniteTableOutput() {
 	v.printer.AreaClear()
 }
 
-func (v *viewer) generateInfinitePingTableOutputs(stats *infinitePingStats) (string, string) {
+func (v *viewer) generateInfinitePingTableOutputs(stats *InfinitePingOutput) (string, string) {
 	width, _ := v.printer.GetSize()
 	liveOutput, completedOutput := v.renderInfinitePingTableVariants(stats, width-2)
-	creditInfo := v.getAPICreditConsumptionInfo(width)
+	creditInfo := v.getAPICreditConsumptionInfo(stats, width)
 
 	return liveOutput + creditInfo, completedOutput + creditInfo
 }
 
-func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaWidth int) (string, string) {
+func (v *viewer) renderInfinitePingTableVariants(stats *InfinitePingOutput, areaWidth int) (string, string) {
 	liveRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	completedRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 
