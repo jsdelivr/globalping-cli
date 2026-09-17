@@ -21,10 +21,7 @@ const (
 	tableTimeoutValue = "time out"
 )
 
-var (
-	httpBodySeparator      = regexp.MustCompile(`\r?\n\r?\n`)
-	tableLocationLineBreak = regexp.MustCompile(`\r\n|\r|\n`)
-)
+var httpBodySeparator = regexp.MustCompile(`\r?\n\r?\n`)
 
 type httpSizeColumn int
 
@@ -817,7 +814,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 				}
 
 				if column == 0 {
-					value = normalizeTableLocation(value)
+					value = normalizeLineBreaks(value)
 				}
 
 				columnWidths[column] = max(columnWidths[column], runewidth.StringWidth(value))
@@ -880,10 +877,10 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			value := strings.ReplaceAll(row[column], "\t", "  ")
 
 			if column == 0 {
-				value = normalizeTableLocation(value)
+				value = normalizeLineBreaks(value)
 			}
 
-			value = truncateTableCell(value, columnWidths[column])
+			value = truncateText(value, columnWidths[column])
 			value = padTableCell(value, columnWidths[column], column > 0)
 
 			if color != ColorNone {
@@ -911,7 +908,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			}
 
 			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
-			value = truncateTableCell(value, spanWidth)
+			value = truncateText(value, spanWidth)
 			output.WriteString(centerTableCell(value, spanWidth))
 		}
 
@@ -919,10 +916,6 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	}
 
 	return output.String()
-}
-
-func normalizeTableLocation(value string) string {
-	return tableLocationLineBreak.ReplaceAllString(value, "; ")
 }
 
 func limitTableRows(output string, maxRows int) string {
@@ -1029,20 +1022,6 @@ func httpStatusCode(status string) (string, bool) {
 	}
 
 	return code, true
-}
-
-func truncateTableCell(value string, width int) string {
-	if runewidth.StringWidth(value) <= width {
-		return value
-	}
-
-	tail := ""
-
-	if width >= 3 {
-		tail = "..."
-	}
-
-	return runewidth.Truncate(value, width, tail)
 }
 
 func padTableCell(value string, width int, left bool) string {

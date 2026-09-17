@@ -3,6 +3,7 @@ package view
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,26 @@ import (
 )
 
 var ErrAllProbesFailed = errors.New("all probes failed")
+
+var lineBreakPattern = regexp.MustCompile(`\r\n|\r|\n`)
+
+func normalizeLineBreaks(value string) string {
+	return lineBreakPattern.ReplaceAllString(value, "; ")
+}
+
+func truncateText(value string, width int) string {
+	if runewidth.StringWidth(value) <= width {
+		return value
+	}
+
+	tail := ""
+
+	if width >= 3 {
+		tail = "..."
+	}
+
+	return runewidth.Truncate(value, width, tail)
+}
 
 func (v *viewer) outputFailSummary(m *globalping.Measurement) error {
 	for i := range m.Results {
@@ -41,7 +62,7 @@ func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalpin
 	for i := range measurement.Results {
 		result := &measurement.Results[i]
 		// Keep headers plain until both width and height have been trimmed.
-		header := normalizeTableLocation(getProbeInfoText(result))
+		header := normalizeLineBreaks(getProbeInfoText(result))
 		status := ""
 
 		if result.Result.Status == globalping.TestStatusFailed {
@@ -50,7 +71,7 @@ func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalpin
 
 		maxW := w - 4
 		status = runewidth.Truncate(status, max(maxW, 0), "")
-		header = truncateTableCell(strings.ReplaceAll(header, "\t", "  "), max(maxW-runewidth.StringWidth(status), 0))
+		header = truncateText(strings.ReplaceAll(header, "\t", "  "), max(maxW-runewidth.StringWidth(status), 0))
 		headerLines[lineCount] = true
 		output.WriteString(header + status + "\n")
 		bodyStart := output.Len()
