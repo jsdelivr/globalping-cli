@@ -246,4 +246,5 @@ jobs:
           identifier: jsdelivr.Globalping
           installers-regex: "Windows_(arm64|x86_64|i386).zip"
           version: ${{ env.VERSION_NAME }}
+          release-tag: ${{ needs.prepare_release.outputs.tag }}
           token: ${{ secrets.GHTOKEN_WINGET }}
