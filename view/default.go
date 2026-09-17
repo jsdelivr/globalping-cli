@@ -20,7 +20,7 @@ func (v *viewer) OutputDefault(id string, measurement *globalping.Measurement, o
 
 		v.printer.ErrPrintln(v.getProbeInfo(result))
 
-		if result.Result.Status == globalping.TestStatusFailed {
+		if result.Result.Status == globalping.TestStatusFailed || result.Result.Status == globalping.TestStatusOffline {
 			v.printer.Println(result.Result.RawOutput)
 
 			continue

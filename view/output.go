@@ -77,7 +77,7 @@ func (v *viewer) OutputLive(measurement *globalping.Measurement, opts *globalpin
 		bodyStart := output.Len()
 
 		switch {
-		case result.Result.Status == globalping.TestStatusFailed:
+		case result.Result.Status == globalping.TestStatusFailed || result.Result.Status == globalping.TestStatusOffline:
 			output.WriteString(result.Result.RawOutput + "\n\n")
 		case v.isBodyOnlyHttpGet(opts):
 			if result.Result.RawBody != nil {
