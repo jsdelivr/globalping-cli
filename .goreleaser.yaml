@@ -16,7 +16,7 @@ builds:
       - darwin
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       globalping_
@@ -28,7 +28,7 @@ archives:
     # use zip for windows archives
     format_overrides:
     - goos: windows
-      format: zip
+      formats: [zip]
 checksum:
   name_template: 'checksums.txt'
 snapshot:
