@@ -77,7 +77,7 @@ func Execute() {
 	})
 
 	globalpingProbe := probe.NewProbe()
-	viewer := view.NewViewer(ctx, printer, _utils)
+	viewer := view.NewViewer(ctx, printer)
 	root := NewRoot(printer, ctx, viewer, _utils, apiClient, globalpingProbe, localStorage)
 
 	err := root.Cmd.Execute()

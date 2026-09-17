@@ -21,10 +21,7 @@ const (
 	tableTimeoutValue = "time out"
 )
 
-var (
-	httpBodySeparator      = regexp.MustCompile(`\r?\n\r?\n`)
-	tableLocationLineBreak = regexp.MustCompile(`\r\n|\r|\n`)
-)
+var httpBodySeparator = regexp.MustCompile(`\r?\n\r?\n`)
 
 type httpSizeColumn int
 
@@ -106,7 +103,7 @@ func (v *viewer) outputTableView(m *globalping.Measurement) {
 	v.printer.AreaUpdate(&output)
 }
 
-func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, error) {
+func (v *viewer) outputInfinitePingTableView(stats *InfinitePingOutput) (string, error) {
 	v.ctx.TableOutputRows = len(stats.probes)
 	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
@@ -121,7 +118,7 @@ func (v *viewer) outputInfinitePingTableView(stats *infinitePingStats) (string, 
 	return completedOutput, nil
 }
 
-func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats *infinitePingStats) (string, error) {
+func (v *viewer) outputInfinitePingLatencyTable(m *globalping.Measurement, stats *InfinitePingOutput) (string, error) {
 	v.ctx.TableOutputRows = len(stats.probes)
 	liveOutput, completedOutput := v.generateInfinitePingTableOutputs(stats)
 
@@ -141,15 +138,15 @@ func (v *viewer) clearInfiniteTableOutput() {
 	v.printer.AreaClear()
 }
 
-func (v *viewer) generateInfinitePingTableOutputs(stats *infinitePingStats) (string, string) {
+func (v *viewer) generateInfinitePingTableOutputs(stats *InfinitePingOutput) (string, string) {
 	width, _ := v.printer.GetSize()
 	liveOutput, completedOutput := v.renderInfinitePingTableVariants(stats, width-2)
-	creditInfo := v.getAPICreditConsumptionInfo(width)
+	creditInfo := v.getAPICreditConsumptionInfo(stats, width)
 
 	return liveOutput + creditInfo, completedOutput + creditInfo
 }
 
-func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaWidth int) (string, string) {
+func (v *viewer) renderInfinitePingTableVariants(stats *InfinitePingOutput, areaWidth int) (string, string) {
 	liveRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 	completedRows := [][]string{{"Location", "Sent", "Loss", "Last", "Min", "Avg", "Max"}}
 
@@ -158,8 +155,8 @@ func (v *viewer) renderInfinitePingTableVariants(stats *infinitePingStats, areaW
 		var liveRow []string
 		var completedRow []string
 
-		if !probeStats.statsAvailable {
-			liveRow = []string{"", "-", "-", "-", "-", "-", "-"}
+		if probeStats.statusMessage != "" {
+			liveRow = []string{"", probeStats.statusMessage}
 			completedRow = append([]string(nil), liveRow...)
 		} else {
 			liveValues := pingTableRowValues(probeStats.stats, false)
@@ -375,8 +372,8 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 
 	row[0] = getLocationText(measurement)
 
-	if measurement.Result.Status == globalping.TestStatusFailed {
-		return []string{row[0], failureTableMessage(&measurement.Result)}
+	if measurement.Result.Status == globalping.TestStatusFailed || measurement.Result.Status == globalping.TestStatusOffline {
+		return []string{row[0], resultStatusLabel(&measurement.Result)}
 	}
 
 	if measurement.Result.Status != globalping.TestStatusFinished {
@@ -402,19 +399,6 @@ func tableRow(measurementType globalping.MeasurementType, trace bool, columns in
 	}
 
 	return row
-}
-
-func failureTableMessage(result *globalping.ProbeResult) string {
-	switch result.FailureSource {
-	case globalping.FailureSourceTarget:
-		return "Target error"
-	case globalping.FailureSourceResolver:
-		return "Resolver error"
-	case globalping.FailureSourceInternal:
-		return "Internal error"
-	default:
-		return "Error"
-	}
 }
 
 type tracerouteTableTiming struct {
@@ -830,7 +814,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 				}
 
 				if column == 0 {
-					value = normalizeTableLocation(value)
+					value = normalizeLineBreaks(value)
 				}
 
 				columnWidths[column] = max(columnWidths[column], runewidth.StringWidth(value))
@@ -893,10 +877,10 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			value := strings.ReplaceAll(row[column], "\t", "  ")
 
 			if column == 0 {
-				value = normalizeTableLocation(value)
+				value = normalizeLineBreaks(value)
 			}
 
-			value = truncateTableCell(value, columnWidths[column])
+			value = truncateText(value, columnWidths[column])
 			value = padTableCell(value, columnWidths[column], column > 0)
 
 			if color != ColorNone {
@@ -924,7 +908,7 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 			}
 
 			spanWidth = min(max(spanWidth, runewidth.StringWidth(value)), availableWidth)
-			value = truncateTableCell(value, spanWidth)
+			value = truncateText(value, spanWidth)
 			output.WriteString(centerTableCell(value, spanWidth))
 		}
 
@@ -932,10 +916,6 @@ func (v *viewer) renderTable(rows [][]string, areaWidth int, measurementType glo
 	}
 
 	return output.String()
-}
-
-func normalizeTableLocation(value string) string {
-	return tableLocationLineBreak.ReplaceAllString(value, "; ")
 }
 
 func limitTableRows(output string, maxRows int) string {
@@ -1042,20 +1022,6 @@ func httpStatusCode(status string) (string, bool) {
 	}
 
 	return code, true
-}
-
-func truncateTableCell(value string, width int) string {
-	if runewidth.StringWidth(value) <= width {
-		return value
-	}
-
-	tail := ""
-
-	if width >= 3 {
-		tail = "..."
-	}
-
-	return runewidth.Truncate(value, width, tail)
 }
 
 func padTableCell(value string, width int, left bool) string {

@@ -142,9 +142,12 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	done := make(chan struct{})
 	var infiniteTableOutput string
 	var err error
+
+	run := view.NewInfinitePingRun(r.ctx.Protocol, r.ctx.Packets, r.utils.Now(), r.utils.Now)
+
 	go func() {
 		defer close(done)
-		infiniteTableOutput, err = r.ping(runCtx, opts)
+		infiniteTableOutput, err = r.runInfinitePing(runCtx, opts, run)
 	}()
 
 	select {
@@ -159,7 +162,7 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	}
 
 	if err == nil && !r.ctx.ToLatency {
-		r.viewer.OutputSummary(infiniteTableOutput)
+		r.viewer.OutputPingSummary(infiniteTableOutput, run.Summary())
 	}
 
 	if errors.Is(err, view.ErrAllProbesFailed) {
@@ -172,12 +175,11 @@ func (r *Root) pingInfinite(ctx context.Context, opts *globalping.MeasurementCre
 	return err
 }
 
-func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (string, error) {
+func (r *Root) runInfinitePing(ctx context.Context, opts *globalping.MeasurementCreate, run *view.InfinitePingRun) (string, error) {
 	var infiniteTableOutput string
 	var runErr error
 	mbuf := NewMeasurementsBuffer(10) // 10 is the maximum number of measurements that can be in progress at the same time
 	awaitStates := map[string]*measurementAwaitState{}
-	r.ctx.RunSessionStartedAt = r.utils.Now()
 
 	for {
 		if err := ctx.Err(); err != nil {
@@ -220,7 +222,21 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 				continue
 			}
 
-			infiniteTableOutput, err = r.viewer.OutputInfinite(measurement)
+			streamRawOutput := len(measurement.Results) == 1 && !r.ctx.Table && !r.ctx.ToLatency
+			output, err := run.Update(measurement, streamRawOutput, r.ctx.MeasurementsCreated)
+
+			if err != nil {
+				r.Cmd.SilenceUsage = true
+
+				return infiniteTableOutput, err
+			}
+
+			infiniteTableOutput, err = r.viewer.OutputInfinite(output)
+
+			// Do not let ErrAllProbesFailed mask the earlier creation error
+			if runErr != nil && errors.Is(err, view.ErrAllProbesFailed) {
+				err = nil
+			}
 
 			if err != nil {
 				r.Cmd.SilenceUsage = true
@@ -251,6 +267,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 				if err != nil {
 					runErr = err // Return the error after all measurements have finished
 				} else {
+					run.Add(hm.Id, hm.StartedAt)
 					mbuf.Append(hm)
 				}
 
@@ -300,6 +317,7 @@ func (r *Root) ping(ctx context.Context, opts *globalping.MeasurementCreate) (st
 			return infiniteTableOutput, err
 		}
 
+		run.Add(hm.Id, hm.StartedAt)
 		mbuf.Append(hm)
 	}
 }

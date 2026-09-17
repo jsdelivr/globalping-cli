@@ -54,7 +54,6 @@ func Test_Output_Latency_Ping(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, errW),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -100,7 +99,6 @@ func Test_Output_Latency_Ping_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -142,7 +140,6 @@ func Test_Output_Latency_DNS(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, w),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -182,7 +179,6 @@ func Test_Output_Latency_DNS_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -222,7 +218,6 @@ func Test_Output_Latency_Http(t *testing.T) {
 			ToLatency: true,
 		},
 		NewPrinter(nil, w, w),
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -268,7 +263,6 @@ func Test_Output_Latency_Http_StylingDisabled(t *testing.T) {
 			ToLatency: true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -330,7 +324,7 @@ func Test_Output_Latency_NullableValues(t *testing.T) {
 			errW := new(bytes.Buffer)
 			printer := NewPrinter(nil, w, errW)
 			printer.DisableStyling()
-			viewer := NewViewer(&Context{Cmd: test.command, ToLatency: true}, printer, nil)
+			viewer := NewViewer(&Context{Cmd: test.command, ToLatency: true}, printer)
 
 			err := viewer.OutputLatency(measurementID1, measurement)
 
@@ -373,7 +367,6 @@ func Test_Output_Latency_Offline(t *testing.T) {
 			Share:     true,
 		},
 		printer,
-		nil,
 	)
 
 	err := viewer.OutputLatency(measurementID1, measurement)
@@ -383,4 +376,28 @@ func Test_Output_Latency_Offline(t *testing.T) {
 > View the results online: https://globalping.io?measurement=1zGzfAGL7sZfUs3c
 `, errW.String())
 	assert.Equal(t, "This probe is currently offline. Please try again later.\n\n", w.String())
+}
+
+func Test_Output_Latency_Failed(t *testing.T) {
+	measurement := &globalping.Measurement{Results: []globalping.ProbeMeasurement{{
+		Probe: globalping.ProbeDetails{Continent: "EU", Country: "DE", City: "Berlin", ASN: 123, Network: "Network"},
+		Result: globalping.ProbeResult{
+			Status:        globalping.TestStatusFailed,
+			FailureSource: globalping.FailureSourceTarget,
+			RawOutput:     "first failure line\nsecond failure line",
+			StatsRaw:      json.RawMessage(`{"min":1,"avg":2,"max":3}`),
+		},
+	}}}
+	w := new(bytes.Buffer)
+	errW := new(bytes.Buffer)
+	printer := NewPrinter(nil, w, errW)
+	printer.DisableStyling()
+	viewer := NewViewer(&Context{Cmd: "ping", ToLatency: true}, printer)
+
+	err := viewer.OutputLatency(measurementID1, measurement)
+
+	require.NoError(t, err)
+	assert.Equal(t, "> Berlin, DE, EU, Network (AS123) — Target error\n", errW.String())
+	assert.Equal(t, "first failure line\nsecond failure line\n\n", w.String())
+	assert.NotContains(t, w.String(), "Min:")
 }

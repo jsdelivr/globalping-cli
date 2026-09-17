@@ -20,7 +20,6 @@ func Test_Output_Json(t *testing.T) {
 			Share:  true,
 		},
 		printer,
-		nil,
 	)
 
 	viewer.OutputJSON(measurementID1, b)

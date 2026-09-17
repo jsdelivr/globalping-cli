@@ -145,7 +145,6 @@ func createDefaultContext(cmd string) *Context {
 		Cmd:                 cmd,
 		MeasurementsCreated: 1,
 		History:             NewHistoryBuffer(3),
-		RunSessionStartedAt: defaultCurrentTime,
 	}
 
 	if cmd == "ping" {

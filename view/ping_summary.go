@@ -5,7 +5,7 @@ import (
 	"math"
 )
 
-func (v *viewer) OutputSummary(infiniteTableOutput string) {
+func (v *viewer) OutputPingSummary(infiniteTableOutput string, summary *PingSummary) {
 	if v.ctx.Infinite && v.ctx.Table {
 		if infiniteTableOutput == "" {
 			return
@@ -20,13 +20,13 @@ func (v *viewer) OutputSummary(infiniteTableOutput string) {
 		return
 	}
 
-	if len(v.ctx.AggregatedStats) != 1 {
+	if summary == nil {
 		return
 	}
 
-	stats := v.aggregateConcurrentStats(v.ctx.AggregatedStats[0], 0, "")
+	stats := summary.Stats
 
-	v.printer.Printf("\n--- %s ping statistics ---\n", v.ctx.Hostname)
+	v.printer.Printf("\n--- %s ping statistics ---\n", summary.Hostname)
 	v.printer.Printf("%d packets transmitted, %d received, %.2f%% packet loss, time %.0fms\n",
 		stats.Sent,
 		stats.Rcv,

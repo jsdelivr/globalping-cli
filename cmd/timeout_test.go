@@ -260,9 +260,9 @@ func Test_PingInfinite_MeasurementTimeoutAndCancellation(t *testing.T) {
 			viewer := viewMocks.NewMockViewer(ctrl)
 
 			if test.timedOut {
-				viewer.EXPECT().OutputInfinite(measurement).Times(0)
+				viewer.EXPECT().OutputInfinite(pingOutputFor(measurement)).Times(0)
 			} else {
-				viewer.EXPECT().OutputInfinite(measurement).Return("", nil)
+				viewer.EXPECT().OutputInfinite(pingOutputFor(measurement)).Return("", nil)
 			}
 
 			utils := utilsMocks.NewMockUtils(ctrl)
@@ -288,7 +288,7 @@ func Test_PingInfinite_MeasurementTimeoutAndCancellation(t *testing.T) {
 			viewCtx.APIMinInterval = time.Hour
 			root := NewRoot(view.NewPrinter(nil, new(bytes.Buffer), new(bytes.Buffer)), viewCtx, viewer, utils, client, nil, nil)
 
-			_, err := root.ping(ctx, opts)
+			_, err := root.runInfinitePing(ctx, opts, view.NewInfinitePingRun(viewCtx.Protocol, viewCtx.Packets, utils.Now(), utils.Now))
 
 			assert.ErrorIs(t, err, test.expected)
 			assert.Equal(t, 1, createCalls)
