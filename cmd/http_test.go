@@ -285,6 +285,8 @@ func Test_BuildHttpMeasurementRequest_TargetParsing(t *testing.T) {
 		{name: "bare IPv6 hexadecimal segment", target: "2001:db8::abcd", wantTarget: "2001:db8::abcd", wantProtocol: "HTTPS", wantPort: 443},
 		{name: "HTTP2 default port", target: "http2://example.com/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 443, wantPath: "/x", wantQuery: "y=1"},
 		{name: "HTTP2 custom port", target: "http2://example.com:8443/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 8443, wantPath: "/x", wantQuery: "y=1"},
+		{name: "escaped path delimiters", target: "https://example.com/a%2Fb%3Fc%23d?x=%2F%3F%23", wantTarget: "example.com", wantProtocol: "HTTPS", wantPort: 443, wantPath: "/a%2Fb%3Fc%23d", wantQuery: "x=%2F%3F%23"},
+		{name: "encoded commas and percent signs", target: "http2://example.com/a%2Cb%252C?x=%2C&y=%252C&z=a+b", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 443, wantPath: "/a%2Cb%252C", wantQuery: "x=%2C&y=%252C&z=a+b"},
 		{name: "HTTP IPv6 URL requires brackets", target: "http://2606:4700:4700::1111/x", wantErr: true},
 		{name: "HTTPS IPv6 URL requires brackets", target: "https://2606:4700:4700::1111/x", wantErr: true},
 		{name: "HTTP2 IPv6 URL requires brackets", target: "http2://2606:4700:4700::1111/x", wantErr: true},
@@ -454,8 +456,8 @@ func Test_BuildHttpMeasurementRequest_ExplicitFlagsOverrideEachURL(t *testing.T)
 	ctx := createDefaultContext()
 	ctx.Protocol = "HTTP2"
 	ctx.Port = 9443
-	ctx.Path = "/override"
-	ctx.Query = "override=1"
+	ctx.Path = "/override%2F%252C"
+	ctx.Query = "override=%2C%252C"
 	root := NewRoot(view.NewPrinter(nil, nil, nil), ctx, nil, nil, nil, nil, nil)
 	cmd, _, err := root.Cmd.Find([]string{"http"})
 	require.NoError(t, err)
@@ -468,7 +470,7 @@ func Test_BuildHttpMeasurementRequest_ExplicitFlagsOverrideEachURL(t *testing.T)
 		require.NoError(t, err)
 		assert.Equal(t, "HTTP2", measurement.Options.Protocol)
 		assert.Equal(t, uint16(9443), measurement.Options.Port)
-		assert.Equal(t, "/override", measurement.Options.Request.Path)
-		assert.Equal(t, "override=1", measurement.Options.Request.Query)
+		assert.Equal(t, "/override%2F%252C", measurement.Options.Request.Path)
+		assert.Equal(t, "override=%2C%252C", measurement.Options.Request.Query)
 	}
 }

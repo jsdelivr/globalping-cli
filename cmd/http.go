@@ -253,7 +253,7 @@ func parseHTTPTarget(input string) (*httpTargetData, error) {
 	}
 
 	targetData.Protocol = strings.ToUpper(u.Scheme)
-	targetData.Path = u.Path
+	targetData.Path = u.EscapedPath()
 	targetData.Query = u.RawQuery
 
 	targetData.Host = u.Hostname()
