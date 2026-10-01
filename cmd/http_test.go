@@ -283,8 +283,11 @@ func Test_BuildHttpMeasurementRequest_TargetParsing(t *testing.T) {
 	}{
 		{name: "bare IPv6 decimal segment", target: "2606:4700:4700::1111", wantTarget: "2606:4700:4700::1111", wantProtocol: "HTTPS", wantPort: 443},
 		{name: "bare IPv6 hexadecimal segment", target: "2001:db8::abcd", wantTarget: "2001:db8::abcd", wantProtocol: "HTTPS", wantPort: 443},
+		{name: "HTTP2 default port", target: "http2://example.com/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 443, wantPath: "/x", wantQuery: "y=1"},
+		{name: "HTTP2 custom port", target: "http2://example.com:8443/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 8443, wantPath: "/x", wantQuery: "y=1"},
 		{name: "HTTP IPv6 URL requires brackets", target: "http://2606:4700:4700::1111/x", wantErr: true},
 		{name: "HTTPS IPv6 URL requires brackets", target: "https://2606:4700:4700::1111/x", wantErr: true},
+		{name: "HTTP2 IPv6 URL requires brackets", target: "http2://2606:4700:4700::1111/x", wantErr: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := createDefaultContext()
@@ -455,14 +458,14 @@ func Test_BuildHttpMeasurementRequest_ExplicitFlagsOverrideEachURL(t *testing.T)
 	ctx.Query = "override=1"
 	root := NewRoot(view.NewPrinter(nil, nil, nil), ctx, nil, nil, nil, nil, nil)
 	cmd, _, err := root.Cmd.Find([]string{"http"})
-	assert.NoError(t, err)
-	assert.NoError(t, cmd.Flags().Set("protocol", "HTTP2"))
-	assert.NoError(t, cmd.Flags().Set("port", "9443"))
+	require.NoError(t, err)
+	require.NoError(t, cmd.Flags().Set("protocol", "HTTP2"))
+	require.NoError(t, cmd.Flags().Set("port", "9443"))
 
-	for _, target := range []string{"http://one.example:8080/first?x=1", "https://two.example:8443/second?y=2"} {
+	for _, target := range []string{"http://one.example:8080/first?x=1", "https://two.example:8443/second?y=2", "http2://three.example/a%2Fb?z=%2C%252C"} {
 		measurement, err := root.buildHttpMeasurementRequest(cmd, target)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "HTTP2", measurement.Options.Protocol)
 		assert.Equal(t, uint16(9443), measurement.Options.Port)
 		assert.Equal(t, "/override", measurement.Options.Request.Path)

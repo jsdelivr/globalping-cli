@@ -39,10 +39,10 @@ func Test_Execute_ComparisonCreatesBothTargetsForEveryCommand(t *testing.T) {
 			targetArgument := "one.example,two.example"
 
 			if measurementType == "http" {
-				targetArgument = "http://one.example:8080/first?x=1,https://two.example:8443/second?y=2"
+				targetArgument = "http2://one.example:8080/first?x=1,https://two.example:8443/second?y=2"
 				first.Target = "one.example"
 				first.Options = &globalping.MeasurementOptions{
-					Protocol: "HTTP",
+					Protocol: "HTTP2",
 					Port:     8080,
 					Request: &globalping.RequestOptions{
 						Path:    "/first",

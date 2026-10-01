@@ -23,7 +23,7 @@ func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagS
 		Long: `The http command sends an HTTP request to a host and can perform a HEAD, GET, or OPTIONS operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.
 Note that GET responses are limited to 10KB, with anything beyond this cut by the API.
 
-Targets may be hostnames, bare IPv4 or IPv6 addresses, or URLs using http:// or https://. IPv6 addresses inside URLs must be enclosed in brackets.
+Targets may be hostnames, bare IPv4 or IPv6 addresses, or URLs using http://, https://, or http2://. IPv6 addresses inside URLs must be enclosed in brackets.
 
 The CLI tool supports two formats:
 1. Full URL: The tool automatically parses the scheme, host, port, domain, path, and query. For example:
@@ -237,7 +237,7 @@ func parseHTTPTarget(input string) (*httpTargetData, error) {
 	var targetData httpTargetData
 
 	// add url scheme if missing
-	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
+	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") && !strings.HasPrefix(input, "http2://") {
 		input = "https://" + input
 	}
 
