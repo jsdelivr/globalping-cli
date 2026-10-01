@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"slices"
 	"strconv"
@@ -21,6 +22,8 @@ func (r *Root) initHTTP(measurementFlags *pflag.FlagSet, localFlags *pflag.FlagS
 		Short:   "Perform a HEAD, GET, or OPTIONS request to a host",
 		Long: `The http command sends an HTTP request to a host and can perform a HEAD, GET, or OPTIONS operations, returning detailed performance statistics for each request. Use it to test and assess the performance and availability of your website, API, or other web services.
 Note that GET responses are limited to 10KB, with anything beyond this cut by the API.
+
+Targets may be hostnames, bare IPv4 or IPv6 addresses, or URLs using http:// or https://. IPv6 addresses inside URLs must be enclosed in brackets.
 
 The CLI tool supports two formats:
 1. Full URL: The tool automatically parses the scheme, host, port, domain, path, and query. For example:
@@ -146,7 +149,7 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command, target string) (*
 		Timeout:           r.ctx.Timeout,
 		InProgressUpdates: !r.ctx.CIMode,
 	}
-	urlData, err := parseUrlData(target)
+	targetData, err := parseHTTPTarget(target)
 
 	if err != nil {
 		return nil, err
@@ -165,12 +168,12 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command, target string) (*
 		method = "GET"
 	}
 
-	opts.Target = urlData.Host
+	opts.Target = targetData.Host
 	opts.Options = &globalping.MeasurementOptions{
-		Protocol: urlData.Protocol,
+		Protocol: targetData.Protocol,
 		Request: &globalping.RequestOptions{
-			Path:    overrideOpt(urlData.Path, r.ctx.Path),
-			Query:   overrideOpt(urlData.Query, r.ctx.Query),
+			Path:    overrideOpt(targetData.Path, r.ctx.Path),
+			Query:   overrideOpt(targetData.Query, r.ctx.Query),
 			Host:    r.ctx.Host,
 			Headers: headers,
 			Method:  method,
@@ -188,8 +191,8 @@ func (r *Root) buildHttpMeasurementRequest(cmd *cobra.Command, target string) (*
 	switch {
 	case portFlag != nil && portFlag.Changed:
 		opts.Options.Port = r.ctx.Port
-	case urlData.HasPort:
-		opts.Options.Port = urlData.Port
+	case targetData.HasPort:
+		opts.Options.Port = targetData.Port
 	case opts.Options.Protocol == "HTTP":
 		opts.Options.Port = 80
 	default:
@@ -215,7 +218,7 @@ func parseHttpHeaders(headerStrings []string) (map[string]string, error) {
 	return h, nil
 }
 
-type UrlData struct {
+type httpTargetData struct {
 	Protocol string
 	Path     string
 	Query    string
@@ -224,9 +227,14 @@ type UrlData struct {
 	HasPort  bool
 }
 
-// parse url data from user text input
-func parseUrlData(input string) (*UrlData, error) {
-	var urlData UrlData
+// parseHTTPTarget parses a hostname, IP address, or URL into HTTP target options.
+func parseHTTPTarget(input string) (*httpTargetData, error) {
+	// Preserve bare IP addresses before URL parsing can interpret an IPv6 segment as a port.
+	if net.ParseIP(input) != nil {
+		return &httpTargetData{Protocol: "HTTPS", Host: input}, nil
+	}
+
+	var targetData httpTargetData
 
 	// add url scheme if missing
 	if !strings.HasPrefix(input, "http://") && !strings.HasPrefix(input, "https://") {
@@ -240,11 +248,15 @@ func parseUrlData(input string) (*UrlData, error) {
 		return nil, errors.Wrapf(err, "failed to parse url input")
 	}
 
-	urlData.Protocol = strings.ToUpper(u.Scheme)
-	urlData.Path = u.Path
-	urlData.Query = u.RawQuery
+	if strings.Contains(u.Hostname(), ":") && !strings.HasPrefix(u.Host, "[") {
+		return nil, errors.New("IPv6 URL hosts must be enclosed in brackets")
+	}
 
-	urlData.Host = u.Hostname()
+	targetData.Protocol = strings.ToUpper(u.Scheme)
+	targetData.Path = u.Path
+	targetData.Query = u.RawQuery
+
+	targetData.Host = u.Hostname()
 	p := u.Port()
 
 	if p != "" {
@@ -255,11 +267,11 @@ func parseUrlData(input string) (*UrlData, error) {
 			return nil, errors.Wrapf(err, "failed to parse url port number: %s", p)
 		}
 
-		urlData.Port = uint16(port)
-		urlData.HasPort = true
+		targetData.Port = uint16(port)
+		targetData.HasPort = true
 	}
 
-	return &urlData, nil
+	return &targetData, nil
 }
 
 // Helper functions to override flags in command

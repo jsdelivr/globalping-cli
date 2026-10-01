@@ -449,9 +449,9 @@ func isIPTarget(command, target string) bool {
 		return false
 	}
 
-	urlData, err := parseUrlData(target)
+	targetData, err := parseHTTPTarget(target)
 
-	return err == nil && net.ParseIP(urlData.Host) != nil
+	return err == nil && net.ParseIP(targetData.Host) != nil
 }
 
 func parseTargets(input string) ([]string, error) {
