@@ -12,6 +12,7 @@ import (
 	"github.com/jsdelivr/globalping-go"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -205,34 +206,34 @@ func Test_Execute_HTTP_Invalid_Protocol(t *testing.T) {
 	assert.Empty(t, items)
 }
 
-func Test_ParseUrlData(t *testing.T) {
-	urlData, err := parseUrlData("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
+func Test_ParseHTTPTarget(t *testing.T) {
+	targetData, err := parseHTTPTarget("https://cdn.jsdelivr.net:8080/npm/react/?query=3")
 	assert.NoError(t, err)
-	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
-	assert.Equal(t, "/npm/react/", urlData.Path)
-	assert.Equal(t, "HTTPS", urlData.Protocol)
-	assert.Equal(t, uint16(8080), urlData.Port)
-	assert.Equal(t, "query=3", urlData.Query)
+	assert.Equal(t, "cdn.jsdelivr.net", targetData.Host)
+	assert.Equal(t, "/npm/react/", targetData.Path)
+	assert.Equal(t, "HTTPS", targetData.Protocol)
+	assert.Equal(t, uint16(8080), targetData.Port)
+	assert.Equal(t, "query=3", targetData.Query)
 }
 
-func Test_ParseUrlData_NoScheme(t *testing.T) {
-	urlData, err := parseUrlData("cdn.jsdelivr.net/npm/react/?query=3")
+func Test_ParseHTTPTarget_NoScheme(t *testing.T) {
+	targetData, err := parseHTTPTarget("cdn.jsdelivr.net/npm/react/?query=3")
 	assert.NoError(t, err)
-	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
-	assert.Equal(t, "/npm/react/", urlData.Path)
-	assert.Equal(t, "HTTPS", urlData.Protocol)
-	assert.Equal(t, uint16(0), urlData.Port)
-	assert.Equal(t, "query=3", urlData.Query)
+	assert.Equal(t, "cdn.jsdelivr.net", targetData.Host)
+	assert.Equal(t, "/npm/react/", targetData.Path)
+	assert.Equal(t, "HTTPS", targetData.Protocol)
+	assert.Equal(t, uint16(0), targetData.Port)
+	assert.Equal(t, "query=3", targetData.Query)
 }
 
-func Test_ParseUrlData_HostOnly(t *testing.T) {
-	urlData, err := parseUrlData("cdn.jsdelivr.net")
+func Test_ParseHTTPTarget_HostOnly(t *testing.T) {
+	targetData, err := parseHTTPTarget("cdn.jsdelivr.net")
 	assert.NoError(t, err)
-	assert.Equal(t, "cdn.jsdelivr.net", urlData.Host)
-	assert.Equal(t, "", urlData.Path)
-	assert.Equal(t, "HTTPS", urlData.Protocol)
-	assert.Equal(t, uint16(0), urlData.Port)
-	assert.Equal(t, "", urlData.Query)
+	assert.Equal(t, "cdn.jsdelivr.net", targetData.Host)
+	assert.Equal(t, "", targetData.Path)
+	assert.Equal(t, "HTTPS", targetData.Protocol)
+	assert.Equal(t, uint16(0), targetData.Port)
+	assert.Equal(t, "", targetData.Query)
 }
 
 func Test_ParseHttpHeaders_None(t *testing.T) {
@@ -267,6 +268,63 @@ func Test_ParseHttpHeaders_Invalid(t *testing.T) {
 
 	_, err := parseHttpHeaders(headerStrings)
 	assert.ErrorContains(t, err, "invalid header")
+}
+
+func Test_BuildHttpMeasurementRequest_TargetParsing(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		target       string
+		wantTarget   string
+		wantProtocol string
+		wantPort     uint16
+		wantPath     string
+		wantQuery    string
+		wantErr      bool
+	}{
+		{name: "bare IPv6 decimal segment", target: "2606:4700:4700::1111", wantTarget: "2606:4700:4700::1111", wantProtocol: "HTTPS", wantPort: 443},
+		{name: "bare IPv6 hexadecimal segment", target: "2001:db8::abcd", wantTarget: "2001:db8::abcd", wantProtocol: "HTTPS", wantPort: 443},
+		{name: "HTTP2 default port", target: "http2://example.com/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 443, wantPath: "/x", wantQuery: "y=1"},
+		{name: "HTTP2 custom port", target: "http2://example.com:8443/x?y=1", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 8443, wantPath: "/x", wantQuery: "y=1"},
+		{name: "escaped path delimiters", target: "https://example.com/a%2Fb%3Fc%23d?x=%2F%3F%23", wantTarget: "example.com", wantProtocol: "HTTPS", wantPort: 443, wantPath: "/a%2Fb%3Fc%23d", wantQuery: "x=%2F%3F%23"},
+		{name: "encoded commas and percent signs", target: "http2://example.com/a%2Cb%252C?x=%2C&y=%252C&z=a+b", wantTarget: "example.com", wantProtocol: "HTTP2", wantPort: 443, wantPath: "/a%2Cb%252C", wantQuery: "x=%2C&y=%252C&z=a+b"},
+		{name: "HTTP IPv6 URL requires brackets", target: "http://2606:4700:4700::1111/x", wantErr: true},
+		{name: "HTTPS IPv6 URL requires brackets", target: "https://2606:4700:4700::1111/x", wantErr: true},
+		{name: "HTTP2 IPv6 URL requires brackets", target: "http2://2606:4700:4700::1111/x", wantErr: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := createDefaultContext()
+			ctx.Port = 443
+			root := &Root{ctx: ctx}
+
+			measurement, err := root.buildHttpMeasurementRequest(&cobra.Command{}, test.target)
+
+			if test.wantErr {
+				require.Error(t, err)
+				assert.Nil(t, measurement)
+
+				return
+			}
+
+			require.NoError(t, err)
+			expected := &globalping.MeasurementCreate{
+				Type:              "http",
+				Target:            test.wantTarget,
+				Limit:             1,
+				InProgressUpdates: true,
+				Options: &globalping.MeasurementOptions{
+					Protocol: test.wantProtocol,
+					Port:     test.wantPort,
+					Request: &globalping.RequestOptions{
+						Path:    test.wantPath,
+						Query:   test.wantQuery,
+						Headers: map[string]string{},
+					},
+				},
+			}
+
+			assert.Equal(t, expected, measurement)
+		})
+	}
 }
 
 func Test_BuildHttpMeasurementRequest_Full(t *testing.T) {
@@ -398,21 +456,21 @@ func Test_BuildHttpMeasurementRequest_ExplicitFlagsOverrideEachURL(t *testing.T)
 	ctx := createDefaultContext()
 	ctx.Protocol = "HTTP2"
 	ctx.Port = 9443
-	ctx.Path = "/override"
-	ctx.Query = "override=1"
+	ctx.Path = "/override%2F%252C"
+	ctx.Query = "override=%2C%252C"
 	root := NewRoot(view.NewPrinter(nil, nil, nil), ctx, nil, nil, nil, nil, nil)
 	cmd, _, err := root.Cmd.Find([]string{"http"})
-	assert.NoError(t, err)
-	assert.NoError(t, cmd.Flags().Set("protocol", "HTTP2"))
-	assert.NoError(t, cmd.Flags().Set("port", "9443"))
+	require.NoError(t, err)
+	require.NoError(t, cmd.Flags().Set("protocol", "HTTP2"))
+	require.NoError(t, cmd.Flags().Set("port", "9443"))
 
-	for _, target := range []string{"http://one.example:8080/first?x=1", "https://two.example:8443/second?y=2"} {
+	for _, target := range []string{"http://one.example:8080/first?x=1", "https://two.example:8443/second?y=2", "http2://three.example/a%2Fb?z=%2C%252C"} {
 		measurement, err := root.buildHttpMeasurementRequest(cmd, target)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "HTTP2", measurement.Options.Protocol)
 		assert.Equal(t, uint16(9443), measurement.Options.Port)
-		assert.Equal(t, "/override", measurement.Options.Request.Path)
-		assert.Equal(t, "override=1", measurement.Options.Request.Query)
+		assert.Equal(t, "/override%2F%252C", measurement.Options.Request.Path)
+		assert.Equal(t, "override=%2C%252C", measurement.Options.Request.Query)
 	}
 }

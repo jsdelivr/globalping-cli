@@ -109,6 +109,7 @@ func Test_UpdateContext_ComparisonValidatesEveryTargetIPVersion(t *testing.T) {
 
 	assert.ErrorIs(t, err, ErrTargetIPVersionNotAllowed)
 	assert.True(t, isIPTarget("http", "https://[2001:db8::1]/path"))
+	assert.True(t, isIPTarget("http", "http2://[2001:db8::1]/path"))
 }
 
 func Test_UpdateContext(t *testing.T) {
