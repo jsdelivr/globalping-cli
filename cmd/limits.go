@@ -38,6 +38,10 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 		username = introspection.Username
 	}
 
+	if introspection != nil && introspection.Organization != "" {
+		username = introspection.Organization + " via " + introspection.Username
+	}
+
 	limits, err := r.client.Limits(ctx)
 
 	if err != nil {

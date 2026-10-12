@@ -123,7 +123,7 @@ func (r *Root) RunAuthStatus(cmd *cobra.Command, _ []string) error {
 	}
 
 	if res.Active {
-		r.printer.Printf("Logged in as %s.\n", res.Username)
+		r.printer.Printf("Logged in as %s.\n", res.AccountName())
 	} else {
 		r.printer.Println("Not logged in.")
 	}
@@ -178,7 +178,7 @@ func (r *Root) loginWithToken(ctx context.Context) error {
 		return errors.New("failed to save token")
 	}
 
-	r.printer.Printf("Logged in as %s.\n", introspection.Username)
+	r.printer.Printf("Logged in as %s.\n", introspection.AccountName())
 
 	return nil
 }
