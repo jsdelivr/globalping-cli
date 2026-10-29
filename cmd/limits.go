@@ -35,11 +35,7 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 	}
 
 	if introspection != nil {
-		username = introspection.Username
-	}
-
-	if introspection != nil && introspection.Organization != "" {
-		username = introspection.Organization + " via " + introspection.Username
+		username = introspection.AccountName()
 	}
 
 	limits, err := r.client.Limits(ctx)
@@ -59,7 +55,7 @@ func (r *Root) RunLimits(cmd *cobra.Command, _ []string) error {
 		if username == "" {
 			r.printer.Printf("Authentication: token\n\n")
 		} else {
-			r.printer.Printf("Authentication: token (%s)\n\n", username)
+			r.printer.Printf("Authentication: token, %s\n\n", username)
 		}
 	} else {
 		r.printer.Printf("Authentication: IP address\n\n")

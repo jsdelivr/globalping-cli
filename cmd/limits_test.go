@@ -53,7 +53,7 @@ func Test_Limits_User(t *testing.T) {
 	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
-	assert.Equal(t, `Authentication: token (test)
+	assert.Equal(t, `Authentication: token, test
 
 Creating measurements:
  - 500 tests per hour
@@ -103,7 +103,7 @@ func Test_Limits_User_Org(t *testing.T) {
 	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
-	assert.Equal(t, `Authentication: token (test-org via test)
+	assert.Equal(t, `Authentication: token, test-org (via test)
 
 Creating measurements:
  - 500 tests per hour
@@ -152,7 +152,7 @@ func Test_Limits_Zero_Reset_Time(t *testing.T) {
 	err := root.Cmd.ExecuteContext(t.Context())
 	assert.NoError(t, err)
 
-	assert.Equal(t, `Authentication: token (test)
+	assert.Equal(t, `Authentication: token, test
 
 Creating measurements:
  - 500 tests per hour
