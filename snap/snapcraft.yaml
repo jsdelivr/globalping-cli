@@ -7,7 +7,7 @@
     debug networking issues using traceroute and DNS resolver, compare CDN and DNS providers performance and more.
 
   grade: stable
-  base: core20
+  base: core22
   confinement: strict
 
   parts:
