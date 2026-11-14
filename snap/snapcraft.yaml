@@ -13,6 +13,7 @@
   parts:
     globalping:
       plugin: go
+      build-snaps: [go/latest/stable]
       source: https://github.com/jsdelivr/globalping-cli
       source-type: git
       
