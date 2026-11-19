@@ -7,12 +7,13 @@
     debug networking issues using traceroute and DNS resolver, compare CDN and DNS providers performance and more.
 
   grade: stable
-  base: core20
+  base: core22
   confinement: strict
 
   parts:
     globalping:
       plugin: go
+      build-snaps: [go/latest/stable]
       source: https://github.com/jsdelivr/globalping-cli
       source-type: git
       
