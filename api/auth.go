@@ -498,6 +498,17 @@ type IntrospectionResponse struct {
 	Aud       string `json:"aud"` // Audience
 	Iss       string `json:"iss"` // Issuer
 	Jti       string `json:"jti"` // JWT ID
+
+	// Globalping fields
+	Organization string `json:"organization"` // The org the token acts for, empty for a personal token
+}
+
+func (r *IntrospectionResponse) AccountName() string {
+	if r.Organization == "" {
+		return r.Username
+	}
+
+	return r.Organization + " (via " + r.Username + ")"
 }
 
 func (c *client) introspection(ctx context.Context, token string) (*IntrospectionResponse, error) {

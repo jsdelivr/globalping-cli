@@ -123,6 +123,32 @@ func Test_AuthStatus(t *testing.T) {
 `, w.String())
 }
 
+func Test_AuthStatus_Org(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	gbMock := apiMocks.NewMockClient(ctrl)
+
+	w := new(bytes.Buffer)
+	printer := view.NewPrinter(nil, w, w)
+	ctx := createDefaultContext()
+
+	root := NewRoot(printer, ctx, nil, nil, gbMock, nil, nil)
+
+	gbMock.EXPECT().TokenIntrospection(t.Context(), "").Return(&api.IntrospectionResponse{
+		Active:       true,
+		Username:     "test",
+		Organization: "test-org",
+	}, nil)
+
+	os.Args = []string{"globalping", "auth", "status"}
+	err := root.Cmd.ExecuteContext(t.Context())
+	assert.NoError(t, err)
+
+	assert.Equal(t, `Logged in as test-org (via test).
+`, w.String())
+}
+
 func Test_Logout(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
