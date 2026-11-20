@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       resume_tag:
-        description: Existing semantic-release tag whose artifact publishing should be resumed
+        description: Existing semantic-release tag whose publishing should be resumed
         required: false
         type: string
 
@@ -36,6 +36,7 @@ jobs:
       published: ${{ steps.release_info.outputs.published }}
       tag: ${{ steps.release_info.outputs.tag }}
       version: ${{ steps.release_info.outputs.version }}
+      reuse_assets: ${{ steps.recovery.outputs.reuse_assets }}
 
     steps:
       - uses: actions/checkout@v7
@@ -118,8 +119,8 @@ jobs:
           fi
 
           if [[ "$asset_count" != "0" ]]; then
-            echo "GitHub release already has $asset_count assets; refusing non-idempotent republishing." >&2
-            exit 1
+            echo "GitHub release already has $asset_count assets. Reusing published assets."
+            echo "reuse_assets=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Resolve release information
@@ -144,7 +145,7 @@ jobs:
   goreleaser:
     name: Build and publish release
     needs: prepare_release
-    if: needs.prepare_release.outputs.published == 'true'
+    if: needs.prepare_release.outputs.published == 'true' && needs.prepare_release.outputs.reuse_assets != 'true'
     runs-on: windows-latest
     permissions:
       contents: read
@@ -190,6 +191,11 @@ jobs:
 
   release_linux:
     needs: [ prepare_release, goreleaser ]
+    if: >-
+      !cancelled() &&
+      needs.prepare_release.result == 'success' &&
+      (needs.goreleaser.result == 'success' ||
+      (needs.goreleaser.result == 'skipped' && needs.prepare_release.outputs.reuse_assets == 'true'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -203,8 +209,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: ${{ needs.prepare_release.outputs.tag }}
+          # Use the uploader from the workflow revision when resuming an older release.
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-go@v7
         with:
@@ -212,11 +218,41 @@ jobs:
           cache: true
 
       - uses: actions/download-artifact@v8
+        if: needs.prepare_release.outputs.reuse_assets != 'true'
         with:
           name: goreleaser-deb
       - uses: actions/download-artifact@v8
+        if: needs.prepare_release.outputs.reuse_assets != 'true'
         with:
           name: goreleaser-rpm
+
+      - name: Download published Linux packages
+        if: needs.prepare_release.outputs.reuse_assets == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare_release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          assets=(
+            "globalping_${VERSION_NAME}_linux_amd64.deb"
+            "globalping_${VERSION_NAME}_linux_arm64.deb"
+            "globalping_${VERSION_NAME}_linux_amd64.rpm"
+            "globalping_${VERSION_NAME}_linux_arm64.rpm"
+          )
+          patterns=()
+          for asset in "${assets[@]}"; do
+            patterns+=(--pattern "$asset")
+          done
+
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${patterns[@]}"
+          for asset in "${assets[@]}"; do
+            if [[ ! -s "$asset" ]]; then
+              echo "Missing or empty release asset: $asset" >&2
+              exit 1
+            fi
+          done
 
       - run: ls -la
 
@@ -228,6 +264,11 @@ jobs:
 
   release_windows:
     needs: [ prepare_release, goreleaser ]
+    if: >-
+      !cancelled() &&
+      needs.prepare_release.result == 'success' &&
+      (needs.goreleaser.result == 'success' ||
+      (needs.goreleaser.result == 'skipped' && needs.prepare_release.outputs.reuse_assets == 'true'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -235,10 +276,30 @@ jobs:
       VERSION_NAME: ${{ needs.prepare_release.outputs.version }}
     steps:
       - uses: actions/download-artifact@v8
+        if: needs.prepare_release.outputs.reuse_assets != 'true'
         with:
           name: goreleaser-windows
 
       - run: ls -la
+
+      - name: Verify published Windows packages
+        if: needs.prepare_release.outputs.reuse_assets == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.prepare_release.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          assets=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | select(.state == "uploaded" and .size > 0) | .name')
+          for arch in arm64 x86_64 i386; do
+            asset="globalping_Windows_${arch}.zip"
+            if ! grep -Fxq "$asset" <<< "$assets"; then
+              echo "Missing or empty release asset: $asset" >&2
+              exit 1
+            fi
+          done
 
       - name: Release to Winget
         uses: vedantmgoyal2009/winget-releaser@v2
