@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -91,22 +95,23 @@ func upload(file string, dist string, config *Config) {
 
 	switch dist {
 	case "deb":
-		uploadToAllDistros(config, f, distros.Deb)
+		uploadToAllDistros(config, f, dist, distros.Deb)
 	case "rpm":
-		uploadToAllDistros(config, f, distros.Rpm)
+		uploadToAllDistros(config, f, dist, distros.Rpm)
 	}
 }
 
-func uploadToAllDistros(config *Config, f *os.File, distros []*Distro) {
+func uploadToAllDistros(config *Config, f *os.File, packageType string, distros []*Distro) {
 	totalDistros := 0
 
 	for _, distro := range distros {
 		l := len(distro.Versions)
 
 		for j := l - 1; (j >= 0) && (l-j <= config.MaxDistroVersionsToSupport); j-- {
+			version := distro.Versions[j]
 			totalDistros++
-			log.Printf("Uploading to %s/%s (%d)\n", distro.IndexName, distro.Versions[j].IndexName, distro.Versions[j].ID)
-			err := uploadPackage(config, strconv.Itoa(distro.Versions[j].ID), f)
+			log.Printf("Uploading to %s/%s (%d)\n", distro.IndexName, version.IndexName, version.ID)
+			err := uploadPackage(config, packageType, distro.IndexName, version, f)
 
 			if err != nil {
 				log.Println("Failed to upload package: ", err)
@@ -146,7 +151,9 @@ func destroyOlderVersions(config *Config, t string, distros []*Distro) {
 		l := len(distro.Versions)
 
 		for j := l - 1; j >= 0; j-- {
-			versionGroups, err := fetchVersionGroups(config, t, distro.IndexName, distro.Versions[j].IndexName)
+			path := versionGroupsPath(config, t, distro.IndexName, distro.Versions[j].IndexName)
+			var versionGroups []*PackageVersionGroup
+			_, err := getPackagecloudJSON(context.Background(), config, path, &versionGroups)
 
 			if err != nil {
 				log.Printf("Failed to fetch version groups for %s %s/%s: %s\n", t, distro.IndexName, distro.Versions[j].IndexName, err)
@@ -156,7 +163,8 @@ func destroyOlderVersions(config *Config, t string, distros []*Distro) {
 			noLongerSupported := l-j > config.MaxDistroVersionsToSupport
 
 			for _, versionGroup := range versionGroups {
-				versions, err := fetchVersions(config, versionGroup.VersionsURL)
+				var versions []*PackageVersion
+				_, err := getPackagecloudJSON(context.Background(), config, versionGroup.VersionsURL, &versions)
 
 				if err != nil {
 					log.Printf("Failed to fetch versions for %s/%s: %s\n", distro.IndexName, distro.Versions[j].IndexName, err)
@@ -190,7 +198,7 @@ func destroyOlderVersions(config *Config, t string, distros []*Distro) {
 	log.Printf("%s: %d versions destroyed\n", t, totalDestroyed)
 }
 
-func uploadPackage(config *Config, distroVersionId string, f *os.File) error {
+func uploadPackage(config *Config, packageType, distro string, version *DistroVersion, f *os.File) error {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	part, err := writer.CreateFormFile("package[package_file]", f.Name())
@@ -199,13 +207,14 @@ func uploadPackage(config *Config, distroVersionId string, f *os.File) error {
 		return err
 	}
 
-	_, err = io.Copy(part, f)
+	hash := sha256.New()
+	_, err = io.Copy(io.MultiWriter(part, hash), f)
 
 	if err != nil {
 		return err
 	}
 
-	err = writer.WriteField("package[distro_version_id]", distroVersionId)
+	err = writer.WriteField("package[distro_version_id]", strconv.Itoa(version.ID))
 
 	if err != nil {
 		return err
@@ -217,31 +226,213 @@ func uploadPackage(config *Config, distroVersionId string, f *os.File) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages.json", &body)
+	const maxAttempts = 3
+
+	for attempt := 1; ; attempt++ {
+		status, response, err := postPackage(config, writer.FormDataContentType(), body.Bytes())
+
+		if err != nil {
+			return err
+		}
+
+		if status == http.StatusCreated {
+			return nil
+		}
+
+		isTimeout := status == http.StatusGatewayTimeout
+		var duplicate string
+
+		if status == http.StatusUnprocessableEntity {
+			duplicate = duplicatePackageFilename(response)
+		}
+
+		if isTimeout || duplicate != "" {
+			matches, err := packageMatches(config, packageType, distro, version.IndexName, duplicate, hex.EncodeToString(hash.Sum(nil)))
+
+			if err != nil {
+				return fmt.Errorf("checking package after upload returned HTTP %d: %w", status, err)
+			}
+
+			if matches {
+				log.Printf("Package already uploaded to %s/%s (SHA-256 verified)\n", distro, version.IndexName)
+
+				return nil
+			}
+
+			if isTimeout && attempt < maxAttempts {
+				log.Printf("Upload to %s/%s timed out, retrying (%d/%d)\n", distro, version.IndexName, attempt+1, maxAttempts)
+				time.Sleep(time.Duration(attempt) * time.Second)
+
+				continue
+			}
+		}
+
+		if isTimeout {
+			return fmt.Errorf("upload returned HTTP %d after %d attempts", status, attempt)
+		}
+
+		return fmt.Errorf("unexpected status code: %d, body: %s", status, response)
+	}
+}
+
+func postPackage(config *Config, contentType string, body []byte) (int, []byte, error) {
+	req, err := http.NewRequest(http.MethodPost, PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages.json", bytes.NewReader(body))
 
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Content-Type", contentType)
 	req.SetBasicAuth(config.PackagecloudAPIKey, "")
 	resp, err := http.DefaultClient.Do(req)
 
 	if err != nil {
-		return err
+		return 0, nil, err
 	}
 
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 
-	if resp.StatusCode != http.StatusCreated {
-		b, _ := io.ReadAll(resp.Body)
-
-		return fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
+	// The 504 status is enough to verify whether the upload landed.
+	if resp.StatusCode == http.StatusCreated || resp.StatusCode == http.StatusGatewayTimeout {
+		return resp.StatusCode, nil, nil
 	}
 
-	return nil
+	response, err := io.ReadAll(resp.Body)
+
+	return resp.StatusCode, response, err
+}
+
+func duplicatePackageFilename(response []byte) string {
+	var validationErrors map[string][]string
+
+	if err := json.Unmarshal(response, &validationErrors); err != nil || len(validationErrors) != 1 {
+		return ""
+	}
+
+	filenameErrors := validationErrors["filename"]
+
+	if len(filenameErrors) != 1 {
+		return ""
+	}
+
+	filename, ok := strings.CutSuffix(filenameErrors[0], "' has already been taken")
+
+	if !ok {
+		return ""
+	}
+
+	filename, _ = strings.CutPrefix(filename, "'")
+
+	return filename
+}
+
+func packageMatches(config *Config, packageType, distro, version, filename, checksum string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	groups, err := packagecloudPages[PackageVersionGroup](ctx, config, versionGroupsPath(config, packageType, distro, version))
+
+	if err != nil {
+		return false, err
+	}
+
+	for _, group := range groups {
+		packages, err := packagecloudPages[PackageVersion](ctx, config, group.VersionsURL)
+
+		if err != nil {
+			return false, err
+		}
+
+		for _, pkg := range packages {
+			if filename != "" && filename != pkg.Filename {
+				continue
+			}
+
+			var metadata struct {
+				SHA256 string `json:"sha256sum"`
+			}
+			_, err := getPackagecloudJSON(ctx, config, pkg.PackageURL, &metadata)
+
+			if err != nil {
+				return false, err
+			}
+
+			if strings.EqualFold(checksum, metadata.SHA256) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+func getPackagecloudJSON(ctx context.Context, config *Config, path string, result any) (string, error) {
+	if !strings.HasPrefix(path, "/api/v1/") {
+		return "", fmt.Errorf("unexpected Packagecloud API path: %q", path)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, PackagecloudAPIURL+path, nil)
+
+	if err != nil {
+		return "", err
+	}
+
+	req.SetBasicAuth(config.PackagecloudAPIKey, "")
+	resp, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return "", err
+	}
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+
+		return "", fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, b)
+	}
+
+	return resp.Header.Get("Link"), json.NewDecoder(resp.Body).Decode(result)
+}
+
+func packagecloudPages[T any](ctx context.Context, config *Config, path string) ([]T, error) {
+	var all []T
+
+	for path != "" {
+		var page []T
+		links, err := getPackagecloudJSON(ctx, config, path, &page)
+
+		if err != nil {
+			return nil, err
+		}
+
+		all = append(all, page...)
+		path = ""
+
+		for link := range strings.SplitSeq(links, ",") {
+			target, found := strings.CutSuffix(strings.TrimSpace(link), `>; rel="next"`)
+
+			if !found {
+				continue
+			}
+
+			next, ok := strings.CutPrefix(target, "<"+PackagecloudAPIURL)
+
+			if !ok || !strings.HasPrefix(next, "/api/v1/") {
+				return nil, fmt.Errorf("unexpected Packagecloud pagination link: %q", link)
+			}
+
+			path = next
+
+			break
+		}
+	}
+
+	return all, nil
 }
 
 type DistroVersion struct {
@@ -297,76 +488,15 @@ type PackageVersion struct {
 	DestroyURL string    `json:"destroy_url"`
 	Version    string    `json:"version"`
 	Filename   string    `json:"filename"`
-}
-
-func fetchVersions(config *Config, url string) ([]*PackageVersion, error) {
-	req, err := http.NewRequest(http.MethodGet, PackagecloudAPIURL+url, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth(config.PackagecloudAPIKey, "")
-	resp, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
-	}
-
-	versions := []*PackageVersion{}
-
-	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
-		return nil, err
-	}
-
-	return versions, nil
+	PackageURL string    `json:"package_url"`
 }
 
 type PackageVersionGroup struct {
 	VersionsURL string `json:"versions_url"`
 }
 
-func fetchVersionGroups(config *Config, t string, distro string, name string) ([]*PackageVersionGroup, error) {
-	req, err := http.NewRequest(http.MethodGet, PackagecloudAPIURL+"/api/v1/repos/"+config.PackagecloudUser+"/"+config.PackagecloudRepo+"/packages/"+t+"/"+distro+"/"+name+".json", nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth(config.PackagecloudAPIKey, "")
-	resp, err := http.DefaultClient.Do(req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-
-		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(b))
-	}
-
-	versions := []*PackageVersionGroup{}
-
-	if err := json.NewDecoder(resp.Body).Decode(&versions); err != nil {
-		return nil, err
-	}
-
-	return versions, nil
+func versionGroupsPath(config *Config, packageType, distro, version string) string {
+	return "/api/v1/repos/" + config.PackagecloudUser + "/" + config.PackagecloudRepo + "/packages/" + packageType + "/" + distro + "/" + version + ".json"
 }
 
 func deleteVersion(config *Config, url string) error {
