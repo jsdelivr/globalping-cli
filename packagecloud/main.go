@@ -240,14 +240,15 @@ func uploadPackage(config *Config, packageType, distro string, version *DistroVe
 		}
 
 		isTimeout := status == http.StatusGatewayTimeout
-		var duplicate string
+		var filename string
+		var isDuplicate bool
 
 		if status == http.StatusUnprocessableEntity {
-			duplicate = duplicatePackageFilename(response)
+			filename, isDuplicate = duplicatePackage(response)
 		}
 
-		if isTimeout || duplicate != "" {
-			matches, err := packageMatches(config, packageType, distro, version.IndexName, duplicate, hex.EncodeToString(hash.Sum(nil)))
+		if isTimeout || isDuplicate {
+			matches, err := packageMatches(config, packageType, distro, version.IndexName, filename, hex.EncodeToString(hash.Sum(nil)))
 
 			if err != nil {
 				return fmt.Errorf("checking package after upload returned HTTP %d: %w", status, err)
@@ -304,28 +305,41 @@ func postPackage(config *Config, contentType string, body []byte) (int, []byte, 
 	return resp.StatusCode, response, err
 }
 
-func duplicatePackageFilename(response []byte) string {
-	var validationErrors map[string][]string
+func duplicatePackage(response []byte) (string, bool) {
+	var validationErrors map[string]json.RawMessage
 
 	if err := json.Unmarshal(response, &validationErrors); err != nil || len(validationErrors) != 1 {
-		return ""
+		return "", false
 	}
 
-	filenameErrors := validationErrors["filename"]
+	filenameError := validationErrors["filename"]
+	var message string
 
-	if len(filenameErrors) != 1 {
-		return ""
+	if err := json.Unmarshal(filenameError, &message); err != nil {
+		var messages []string
+
+		if err := json.Unmarshal(filenameError, &messages); err != nil || len(messages) != 1 {
+			return "", false
+		}
+
+		message = messages[0]
 	}
 
-	filename, ok := strings.CutSuffix(filenameErrors[0], "' has already been taken")
+	const duplicateMessage = "has already been taken"
+
+	if message == duplicateMessage {
+		return "", true
+	}
+
+	filename, ok := strings.CutSuffix(message, "' "+duplicateMessage)
 
 	if !ok {
-		return ""
+		return "", false
 	}
 
 	filename, _ = strings.CutPrefix(filename, "'")
 
-	return filename
+	return filename, filename != ""
 }
 
 func packageMatches(config *Config, packageType, distro, version, filename, checksum string) (bool, error) {
